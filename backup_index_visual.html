@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FinanceAI — Assistente Financeiro Inteligente</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<!-- AUTH SCREEN -->
+<div id="authScreen" class="auth-screen active">
+  <div class="auth-bg">
+    <div class="auth-blob blob1"></div>
+    <div class="auth-blob blob2"></div>
+    <div class="auth-blob blob3"></div>
+  </div>
+  <div class="auth-container">
+    <div class="auth-brand">
+      <div class="brand-logo">
+        <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+          <rect width="36" height="36" rx="10" fill="url(#grad1)"/>
+          <defs><linearGradient id="grad1" x1="0" y1="0" x2="36" y2="36"><stop offset="0%" stop-color="#6366f1"/><stop offset="100%" stop-color="#8b5cf6"/></linearGradient></defs>
+          <path d="M10 22L16 16L20 20L26 14" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="26" cy="14" r="2" fill="#a78bfa"/>
+        </svg>
+      </div>
+      <span class="brand-name">FinanceAI</span>
+    </div>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" data-tab="login" onclick="switchAuthTab('login')">Entrar</button>
+      <button class="auth-tab" data-tab="register" onclick="switchAuthTab('register')">Cadastrar</button>
+    </div>
+
+    <!-- LOGIN FORM -->
+    <div id="loginForm" class="auth-form active">
+      <h2>Bem-vindo de volta</h2>
+      <p class="auth-subtitle">Gerencie suas finanças com inteligência</p>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="loginEmail" placeholder="seu@email.com" />
+      </div>
+      <div class="form-group">
+        <label>Senha</label>
+        <input type="password" id="loginPassword" placeholder="••••••••" />
+      </div>
+      <button class="btn-primary full-width" onclick="handleLogin()">
+        <span>Entrar</span>
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 10h10M10 5l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <p class="auth-link">Esqueceu a senha? <a href="#" onclick="showForgotPassword()">Recuperar</a></p>
+    </div>
+
+    <!-- REGISTER FORM -->
+    <div id="registerForm" class="auth-form">
+      <h2>Criar conta gratuita</h2>
+      <p class="auth-subtitle">Comece a transformar sua vida financeira</p>
+      <div class="form-group">
+        <label>Nome completo</label>
+        <input type="text" id="regName" placeholder="João Silva" />
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="regEmail" placeholder="seu@email.com" />
+      </div>
+      <div class="form-group">
+        <label>Senha</label>
+        <input type="password" id="regPassword" placeholder="Mínimo 8 caracteres" />
+      </div>
+      <div class="form-group">
+        <label>Confirmar senha</label>
+        <input type="password" id="regConfirm" placeholder="Repita a senha" />
+      </div>
+      <button class="btn-primary full-width" onclick="handleRegister()">
+        <span>Criar conta</span>
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 10h10M10 5l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app" class="app hidden">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="brand-logo">
+        <svg width="32" height="32" viewBox="0 0 36 36" fill="none">
+          <rect width="36" height="36" rx="10" fill="url(#grad2)"/>
+          <defs><linearGradient id="grad2" x1="0" y1="0" x2="36" y2="36"><stop offset="0%" stop-color="#6366f1"/><stop offset="100%" stop-color="#8b5cf6"/></linearGradient></defs>
+          <path d="M10 22L16 16L20 20L26 14" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="26" cy="14" r="2" fill="#a78bfa"/>
+        </svg>
+      </div>
+      <span class="brand-name">FinanceAI</span>
+      <button class="sidebar-close" onclick="toggleSidebar()">✕</button>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a href="#" class="nav-item active" data-page="dashboard" onclick="navigate('dashboard')">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="2" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="11" y="2" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="2" y="11" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="11" y="11" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/></svg>
+        Dashboard
+      </a>
+      <a href="#" class="nav-item" data-page="transactions" onclick="navigate('transactions')">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 6h14M3 10h14M3 14h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        Transações
+      </a>
+      <a href="#" class="nav-item" data-page="goals" onclick="navigate('goals')">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="1.5"/><circle cx="10" cy="10" r="3" stroke="currentColor" stroke-width="1.5"/><circle cx="10" cy="10" r="1" fill="currentColor"/></svg>
+        Metas
+      </a>
+      <a href="#" class="nav-item" data-page="ai" onclick="navigate('ai')">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 2C5.58 2 2 5.58 2 10s3.58 8 8 8 8-3.58 8-8-3.58-8-8-8z" stroke="currentColor" stroke-width="1.5"/><path d="M7 10h6M10 7v6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        IA Insights
+      </a>
+      <a href="#" class="nav-item" data-page="education" onclick="navigate('education')">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 3L2 7l8 4 8-4-8-4z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M2 7v6M18 7v6M6 9v5a4 4 0 008 0V9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        Educação
+      </a>
+      <a href="#" class="nav-item" data-page="reports" onclick="navigate('reports')">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M7 10h6M7 13h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M7 7h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        Relatórios
+      </a>
+      <a href="#" class="nav-item" data-page="settings" onclick="navigate('settings')">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="2.5" stroke="currentColor" stroke-width="1.5"/><path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.22 4.22l1.42 1.42M14.36 14.36l1.42 1.42M4.22 15.78l1.42-1.42M14.36 5.64l1.42-1.42" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        Configurações
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="user-card">
+        <div class="user-avatar" id="sidebarAvatar">J</div>
+        <div class="user-info">
+          <span class="user-name" id="sidebarName">João Silva</span>
+          <span class="user-plan">Pro Plan</span>
+        </div>
+        <button onclick="handleLogout()" title="Sair">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M7 15H3a1 1 0 01-1-1V4a1 1 0 011-1h4M12 12l3-3-3-3M15 9H7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content">
+    <!-- TOP BAR -->
+    <header class="topbar">
+      <button class="menu-toggle" onclick="toggleSidebar()">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M3 6h16M3 11h16M3 16h16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </button>
+      <div class="topbar-title" id="pageTitle">Dashboard</div>
+      <div class="topbar-actions">
+        <div class="notification-bell" onclick="toggleNotifications()">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M11 2a6 6 0 00-6 6v3l-2 2v1h16v-1l-2-2V8a6 6 0 00-6-6z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M9 17a2 2 0 004 0" stroke="currentColor" stroke-width="1.5"/></svg>
+          <span class="notif-badge" id="notifBadge">3</span>
+        </div>
+        <button class="theme-toggle" onclick="toggleTheme()">
+          <svg id="themeIcon" width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="4" stroke="currentColor" stroke-width="1.5"/><path d="M10 2v1M10 17v1M2 10h1M17 10h1M4.22 4.22l.7.7M15.08 15.08l.7.7M4.22 15.78l.7-.7M15.08 4.92l.7-.7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </button>
+        <button class="btn-primary" onclick="openTransactionModal('expense')">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2v12M2 8h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          Adicionar
+        </button>
+      </div>
+    </header>
+
+    <!-- NOTIFICATIONS PANEL -->
+    <div class="notif-panel hidden" id="notifPanel">
+      <div class="notif-header">
+        <h3>Notificações</h3>
+        <button onclick="clearNotifications()">Limpar tudo</button>
+      </div>
+      <div class="notif-list" id="notifList"></div>
+    </div>
+
+    <!-- PAGES -->
+    <div class="page-content">
+
+      <!-- DASHBOARD PAGE -->
+      <div id="page-dashboard" class="page active">
+        <div class="page-header">
+          <div>
+            <h1 id="dashGreeting">Bom dia, João! 👋</h1>
+            <p class="page-subtitle">Aqui está um resumo das suas finanças</p>
+          </div>
+          <div class="period-selector">
+            <button class="period-btn active" onclick="changePeriod('month', this)">Mês</button>
+            <button class="period-btn" onclick="changePeriod('quarter', this)">Trimestre</button>
+            <button class="period-btn" onclick="changePeriod('year', this)">Ano</button>
+          </div>
+        </div>
+
+        <!-- KPI CARDS -->
+        <div class="kpi-grid">
+          <div class="kpi-card income">
+            <div class="kpi-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12l7-7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="kpi-info">
+              <span class="kpi-label">Total de Receitas</span>
+              <span class="kpi-value" id="totalIncome">R$ 0,00</span>
+              <span class="kpi-change positive" id="incomeChange">+0%</span>
+            </div>
+          </div>
+          <div class="kpi-card expense">
+            <div class="kpi-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 19V5M5 12l7 7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="kpi-info">
+              <span class="kpi-label">Total de Despesas</span>
+              <span class="kpi-value" id="totalExpense">R$ 0,00</span>
+              <span class="kpi-change" id="expenseChange">+0%</span>
+            </div>
+          </div>
+          <div class="kpi-card balance">
+            <div class="kpi-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="kpi-info">
+              <span class="kpi-label">Saldo Atual</span>
+              <span class="kpi-value" id="currentBalance">R$ 0,00</span>
+              <span class="kpi-change" id="balanceStatus">Estável</span>
+            </div>
+          </div>
+          <div class="kpi-card savings">
+            <div class="kpi-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 2a10 10 0 100 20A10 10 0 0012 2z" stroke="currentColor" stroke-width="2"/><path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </div>
+            <div class="kpi-info">
+              <span class="kpi-label">Taxa de Poupança</span>
+              <span class="kpi-value" id="savingsRate">0%</span>
+              <span class="kpi-change" id="savingsStatus">Meta: 20%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI INSIGHT BANNER -->
+        <div class="ai-insight-banner" id="aiInsightBanner">
+          <div class="ai-badge">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM8 5v4M8 10.5v.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            IA Insight
+          </div>
+          <p id="aiInsightText">Analisando seus dados financeiros...</p>
+          <button class="btn-ghost" onclick="navigate('ai')">Ver análise completa →</button>
+        </div>
+
+        <!-- CHARTS ROW -->
+        <div class="charts-grid">
+          <div class="chart-card wide">
+            <div class="chart-header">
+              <h3>Fluxo de Caixa</h3>
+              <div class="chart-legend">
+                <span class="legend-dot income"></span>Receitas
+                <span class="legend-dot expense"></span>Despesas
+              </div>
+            </div>
+            <div class="chart-body">
+              <canvas id="cashflowChart"></canvas>
+            </div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-header">
+              <h3>Por Categoria</h3>
+            </div>
+            <div class="chart-body">
+              <canvas id="categoryChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- RECENT TRANSACTIONS + GOALS MINI -->
+        <div class="bottom-grid">
+          <div class="card">
+            <div class="card-header">
+              <h3>Transações Recentes</h3>
+              <button class="btn-ghost" onclick="navigate('transactions')">Ver todas</button>
+            </div>
+            <div id="recentTransactions" class="transaction-list"></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <h3>Metas Ativas</h3>
+              <button class="btn-ghost" onclick="navigate('goals')">Ver todas</button>
+            </div>
+            <div id="dashboardGoals" class="goals-mini-list"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TRANSACTIONS PAGE -->
+      <div id="page-transactions" class="page hidden">
+        <div class="page-header">
+          <div>
+            <h1>Transações</h1>
+            <p class="page-subtitle">Gerencie receitas e despesas</p>
+          </div>
+          <div class="header-actions">
+            <button class="btn-secondary" onclick="openTransactionModal('income')">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2v12M2 8h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              Receita
+            </button>
+            <button class="btn-primary" onclick="openTransactionModal('expense')">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2v12M2 8h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              Despesa
+            </button>
+          </div>
+        </div>
+
+        <!-- FILTERS -->
+        <div class="filter-bar">
+          <div class="filter-group">
+            <select id="filterType" onchange="filterTransactions()">
+              <option value="all">Todos os tipos</option>
+              <option value="income">Receitas</option>
+              <option value="expense">Despesas</option>
+            </select>
+            <select id="filterCategory" onchange="filterTransactions()">
+              <option value="all">Todas as categorias</option>
+            </select>
+            <select id="filterMonth" onchange="filterTransactions()">
+              <option value="all">Todos os meses</option>
+            </select>
+          </div>
+          <div class="search-box">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="8" cy="8" r="5" stroke="currentColor" stroke-width="1.5"/><path d="M13 13l2.5 2.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <input type="text" placeholder="Buscar transação..." id="searchInput" oninput="filterTransactions()" />
+          </div>
+        </div>
+
+        <div class="card">
+          <table class="transactions-table">
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Descrição</th>
+                <th>Categoria</th>
+                <th>Forma de Pagto</th>
+                <th>Valor</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="transactionsTableBody"></tbody>
+          </table>
+          <div class="table-empty hidden" id="transactionsEmpty">
+            <svg width="64" height="64" viewBox="0 0 64 64" fill="none"><rect x="8" y="16" width="48" height="36" rx="4" stroke="currentColor" stroke-width="2" stroke-opacity="0.3"/><path d="M16 28h32M16 36h20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-opacity="0.3"/></svg>
+            <p>Nenhuma transação encontrada</p>
+            <button class="btn-primary" onclick="openTransactionModal('expense')">Adicionar primeira transação</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- GOALS PAGE -->
+      <div id="page-goals" class="page hidden">
+        <div class="page-header">
+          <div>
+            <h1>Metas Financeiras</h1>
+            <p class="page-subtitle">Defina e acompanhe seus objetivos</p>
+          </div>
+          <button class="btn-primary" onclick="openGoalModal()">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2v12M2 8h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            Nova Meta
+          </button>
+        </div>
+
+        <!-- GOAL SIMULATOR -->
+        <div class="card simulator-card">
+          <h3>🔮 Simulador de Economia</h3>
+          <p class="card-subtitle">Descubra quanto tempo leva para atingir seu objetivo</p>
+          <div class="simulator-grid">
+            <div class="form-group">
+              <label>Valor da Meta (R$)</label>
+              <input type="number" id="simGoal" placeholder="10000" oninput="runSimulator()" />
+            </div>
+            <div class="form-group">
+              <label>Economia Mensal (R$)</label>
+              <input type="number" id="simMonthly" placeholder="500" oninput="runSimulator()" />
+            </div>
+            <div class="form-group">
+              <label>Rendimento Anual (%)</label>
+              <input type="number" id="simRate" placeholder="12" oninput="runSimulator()" />
+            </div>
+            <div class="simulator-result" id="simulatorResult">
+              <div class="sim-metric">
+                <span class="sim-label">Tempo estimado</span>
+                <span class="sim-value" id="simTime">—</span>
+              </div>
+              <div class="sim-metric">
+                <span class="sim-label">Total investido</span>
+                <span class="sim-value" id="simInvested">—</span>
+              </div>
+              <div class="sim-metric">
+                <span class="sim-label">Rendimento</span>
+                <span class="sim-value green" id="simReturn">—</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="goals-grid" id="goalsGrid"></div>
+
+        <div class="table-empty hidden" id="goalsEmpty">
+          <svg width="64" height="64" viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="22" stroke="currentColor" stroke-width="2" stroke-opacity="0.3"/><circle cx="32" cy="32" r="10" stroke="currentColor" stroke-width="2" stroke-opacity="0.3"/><circle cx="32" cy="32" r="3" fill="currentColor" fill-opacity="0.3"/></svg>
+          <p>Nenhuma meta criada ainda</p>
+          <button class="btn-primary" onclick="openGoalModal()">Criar primeira meta</button>
+        </div>
+      </div>
+
+      <!-- AI PAGE -->
+      <div id="page-ai" class="page hidden">
+        <div class="page-header">
+          <div>
+            <h1>IA Insights</h1>
+            <p class="page-subtitle">Análise inteligente das suas finanças</p>
+          </div>
+          <button class="btn-primary" onclick="runAIAnalysis()">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM8 5v4M8 10.5v.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            Analisar Agora
+          </button>
+        </div>
+
+        <!-- AI SCORE -->
+        <div class="ai-score-card">
+          <div class="score-circle">
+            <svg width="140" height="140" viewBox="0 0 140 140">
+              <circle cx="70" cy="70" r="60" fill="none" stroke="rgba(99,102,241,0.1)" stroke-width="12"/>
+              <circle cx="70" cy="70" r="60" fill="none" stroke="url(#scoreGrad)" stroke-width="12"
+                stroke-linecap="round" stroke-dasharray="377" id="scoreCircle" stroke-dashoffset="150"
+                transform="rotate(-90 70 70)"/>
+              <defs><linearGradient id="scoreGrad" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#6366f1"/>
+                <stop offset="100%" stop-color="#8b5cf6"/>
+              </linearGradient></defs>
+              <text x="70" y="65" text-anchor="middle" class="score-num" id="scoreNum">72</text>
+              <text x="70" y="85" text-anchor="middle" class="score-label-svg">Score</text>
+            </svg>
+          </div>
+          <div class="score-details">
+            <h2>Saúde Financeira</h2>
+            <p class="score-description" id="scoreDescription">Suas finanças estão em bom estado. Continue monitorando seus gastos e mantendo a disciplina nas economias.</p>
+            <div class="score-breakdown">
+              <div class="score-item"><span>Controle de gastos</span><div class="score-bar"><div class="score-fill" style="width:75%" id="controlBar"></div></div><span id="controlPct">75%</span></div>
+              <div class="score-item"><span>Taxa de poupança</span><div class="score-bar"><div class="score-fill" style="width:60%" id="savingsBar"></div></div><span id="savingsPct">60%</span></div>
+              <div class="score-item"><span>Cumprimento de metas</span><div class="score-bar"><div class="score-fill" style="width:80%" id="goalsBar"></div></div><span id="goalsPct">80%</span></div>
+              <div class="score-item"><span>Diversificação</span><div class="score-bar"><div class="score-fill" style="width:55%" id="diversBar"></div></div><span id="diversPct">55%</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI INSIGHTS GRID -->
+        <div class="insights-grid" id="insightsGrid"></div>
+
+        <!-- PROJECTION CHART -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <h3>Projeção de Saldo — Próximos 12 meses</h3>
+            <select onchange="updateProjection(this.value)">
+              <option value="conservative">Conservador</option>
+              <option value="moderate" selected>Moderado</option>
+              <option value="optimistic">Otimista</option>
+            </select>
+          </div>
+          <div class="chart-body">
+            <canvas id="projectionChart"></canvas>
+          </div>
+        </div>
+
+        <!-- AI CHAT -->
+        <div class="card ai-chat-card">
+          <div class="card-header">
+            <h3>💬 Pergunte à IA Financeira</h3>
+          </div>
+          <div class="chat-messages" id="chatMessages">
+            <div class="chat-msg ai">
+              <div class="chat-avatar">AI</div>
+              <div class="chat-bubble">Olá! Sou seu assistente financeiro inteligente. Posso analisar seus gastos, sugerir economias e responder perguntas sobre finanças. Como posso ajudar?</div>
+            </div>
+          </div>
+          <div class="chat-input-row">
+            <input type="text" id="chatInput" placeholder="Pergunte algo sobre suas finanças..." onkeydown="if(event.key==='Enter')sendChatMsg()" />
+            <button class="btn-primary" onclick="sendChatMsg()">
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M2 9l14-7-7 14V9H2z" fill="currentColor"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- EDUCATION PAGE -->
+      <div id="page-education" class="page hidden">
+        <div class="page-header">
+          <div>
+            <h1>Educação Financeira</h1>
+            <p class="page-subtitle">Aprenda com lições personalizadas para você</p>
+          </div>
+        </div>
+
+        <!-- PROGRESS -->
+        <div class="edu-progress-card">
+          <div class="edu-progress-info">
+            <h3>Seu Progresso</h3>
+            <p>Continue aprendendo para melhorar sua saúde financeira</p>
+          </div>
+          <div class="edu-stats">
+            <div class="edu-stat"><span class="edu-stat-num" id="lessonsCompleted">0</span><span>Lições</span></div>
+            <div class="edu-stat"><span class="edu-stat-num" id="eduStreak">0</span><span>Sequência</span></div>
+            <div class="edu-stat"><span class="edu-stat-num" id="eduPoints">0</span><span>Pontos</span></div>
+          </div>
+        </div>
+
+        <div class="edu-grid" id="eduGrid"></div>
+      </div>
+
+      <!-- REPORTS PAGE -->
+      <div id="page-reports" class="page hidden">
+        <div class="page-header">
+          <div>
+            <h1>Relatórios</h1>
+            <p class="page-subtitle">Análises detalhadas do seu histórico financeiro</p>
+          </div>
+          <button class="btn-primary" onclick="exportPDF()">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 12h8M8 3v9M5 6l3-3 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Exportar PDF
+          </button>
+        </div>
+
+        <div class="reports-grid">
+          <div class="chart-card">
+            <div class="chart-header"><h3>Evolução Mensal</h3></div>
+            <div class="chart-body"><canvas id="monthlyReportChart"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-header"><h3>Despesas por Categoria</h3></div>
+            <div class="chart-body"><canvas id="categoryReportChart"></canvas></div>
+          </div>
+          <div class="chart-card wide">
+            <div class="chart-header"><h3>Análise de Tendências</h3></div>
+            <div class="chart-body"><canvas id="trendChart"></canvas></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><h3>Resumo Financeiro Detalhado</h3></div>
+          <div id="detailedReport"></div>
+        </div>
+      </div>
+
+      <!-- SETTINGS PAGE -->
+      <div id="page-settings" class="page hidden">
+        <div class="page-header">
+          <div>
+            <h1>Configurações</h1>
+            <p class="page-subtitle">Personalize sua experiência</p>
+          </div>
+        </div>
+
+        <div class="settings-grid">
+          <div class="card">
+            <h3>Perfil</h3>
+            <div class="form-group">
+              <label>Nome</label>
+              <input type="text" id="settingName" />
+            </div>
+            <div class="form-group">
+              <label>Email</label>
+              <input type="email" id="settingEmail" disabled />
+            </div>
+            <div class="form-group">
+              <label>Salário Mensal (R$)</label>
+              <input type="number" id="settingSalary" placeholder="5000" onchange="saveSettings()" />
+            </div>
+            <button class="btn-primary" onclick="saveSettings()">Salvar Perfil</button>
+          </div>
+
+          <div class="card">
+            <h3>Limites de Gastos</h3>
+            <p class="card-subtitle">Defina alertas por categoria</p>
+            <div id="limitsContainer"></div>
+            <button class="btn-secondary" onclick="saveLimits()">Salvar Limites</button>
+          </div>
+
+          <div class="card">
+            <h3>Preferências</h3>
+            <div class="pref-list">
+              <div class="pref-item">
+                <div>
+                  <span>Modo escuro</span>
+                  <p>Tema escuro para a interface</p>
+                </div>
+                <label class="toggle">
+                  <input type="checkbox" id="darkModeToggle" onchange="toggleThemeFromSettings()" />
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              <div class="pref-item">
+                <div>
+                  <span>Notificações</span>
+                  <p>Alertas de gastos e receitas</p>
+                </div>
+                <label class="toggle">
+                  <input type="checkbox" id="notifToggle" checked />
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              <div class="pref-item">
+                <div>
+                  <span>Relatório mensal automático</span>
+                  <p>Receba análise IA todo mês</p>
+                </div>
+                <label class="toggle">
+                  <input type="checkbox" id="autoReportToggle" checked />
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="card danger-zone">
+            <h3>Zona de Perigo</h3>
+            <p>Ações irreversíveis na sua conta</p>
+            <button class="btn-danger" onclick="clearAllData()">Limpar todos os dados</button>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- end page-content -->
+  </main>
+</div>
+
+<!-- TRANSACTION MODAL -->
+<div class="modal-overlay hidden" id="transactionModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modalTitle">Nova Transação</h2>
+      <button onclick="closeModal('transactionModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="type-switcher">
+        <button class="type-btn expense active" id="typeExpenseBtn" onclick="setTransactionType('expense')">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 14V4M4 9l5 5 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Despesa
+        </button>
+        <button class="type-btn income" id="typeIncomeBtn" onclick="setTransactionType('income')">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 4v10M4 9l5-5 5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Receita
+        </button>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Descrição</label>
+          <input type="text" id="txDesc" placeholder="Ex: Aluguel, Salário..." />
+        </div>
+        <div class="form-group">
+          <label>Valor (R$)</label>
+          <input type="number" id="txValue" placeholder="0,00" min="0" step="0.01" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Data</label>
+          <input type="date" id="txDate" />
+        </div>
+        <div class="form-group">
+          <label>Categoria</label>
+          <select id="txCategory"></select>
+        </div>
+      </div>
+      <div class="form-row" id="paymentRow">
+        <div class="form-group">
+          <label>Forma de Pagamento</label>
+          <select id="txPayment">
+            <option>Débito</option>
+            <option>Crédito</option>
+            <option>Pix</option>
+            <option>Dinheiro</option>
+            <option>Transferência</option>
+            <option>Boleto</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Recorrência</label>
+          <select id="txRecurrence">
+            <option value="once">Única</option>
+            <option value="monthly">Mensal</option>
+            <option value="weekly">Semanal</option>
+            <option value="yearly">Anual</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Observações (opcional)</label>
+        <textarea id="txNotes" placeholder="Detalhes adicionais..." rows="2"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeModal('transactionModal')">Cancelar</button>
+      <button class="btn-primary" onclick="saveTransaction()">Salvar Transação</button>
+    </div>
+  </div>
+</div>
+
+<!-- GOAL MODAL -->
+<div class="modal-overlay hidden" id="goalModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Nova Meta Financeira</h2>
+      <button onclick="closeModal('goalModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Nome da Meta</label>
+          <input type="text" id="goalName" placeholder="Ex: Viagem, Reserva de emergência..." />
+        </div>
+        <div class="form-group">
+          <label>Valor Alvo (R$)</label>
+          <input type="number" id="goalTarget" placeholder="10000" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Valor Atual (R$)</label>
+          <input type="number" id="goalCurrent" placeholder="0" />
+        </div>
+        <div class="form-group">
+          <label>Data Limite</label>
+          <input type="date" id="goalDeadline" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Categoria da Meta</label>
+        <select id="goalCategory">
+          <option>Viagem</option>
+          <option>Emergência</option>
+          <option>Investimento</option>
+          <option>Educação</option>
+          <option>Imóvel</option>
+          <option>Veículo</option>
+          <option>Aposentadoria</option>
+          <option>Outro</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Ícone da Meta</label>
+        <div class="emoji-picker">
+          <span onclick="selectEmoji(this)" class="emoji-opt selected">🎯</span>
+          <span onclick="selectEmoji(this)" class="emoji-opt">✈️</span>
+          <span onclick="selectEmoji(this)" class="emoji-opt">🏠</span>
+          <span onclick="selectEmoji(this)" class="emoji-opt">🚗</span>
+          <span onclick="selectEmoji(this)" class="emoji-opt">🎓</span>
+          <span onclick="selectEmoji(this)" class="emoji-opt">💰</span>
+          <span onclick="selectEmoji(this)" class="emoji-opt">📱</span>
+          <span onclick="selectEmoji(this)" class="emoji-opt">🏋️</span>
+          <span onclick="selectEmoji(this)" class="emoji-opt">🌴</span>
+          <span onclick="selectEmoji(this)" class="emoji-opt">💊</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeModal('goalModal')">Cancelar</button>
+      <button class="btn-primary" onclick="saveGoal()">Criar Meta</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
