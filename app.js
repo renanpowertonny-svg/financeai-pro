@@ -8,7 +8,7 @@
 // SUPABASE
 // ==========================================
 const SUPABASE_URL = "https://esejkititjntjotsgsmxt.supabase.co";
-const SUPABASE_KEY = sb_publishable_82tecE-dAzuRDzOYAWFthw_tgLWKY6L";
+const SUPABASE_KEY = "sb_publishable_82tecE-dAzuRDzOYAWFthw_tgLWKY6L";
 
 let supabase = null;
 let supabaseReady = false;
