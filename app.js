@@ -4,6 +4,15 @@
 
 'use strict';
 
+// SUPABASE CONNECTION
+const SUPABASE_URL = "https://esejkititjntjotsgsmxt.supabase.co";
+const SUPABASE_KEY = "COLE_AQUI_SUA_PUBLISHABLE_KEY";
+
+const supabase = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
+
 // ==========================================
 // STATE MANAGEMENT
 // ==========================================
@@ -656,6 +665,18 @@ function saveTransaction() {
   } else {
     const tx = { id: genId(), type: selectedTxType, desc, value, date, category, payment, recurrence, notes, emoji: categoryEmoji[category] || '💸', createdAt: new Date().toISOString() };
     state.transactions.push(tx);
+     // SALVAR NO SUPABASE
+supabase
+  .from("transactions")
+  .insert([
+    {
+      description: desc,
+      amount: value,
+      type: selectedTxType,
+      transaction_date: date
+    }
+  ])
+  .then(res => console.log("Saved to Supabase", res));
     showToast('success', selectedTxType === 'income' ? 'Receita registrada!' : 'Despesa registrada!', `${desc} · ${fmt(value)}`);
     addNotification(selectedTxType, `${tx.type === 'income' ? '📈 Receita' : '📉 Despesa'} registrada: ${desc} (${fmt(value)})`, selectedTxType);
     checkSpendingLimits(category, value);
