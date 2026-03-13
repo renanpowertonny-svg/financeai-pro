@@ -147,8 +147,17 @@ function handleLogout() {
   state.user = null;
   DB.set('currentUser', null);
   destroyAllCharts();
-  document.getElementById('app').classList.add('hidden');
-  document.getElementById('authScreen').classList.add('active');
+
+  const appEl = document.getElementById('app');
+  const authEl = document.getElementById('authScreen');
+
+  if (appEl) appEl.classList.add('hidden');
+
+  if (authEl) {
+    authEl.style.display = 'flex';
+    authEl.classList.add('active');
+  }
+
   showToast('info', 'Até logo!', 'Sessão encerrada com sucesso.');
 }
 
