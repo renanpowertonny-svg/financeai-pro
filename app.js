@@ -4,14 +4,46 @@
 
 'use strict';
 
-// SUPABASE CONNECTION
+// ==========================================
+// SUPABASE
+// ==========================================
 const SUPABASE_URL = "https://esejkititjntjotsgsmxt.supabase.co";
-const SUPABASE_KEY = "COLE_AQUI_SUA_PUBLISHABLE_KEY";
+const SUPABASE_KEY = sb_publishable_82tecE-dAzuRDzOYAWFthw_tgLWKY6L";
 
-const supabase = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_KEY
-);
+let supabase = null;
+let supabaseReady = false;
+
+async function ensureSupabase() {
+  if (supabaseReady && supabase) return supabase;
+
+  if (!window.supabase) {
+    await new Promise((resolve, reject) => {
+      const existing = document.querySelector('script[data-supabase-cdn="true"]');
+      if (existing) {
+        existing.addEventListener('load', resolve, { once: true });
+        existing.addEventListener('error', reject, { once: true });
+        if (window.supabase) resolve();
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+      script.async = true;
+      script.dataset.supabaseCdn = 'true';
+      script.onload = resolve;
+      script.onerror = () => reject(new Error('Falha ao carregar Supabase CDN.'));
+      document.head.appendChild(script);
+    });
+  }
+
+  if (!window.supabase || !window.supabase.createClient) {
+    throw new Error('Supabase library não carregou corretamente.');
+  }
+
+  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  supabaseReady = true;
+  return supabase;
+}
 
 // ==========================================
 // STATE MANAGEMENT
@@ -21,10 +53,14 @@ const DB = {
     try {
       const v = localStorage.getItem('financeai_' + key);
       return v !== null ? JSON.parse(v) : def;
-    } catch { return def; }
+    } catch {
+      return def;
+    }
   },
   set: (key, val) => {
-    try { localStorage.setItem('financeai_' + key, JSON.stringify(val)); } catch {}
+    try {
+      localStorage.setItem('financeai_' + key, JSON.stringify(val));
+    } catch {}
   }
 };
 
@@ -53,7 +89,11 @@ let state = {
 function handleLogin() {
   const email = document.getElementById('loginEmail').value.trim();
   const pwd = document.getElementById('loginPassword').value;
-  if (!email || !pwd) { showToast('error', 'Campos obrigatórios', 'Preencha email e senha.'); return; }
+
+  if (!email || !pwd) {
+    showToast('error', 'Campos obrigatórios', 'Preencha email e senha.');
+    return;
+  }
 
   const users = DB.get('users', {});
   if (!users[email] || users[email].password !== btoa(pwd)) {
@@ -73,12 +113,24 @@ function handleRegister() {
   const pwd = document.getElementById('regPassword').value;
   const confirm = document.getElementById('regConfirm').value;
 
-  if (!name || !email || !pwd) { showToast('error', 'Campos obrigatórios', 'Preencha todos os campos.'); return; }
-  if (pwd.length < 8) { showToast('error', 'Senha fraca', 'A senha deve ter no mínimo 8 caracteres.'); return; }
-  if (pwd !== confirm) { showToast('error', 'Senhas diferentes', 'As senhas não coincidem.'); return; }
+  if (!name || !email || !pwd) {
+    showToast('error', 'Campos obrigatórios', 'Preencha todos os campos.');
+    return;
+  }
+  if (pwd.length < 8) {
+    showToast('error', 'Senha fraca', 'A senha deve ter no mínimo 8 caracteres.');
+    return;
+  }
+  if (pwd !== confirm) {
+    showToast('error', 'Senhas diferentes', 'As senhas não coincidem.');
+    return;
+  }
 
   const users = DB.get('users', {});
-  if (users[email]) { showToast('error', 'Email já cadastrado', 'Use outro email ou faça login.'); return; }
+  if (users[email]) {
+    showToast('error', 'Email já cadastrado', 'Use outro email ou faça login.');
+    return;
+  }
 
   users[email] = { name, password: btoa(pwd), createdAt: new Date().toISOString() };
   DB.set('users', users);
@@ -118,41 +170,55 @@ function seedDemoData() {
   const now = new Date();
   const userKey = state.user.email;
 
-  const categories = {
-    expense: ['Alimentação', 'Transporte', 'Moradia', 'Saúde', 'Lazer', 'Educação', 'Vestuário', 'Assinaturas', 'Outros'],
-    income: ['Salário', 'Freelance', 'Investimentos', 'Outros']
-  };
-
   const transactions = [];
   const emojis = {
-    'Alimentação': '🍔', 'Transporte': '🚗', 'Moradia': '🏠', 'Saúde': '💊',
-    'Lazer': '🎬', 'Educação': '📚', 'Vestuário': '👕', 'Assinaturas': '📱',
-    'Outros': '💸', 'Salário': '💼', 'Freelance': '💻', 'Investimentos': '📈'
+    'Alimentação': '🍔',
+    'Transporte': '🚗',
+    'Moradia': '🏠',
+    'Saúde': '💊',
+    'Lazer': '🎬',
+    'Educação': '📚',
+    'Vestuário': '👕',
+    'Assinaturas': '📱',
+    'Outros': '💸',
+    'Salário': '💼',
+    'Freelance': '💻',
+    'Investimentos': '📈'
   };
 
-  // Generate last 6 months of transactions
   for (let m = 5; m >= 0; m--) {
     const date = new Date(now.getFullYear(), now.getMonth() - m, 1);
 
-    // Salary
     transactions.push({
-      id: genId(), type: 'income', desc: 'Salário', value: 5500,
-      category: 'Salário', emoji: '💼', payment: 'Transferência',
-      recurrence: 'monthly', date: fmtDate(new Date(date.getFullYear(), date.getMonth(), 5)),
-      notes: '', createdAt: new Date().toISOString()
+      id: genId(),
+      type: 'income',
+      desc: 'Salário',
+      value: 5500,
+      category: 'Salário',
+      emoji: '💼',
+      payment: 'Transferência',
+      recurrence: 'monthly',
+      date: fmtDate(new Date(date.getFullYear(), date.getMonth(), 5)),
+      notes: '',
+      createdAt: new Date().toISOString()
     });
 
-    // Freelance (some months)
     if (m % 2 === 0) {
       transactions.push({
-        id: genId(), type: 'income', desc: 'Projeto Freelance', value: Math.floor(Math.random() * 1500) + 500,
-        category: 'Freelance', emoji: '💻', payment: 'Pix',
-        recurrence: 'once', date: fmtDate(new Date(date.getFullYear(), date.getMonth(), 15)),
-        notes: '', createdAt: new Date().toISOString()
+        id: genId(),
+        type: 'income',
+        desc: 'Projeto Freelance',
+        value: Math.floor(Math.random() * 1500) + 500,
+        category: 'Freelance',
+        emoji: '💻',
+        payment: 'Pix',
+        recurrence: 'once',
+        date: fmtDate(new Date(date.getFullYear(), date.getMonth(), 15)),
+        notes: '',
+        createdAt: new Date().toISOString()
       });
     }
 
-    // Expenses
     const expenses = [
       { desc: 'Aluguel', value: 1800, cat: 'Moradia', pay: 'Boleto', day: 10 },
       { desc: 'Supermercado', value: Math.floor(Math.random() * 400) + 600, cat: 'Alimentação', pay: 'Débito', day: 8 },
@@ -168,10 +234,17 @@ function seedDemoData() {
 
     expenses.forEach(e => {
       transactions.push({
-        id: genId(), type: 'expense', desc: e.desc, value: e.value,
-        category: e.cat, emoji: emojis[e.cat], payment: e.pay,
-        recurrence: 'monthly', date: fmtDate(new Date(date.getFullYear(), date.getMonth(), e.day)),
-        notes: '', createdAt: new Date().toISOString()
+        id: genId(),
+        type: 'expense',
+        desc: e.desc,
+        value: e.value,
+        category: e.cat,
+        emoji: emojis[e.cat],
+        payment: e.pay,
+        recurrence: 'monthly',
+        date: fmtDate(new Date(date.getFullYear(), date.getMonth(), e.day)),
+        notes: '',
+        createdAt: new Date().toISOString()
       });
     });
   }
@@ -182,7 +255,13 @@ function seedDemoData() {
     { id: genId(), name: 'iPhone Novo', target: 6000, current: 1500, deadline: '2026-04-01', category: 'Eletrônicos', emoji: '📱', createdAt: new Date().toISOString() }
   ];
 
-  const settings = { salary: 5500, limits: { 'Alimentação': 1200, 'Lazer': 300, 'Vestuário': 200, 'Transporte': 500 }, darkMode: true, notif: true, autoReport: true };
+  const settings = {
+    salary: 5500,
+    limits: { 'Alimentação': 1200, 'Lazer': 300, 'Vestuário': 200, 'Transporte': 500 },
+    darkMode: true,
+    notif: true,
+    autoReport: true
+  };
 
   DB.set(`transactions_${userKey}`, transactions);
   DB.set(`goals_${userKey}`, goals);
@@ -219,34 +298,30 @@ function initApp() {
   document.getElementById('authScreen').style.display = 'none';
   document.getElementById('app').classList.remove('hidden');
 
-  // Theme
   const isDark = state.settings.darkMode !== false;
   document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
   const dmToggle = document.getElementById('darkModeToggle');
   if (dmToggle) dmToggle.checked = isDark;
 
-  // User UI
   updateUserUI();
-
-  // Greet
   setGreeting();
 
-  // Load all pages
   navigate('dashboard');
   buildCategoryFilters();
   buildLimitsSettings();
-  buildEducationCards();
   renderNotifications();
 
-  // Settings page
-  document.getElementById('settingName').value = state.user.name || '';
-  document.getElementById('settingEmail').value = state.user.email || '';
-  if (state.settings.salary) document.getElementById('settingSalary').value = state.settings.salary;
+  const settingName = document.getElementById('settingName');
+  const settingEmail = document.getElementById('settingEmail');
+  const settingSalary = document.getElementById('settingSalary');
 
-  // Set today's date on transaction modal
-  document.getElementById('txDate').value = fmtDate(new Date());
+  if (settingName) settingName.value = state.user.name || '';
+  if (settingEmail) settingEmail.value = state.user.email || '';
+  if (settingSalary && state.settings.salary) settingSalary.value = state.settings.salary;
 
-  // Init dark mode toggle
+  const txDate = document.getElementById('txDate');
+  if (txDate) txDate.value = fmtDate(new Date());
+
   const dtoggle = document.getElementById('darkModeToggle');
   if (dtoggle) dtoggle.checked = (document.documentElement.getAttribute('data-theme') === 'dark');
 }
@@ -254,15 +329,18 @@ function initApp() {
 function updateUserUI() {
   const name = state.user.name || 'Usuário';
   const initials = name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
-  document.getElementById('sidebarName').textContent = name;
-  document.getElementById('sidebarAvatar').textContent = initials;
+  const sidebarName = document.getElementById('sidebarName');
+  const sidebarAvatar = document.getElementById('sidebarAvatar');
+  if (sidebarName) sidebarName.textContent = name;
+  if (sidebarAvatar) sidebarAvatar.textContent = initials;
 }
 
 function setGreeting() {
   const h = new Date().getHours();
   const g = h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite';
   const name = state.user ? state.user.name.split(' ')[0] : '';
-  document.getElementById('dashGreeting').textContent = `${g}, ${name}! 👋`;
+  const dashGreeting = document.getElementById('dashGreeting');
+  if (dashGreeting) dashGreeting.textContent = `${g}, ${name}! 👋`;
 }
 
 // ==========================================
@@ -286,10 +364,19 @@ function navigate(page) {
     n.classList.toggle('active', n.dataset.page === page);
   });
 
-  const titles = { dashboard: 'Dashboard', transactions: 'Transações', goals: 'Metas', ai: 'IA Insights', education: 'Educação', reports: 'Relatórios', settings: 'Configurações' };
-  document.getElementById('pageTitle').textContent = titles[page] || page;
+  const titles = {
+    dashboard: 'Dashboard',
+    transactions: 'Transações',
+    goals: 'Metas',
+    ai: 'IA Insights',
+    education: 'Educação',
+    reports: 'Relatórios',
+    settings: 'Configurações'
+  };
 
-  // Lazy-render per page
+  const pageTitle = document.getElementById('pageTitle');
+  if (pageTitle) pageTitle.textContent = titles[page] || page;
+
   if (page === 'dashboard') renderDashboard();
   if (page === 'transactions') renderTransactions();
   if (page === 'goals') renderGoals();
@@ -298,15 +385,17 @@ function navigate(page) {
   if (page === 'reports') renderReports();
   if (page === 'settings') renderSettings();
 
-  // Close sidebar on mobile
   if (window.innerWidth <= 768) {
-    document.getElementById('sidebar').classList.remove('open');
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar) sidebar.classList.remove('open');
     document.querySelector('.sidebar-overlay')?.remove();
   }
 }
 
 function toggleSidebar() {
   const sidebar = document.getElementById('sidebar');
+  if (!sidebar) return;
+
   const isOpen = sidebar.classList.toggle('open');
   if (isOpen) {
     const overlay = document.createElement('div');
@@ -339,7 +428,12 @@ function getFilteredTx(period = state.period) {
 function calcSummary(txs) {
   const income = txs.filter(t => t.type === 'income').reduce((s, t) => s + t.value, 0);
   const expense = txs.filter(t => t.type === 'expense').reduce((s, t) => s + t.value, 0);
-  return { income, expense, balance: income - expense, savingsRate: income > 0 ? ((income - expense) / income * 100) : 0 };
+  return {
+    income,
+    expense,
+    balance: income - expense,
+    savingsRate: income > 0 ? (((income - expense) / income) * 100) : 0
+  };
 }
 
 function getPrevPeriodSummary() {
@@ -371,25 +465,43 @@ function renderDashboard() {
   const { income, expense, balance, savingsRate } = calcSummary(txs);
   const prev = getPrevPeriodSummary();
 
-  document.getElementById('totalIncome').textContent = fmt(income);
-  document.getElementById('totalExpense').textContent = fmt(expense);
-  document.getElementById('currentBalance').textContent = fmt(balance);
-  document.getElementById('savingsRate').textContent = savingsRate.toFixed(1) + '%';
+  const totalIncome = document.getElementById('totalIncome');
+  const totalExpense = document.getElementById('totalExpense');
+  const currentBalance = document.getElementById('currentBalance');
+  const savingsRateEl = document.getElementById('savingsRate');
 
-  // Changes
+  if (totalIncome) totalIncome.textContent = fmt(income);
+  if (totalExpense) totalExpense.textContent = fmt(expense);
+  if (currentBalance) currentBalance.textContent = fmt(balance);
+  if (savingsRateEl) savingsRateEl.textContent = savingsRate.toFixed(1) + '%';
+
   const incChg = prev.income > 0 ? ((income - prev.income) / prev.income * 100).toFixed(1) : 0;
   const expChg = prev.expense > 0 ? ((expense - prev.expense) / prev.expense * 100).toFixed(1) : 0;
+
   const incEl = document.getElementById('incomeChange');
   const expEl = document.getElementById('expenseChange');
-  incEl.textContent = (incChg >= 0 ? '+' : '') + incChg + '% vs. mês anterior';
-  incEl.className = 'kpi-change ' + (incChg >= 0 ? 'positive' : 'negative');
-  expEl.textContent = (expChg >= 0 ? '+' : '') + expChg + '% vs. mês anterior';
-  expEl.className = 'kpi-change ' + (expChg <= 0 ? 'positive' : 'negative');
 
-  document.getElementById('balanceStatus').textContent = balance >= 0 ? '✓ Positivo' : '⚠ Negativo';
-  document.getElementById('balanceStatus').className = 'kpi-change ' + (balance >= 0 ? 'positive' : 'negative');
-  document.getElementById('savingsStatus').textContent = `Meta: 20% | Atual: ${savingsRate.toFixed(1)}%`;
-  document.getElementById('savingsStatus').className = 'kpi-change ' + (savingsRate >= 20 ? 'positive' : savingsRate >= 10 ? '' : 'negative');
+  if (incEl) {
+    incEl.textContent = (incChg >= 0 ? '+' : '') + incChg + '% vs. mês anterior';
+    incEl.className = 'kpi-change ' + (incChg >= 0 ? 'positive' : 'negative');
+  }
+
+  if (expEl) {
+    expEl.textContent = (expChg >= 0 ? '+' : '') + expChg + '% vs. mês anterior';
+    expEl.className = 'kpi-change ' + (expChg <= 0 ? 'positive' : 'negative');
+  }
+
+  const balanceStatus = document.getElementById('balanceStatus');
+  if (balanceStatus) {
+    balanceStatus.textContent = balance >= 0 ? '✓ Positivo' : '⚠ Negativo';
+    balanceStatus.className = 'kpi-change ' + (balance >= 0 ? 'positive' : 'negative');
+  }
+
+  const savingsStatus = document.getElementById('savingsStatus');
+  if (savingsStatus) {
+    savingsStatus.textContent = `Meta: 20% | Atual: ${savingsRate.toFixed(1)}%`;
+    savingsStatus.className = 'kpi-change ' + (savingsRate >= 20 ? 'positive' : savingsRate >= 10 ? '' : 'negative');
+  }
 
   renderCashflowChart();
   renderCategoryChart();
@@ -400,6 +512,8 @@ function renderDashboard() {
 
 function renderRecentTransactions(txs) {
   const container = document.getElementById('recentTransactions');
+  if (!container) return;
+
   const recent = [...txs].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 6);
 
   if (!recent.length) {
@@ -421,6 +535,8 @@ function renderRecentTransactions(txs) {
 
 function renderDashboardGoals() {
   const container = document.getElementById('dashboardGoals');
+  if (!container) return;
+
   const active = state.goals.slice(0, 4);
 
   if (!active.length) {
@@ -445,11 +561,11 @@ function renderDashboardGoals() {
 }
 
 // ==========================================
-// CASHFLOW CHART
+// CHARTS
 // ==========================================
 function renderCashflowChart() {
   const ctx = document.getElementById('cashflowChart');
-  if (!ctx) return;
+  if (!ctx || typeof Chart === 'undefined') return;
 
   destroyChart('cashflow');
 
@@ -468,11 +584,15 @@ function renderCashflowChart() {
       ]
     },
     options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ' ' + fmt(ctx.raw) } } },
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ' ' + fmt(ctx.raw) } }
+      },
       scales: {
         x: { grid: { display: false }, ticks: { color: '#8892a4', font: { size: 12 } }, border: { display: false } },
-        y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#8892a4', font: { size: 12 }, callback: v => 'R$' + (v/1000).toFixed(0) + 'k' }, border: { display: false } }
+        y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#8892a4', font: { size: 12 }, callback: v => 'R$' + (v / 1000).toFixed(0) + 'k' }, border: { display: false } }
       }
     }
   });
@@ -480,7 +600,7 @@ function renderCashflowChart() {
 
 function renderCategoryChart() {
   const ctx = document.getElementById('categoryChart');
-  if (!ctx) return;
+  if (!ctx || typeof Chart === 'undefined') return;
 
   destroyChart('category');
 
@@ -490,10 +610,12 @@ function renderCategoryChart() {
   expenses.forEach(t => { byCategory[t.category] = (byCategory[t.category] || 0) + t.value; });
 
   const sorted = Object.entries(byCategory).sort((a, b) => b[1] - a[1]).slice(0, 6);
-  const colors = ['#6366f1','#8b5cf6','#ec4899','#f59e0b','#10b981','#3b82f6','#ef4444','#14b8a6'];
+  const colors = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444', '#14b8a6'];
 
   if (!sorted.length) {
-    ctx.parentElement.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);font-size:14px;">Sem despesas neste período</div>';
+    if (ctx.parentElement) {
+      ctx.parentElement.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);font-size:14px;">Sem despesas neste período</div>';
+    }
     return;
   }
 
@@ -509,7 +631,8 @@ function renderCategoryChart() {
       }]
     },
     options: {
-      responsive: true, maintainAspectRatio: false,
+      responsive: true,
+      maintainAspectRatio: false,
       plugins: {
         legend: { position: 'bottom', labels: { color: '#8892a4', font: { size: 12 }, padding: 16, usePointStyle: true } },
         tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${fmt(ctx.raw)}` } }
@@ -522,17 +645,17 @@ function renderCategoryChart() {
 // ==========================================
 // TRANSACTIONS PAGE
 // ==========================================
-function renderTransactions(filter = {}) {
+function renderTransactions() {
   buildCategoryFilters();
   buildMonthFilters();
   filterTransactions();
 }
 
 function filterTransactions() {
-  const type = document.getElementById('filterType').value;
-  const cat = document.getElementById('filterCategory').value;
-  const month = document.getElementById('filterMonth').value;
-  const search = document.getElementById('searchInput').value.toLowerCase();
+  const type = document.getElementById('filterType')?.value || 'all';
+  const cat = document.getElementById('filterCategory')?.value || 'all';
+  const month = document.getElementById('filterMonth')?.value || 'all';
+  const search = (document.getElementById('searchInput')?.value || '').toLowerCase();
 
   let txs = [...state.transactions].sort((a, b) => new Date(b.date) - new Date(a.date));
 
@@ -547,6 +670,7 @@ function filterTransactions() {
 function renderTransactionsTable(txs) {
   const tbody = document.getElementById('transactionsTableBody');
   const empty = document.getElementById('transactionsEmpty');
+  if (!tbody || !empty) return;
 
   if (!txs.length) {
     tbody.innerHTML = '';
@@ -589,16 +713,14 @@ function buildCategoryFilters() {
   const sel = document.getElementById('filterCategory');
   if (!sel) return;
   const cats = [...new Set(state.transactions.map(t => t.category))].sort();
-  sel.innerHTML = '<option value="all">Todas as categorias</option>' +
-    cats.map(c => `<option value="${c}">${c}</option>`).join('');
+  sel.innerHTML = '<option value="all">Todas as categorias</option>' + cats.map(c => `<option value="${c}">${c}</option>`).join('');
 }
 
 function buildMonthFilters() {
   const sel = document.getElementById('filterMonth');
   if (!sel) return;
   const months = [...new Set(state.transactions.map(t => t.date.substring(0, 7)))].sort().reverse();
-  sel.innerHTML = '<option value="all">Todos os meses</option>' +
-    months.map(m => `<option value="${m}">${fmtMonthYear(m)}</option>`).join('');
+  sel.innerHTML = '<option value="all">Todos os meses</option>' + months.map(m => `<option value="${m}">${fmtMonthYear(m)}</option>`).join('');
 }
 
 // ==========================================
@@ -610,23 +732,35 @@ let selectedTxType = 'expense';
 function openTransactionModal(type = 'expense') {
   editingTxId = null;
   selectedTxType = type;
-  document.getElementById('modalTitle').textContent = 'Nova Transação';
-  document.getElementById('txDesc').value = '';
-  document.getElementById('txValue').value = '';
-  document.getElementById('txDate').value = fmtDate(new Date());
-  document.getElementById('txNotes').value = '';
-  document.getElementById('txRecurrence').value = 'once';
+
+  const modalTitle = document.getElementById('modalTitle');
+  const txDesc = document.getElementById('txDesc');
+  const txValue = document.getElementById('txValue');
+  const txDate = document.getElementById('txDate');
+  const txNotes = document.getElementById('txNotes');
+  const txRecurrence = document.getElementById('txRecurrence');
+  const transactionModal = document.getElementById('transactionModal');
+
+  if (modalTitle) modalTitle.textContent = 'Nova Transação';
+  if (txDesc) txDesc.value = '';
+  if (txValue) txValue.value = '';
+  if (txDate) txDate.value = fmtDate(new Date());
+  if (txNotes) txNotes.value = '';
+  if (txRecurrence) txRecurrence.value = 'once';
 
   setTransactionType(type);
   buildTxCategories(type);
-  document.getElementById('transactionModal').classList.remove('hidden');
+  if (transactionModal) transactionModal.classList.remove('hidden');
 }
 
 function setTransactionType(type) {
   selectedTxType = type;
-  document.getElementById('typeExpenseBtn').classList.toggle('active', type === 'expense');
-  document.getElementById('typeIncomeBtn').classList.toggle('active', type === 'income');
-  document.getElementById('paymentRow').style.display = type === 'expense' ? 'grid' : 'none';
+  document.getElementById('typeExpenseBtn')?.classList.toggle('active', type === 'expense');
+  document.getElementById('typeIncomeBtn')?.classList.toggle('active', type === 'income');
+
+  const paymentRow = document.getElementById('paymentRow');
+  if (paymentRow) paymentRow.style.display = type === 'expense' ? 'grid' : 'none';
+
   buildTxCategories(type);
 }
 
@@ -634,65 +768,142 @@ function buildTxCategories(type) {
   const cats = type === 'expense'
     ? ['Alimentação', 'Transporte', 'Moradia', 'Saúde', 'Lazer', 'Educação', 'Vestuário', 'Assinaturas', 'Investimentos', 'Outros']
     : ['Salário', 'Freelance', 'Investimentos', 'Outros'];
+
   const sel = document.getElementById('txCategory');
+  if (!sel) return;
   sel.innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join('');
 }
 
 const categoryEmoji = {
-  'Alimentação':'🍔','Transporte':'🚗','Moradia':'🏠','Saúde':'💊','Lazer':'🎬','Educação':'📚',
-  'Vestuário':'👕','Assinaturas':'📱','Outros':'💸','Salário':'💼','Freelance':'💻','Investimentos':'📈'
+  'Alimentação': '🍔',
+  'Transporte': '🚗',
+  'Moradia': '🏠',
+  'Saúde': '💊',
+  'Lazer': '🎬',
+  'Educação': '📚',
+  'Vestuário': '👕',
+  'Assinaturas': '📱',
+  'Outros': '💸',
+  'Salário': '💼',
+  'Freelance': '💻',
+  'Investimentos': '📈'
 };
 
-function saveTransaction() {
-  const desc = document.getElementById('txDesc').value.trim();
-  const value = parseFloat(document.getElementById('txValue').value);
-  const date = document.getElementById('txDate').value;
-  const category = document.getElementById('txCategory').value;
-  const payment = document.getElementById('txPayment').value;
-  const recurrence = document.getElementById('txRecurrence').value;
-  const notes = document.getElementById('txNotes').value;
+async function saveTransactionToSupabase(tx) {
+  try {
+    const client = await ensureSupabase();
 
-  if (!desc) { showToast('error', 'Campo obrigatório', 'Digite uma descrição.'); return; }
-  if (!value || value <= 0) { showToast('error', 'Valor inválido', 'Digite um valor válido.'); return; }
-  if (!date) { showToast('error', 'Data obrigatória', 'Selecione uma data.'); return; }
+    const payload = {
+      description: tx.desc,
+      amount: Number(tx.value),
+      type: tx.type,
+      transaction_date: tx.date
+    };
+
+    const { data, error } = await client
+      .from('transactions')
+      .insert([payload])
+      .select();
+
+    if (error) {
+      console.error('Supabase insert error:', error);
+      showToast('warning', 'Salvou só no app', 'A transação ficou no app, mas o Supabase recusou o envio.');
+      return false;
+    }
+
+    console.log('Supabase insert success:', data);
+    return true;
+  } catch (err) {
+    console.error('Supabase connection error:', err);
+    showToast('warning', 'Salvou só no app', 'A transação ficou no app, mas a conexão com Supabase falhou.');
+    return false;
+  }
+}
+
+async function saveTransaction() {
+  const desc = document.getElementById('txDesc')?.value.trim() || '';
+  const value = parseFloat(document.getElementById('txValue')?.value || '');
+  const date = document.getElementById('txDate')?.value || '';
+  const category = document.getElementById('txCategory')?.value || 'Outros';
+  const payment = document.getElementById('txPayment')?.value || '';
+  const recurrence = document.getElementById('txRecurrence')?.value || 'once';
+  const notes = document.getElementById('txNotes')?.value || '';
+
+  if (!desc) {
+    showToast('error', 'Campo obrigatório', 'Digite uma descrição.');
+    return;
+  }
+  if (!value || value <= 0) {
+    showToast('error', 'Valor inválido', 'Digite um valor válido.');
+    return;
+  }
+  if (!date) {
+    showToast('error', 'Data obrigatória', 'Selecione uma data.');
+    return;
+  }
 
   if (editingTxId) {
     const idx = state.transactions.findIndex(t => t.id === editingTxId);
     if (idx >= 0) {
-      state.transactions[idx] = { ...state.transactions[idx], desc, value, date, category, payment, recurrence, notes, emoji: categoryEmoji[category] || '💸' };
+      state.transactions[idx] = {
+        ...state.transactions[idx],
+        desc,
+        value,
+        date,
+        category,
+        payment,
+        recurrence,
+        notes,
+        emoji: categoryEmoji[category] || '💸'
+      };
     }
+
+    saveUserData();
+    closeModal('transactionModal');
+
+    if (state.currentPage === 'dashboard') renderDashboard();
+    else if (state.currentPage === 'transactions') renderTransactions();
+
     showToast('success', 'Atualizada!', 'Transação atualizada com sucesso.');
-  } else {
-    const tx = { id: genId(), type: selectedTxType, desc, value, date, category, payment, recurrence, notes, emoji: categoryEmoji[category] || '💸', createdAt: new Date().toISOString() };
-    state.transactions.push(tx);
-     // SALVAR NO SUPABASE
-supabase
-  .from("transactions")
-  .insert([
-    {
-      description: desc,
-      amount: value,
-      type: selectedTxType,
-      transaction_date: date
-    }
-  ])
-  .then(res => console.log("Saved to Supabase", res));
-    showToast('success', selectedTxType === 'income' ? 'Receita registrada!' : 'Despesa registrada!', `${desc} · ${fmt(value)}`);
-    addNotification(selectedTxType, `${tx.type === 'income' ? '📈 Receita' : '📉 Despesa'} registrada: ${desc} (${fmt(value)})`, selectedTxType);
-    checkSpendingLimits(category, value);
+    return;
   }
 
+  const tx = {
+    id: genId(),
+    type: selectedTxType,
+    desc,
+    value,
+    date,
+    category,
+    payment,
+    recurrence,
+    notes,
+    emoji: categoryEmoji[category] || '💸',
+    createdAt: new Date().toISOString()
+  };
+
+  state.transactions.push(tx);
   saveUserData();
+
   closeModal('transactionModal');
+
   if (state.currentPage === 'dashboard') renderDashboard();
   else if (state.currentPage === 'transactions') renderTransactions();
+
+  showToast('success', selectedTxType === 'income' ? 'Receita registrada!' : 'Despesa registrada!', `${desc} · ${fmt(value)}`);
+  addNotification(selectedTxType, `${tx.type === 'income' ? '📈 Receita' : '📉 Despesa'} registrada: ${desc} (${fmt(value)})`, selectedTxType);
+  checkSpendingLimits(category, value);
+
+  await saveTransactionToSupabase(tx);
 }
 
 function editTransaction(id) {
   const tx = state.transactions.find(t => t.id === id);
   if (!tx) return;
+
   editingTxId = id;
   selectedTxType = tx.type;
+
   document.getElementById('modalTitle').textContent = 'Editar Transação';
   setTransactionType(tx.type);
   buildTxCategories(tx.type);
@@ -718,9 +929,15 @@ function deleteTransaction(id) {
 function checkSpendingLimits(category, value) {
   const limit = state.settings.limits[category];
   if (!limit) return;
+
   const now = new Date();
   const monthTotal = state.transactions
-    .filter(t => t.type === 'expense' && t.category === category && new Date(t.date).getMonth() === now.getMonth() && new Date(t.date).getFullYear() === now.getFullYear())
+    .filter(t =>
+      t.type === 'expense' &&
+      t.category === category &&
+      new Date(t.date).getMonth() === now.getMonth() &&
+      new Date(t.date).getFullYear() === now.getFullYear()
+    )
     .reduce((s, t) => s + t.value, 0) + value;
 
   if (monthTotal > limit) {
@@ -743,8 +960,8 @@ function openGoalModal() {
   document.getElementById('goalDeadline').value = '';
   selectedEmoji = '🎯';
   document.querySelectorAll('.emoji-opt').forEach(e => e.classList.remove('selected'));
-  document.querySelector('.emoji-opt').classList.add('selected');
-  document.getElementById('goalModal').classList.remove('hidden');
+  document.querySelector('.emoji-opt')?.classList.add('selected');
+  document.getElementById('goalModal')?.classList.remove('hidden');
 }
 
 function selectEmoji(el) {
@@ -760,8 +977,14 @@ function saveGoal() {
   const deadline = document.getElementById('goalDeadline').value;
   const category = document.getElementById('goalCategory').value;
 
-  if (!name) { showToast('error', 'Campo obrigatório', 'Digite um nome para a meta.'); return; }
-  if (!target || target <= 0) { showToast('error', 'Valor inválido', 'Digite um valor alvo válido.'); return; }
+  if (!name) {
+    showToast('error', 'Campo obrigatório', 'Digite um nome para a meta.');
+    return;
+  }
+  if (!target || target <= 0) {
+    showToast('error', 'Valor inválido', 'Digite um valor alvo válido.');
+    return;
+  }
 
   const goal = { id: genId(), name, target, current, deadline, category, emoji: selectedEmoji, createdAt: new Date().toISOString() };
   state.goals.push(goal);
@@ -774,6 +997,7 @@ function saveGoal() {
 function renderGoals() {
   const grid = document.getElementById('goalsGrid');
   const empty = document.getElementById('goalsEmpty');
+  if (!grid || !empty) return;
 
   if (!state.goals.length) {
     grid.innerHTML = '';
@@ -782,6 +1006,7 @@ function renderGoals() {
   }
 
   empty.classList.add('hidden');
+
   grid.innerHTML = state.goals.map(g => {
     const pct = Math.min((g.current / g.target) * 100, 100).toFixed(1);
     const remaining = g.target - g.current;
@@ -820,8 +1045,10 @@ function renderGoals() {
 function addToGoal(id) {
   const val = prompt('Quanto deseja adicionar a esta meta? (R$)');
   if (!val || isNaN(parseFloat(val))) return;
+
   const amount = parseFloat(val);
   const g = state.goals.find(g => g.id === id);
+
   if (g) {
     g.current = Math.min(g.current + amount, g.target);
     saveUserData();
@@ -842,19 +1069,22 @@ function deleteGoal(id) {
 }
 
 function runSimulator() {
-  const goal = parseFloat(document.getElementById('simGoal').value);
-  const monthly = parseFloat(document.getElementById('simMonthly').value);
-  const rate = parseFloat(document.getElementById('simRate').value) / 100 / 12;
+  const goal = parseFloat(document.getElementById('simGoal')?.value || '');
+  const monthly = parseFloat(document.getElementById('simMonthly')?.value || '');
+  const rate = parseFloat(document.getElementById('simRate')?.value || '0') / 100 / 12;
+
+  const simTime = document.getElementById('simTime');
+  const simInvested = document.getElementById('simInvested');
+  const simReturn = document.getElementById('simReturn');
 
   if (!goal || !monthly || goal <= 0 || monthly <= 0) {
-    document.getElementById('simTime').textContent = '—';
-    document.getElementById('simInvested').textContent = '—';
-    document.getElementById('simReturn').textContent = '—';
+    if (simTime) simTime.textContent = '—';
+    if (simInvested) simInvested.textContent = '—';
+    if (simReturn) simReturn.textContent = '—';
     return;
   }
 
   let months = 0;
-  let total = 0;
   const maxMonths = 600;
 
   if (rate > 0) {
@@ -864,7 +1094,7 @@ function runSimulator() {
   }
 
   if (months > maxMonths || months <= 0) {
-    document.getElementById('simTime').textContent = 'Inviável';
+    if (simTime) simTime.textContent = 'Inviável';
     return;
   }
 
@@ -873,9 +1103,9 @@ function runSimulator() {
   const years = Math.floor(months / 12);
   const remMonths = months % 12;
 
-  document.getElementById('simTime').textContent = years > 0 ? `${years}a ${remMonths}m` : `${months} meses`;
-  document.getElementById('simInvested').textContent = fmt(invested);
-  document.getElementById('simReturn').textContent = returns > 0 ? `+ ${fmt(returns)}` : fmt(0);
+  if (simTime) simTime.textContent = years > 0 ? `${years}a ${remMonths}m` : `${months} meses`;
+  if (simInvested) simInvested.textContent = fmt(invested);
+  if (simReturn) simReturn.textContent = returns > 0 ? `+ ${fmt(returns)}` : fmt(0);
 }
 
 // ==========================================
@@ -889,7 +1119,6 @@ function renderAIPage() {
 
 function generateAIInsights() {
   const txs = getFilteredTx();
-  const allTxs = state.transactions;
   const { income, expense, balance, savingsRate } = calcSummary(txs);
 
   const byCategory = {};
@@ -898,14 +1127,12 @@ function generateAIInsights() {
   const insights = [];
   const limits = state.settings.limits || {};
 
-  // Savings rate insight
   if (savingsRate < 10) {
     insights.push({ type: 'negative', icon: '📉', title: 'Taxa de poupança baixa', desc: `Você está poupando apenas ${savingsRate.toFixed(1)}% da sua renda. O ideal é poupar pelo menos 20% por mês. Reduza gastos com lazer e alimentação fora de casa.`, action: 'Criar meta de economia →' });
   } else if (savingsRate >= 20) {
     insights.push({ type: 'positive', icon: '🏆', title: 'Excelente taxa de poupança!', desc: `Parabéns! Você está poupando ${savingsRate.toFixed(1)}% da sua renda — acima da meta de 20%. Continue esse ritmo e considere investir o excedente.`, action: 'Ver opções de investimento →' });
   }
 
-  // Category excess
   Object.entries(byCategory).forEach(([cat, val]) => {
     const lim = limits[cat];
     if (lim && val > lim) {
@@ -913,26 +1140,22 @@ function generateAIInsights() {
     }
   });
 
-  // Top expense category
   const topCat = Object.entries(byCategory).sort((a, b) => b[1] - a[1])[0];
   if (topCat) {
     const pctIncome = income > 0 ? (topCat[1] / income * 100).toFixed(1) : 0;
     insights.push({ type: 'info', icon: '📊', title: `Maior gasto: ${topCat[0]}`, desc: `${topCat[0]} representa ${pctIncome}% da sua renda total (${fmt(topCat[1])}). ${pctIncome > 30 ? 'Considere reduzir esses gastos.' : 'Esse valor está dentro do esperado.'}`, action: 'Analisar detalhes →' });
   }
 
-  // Balance check
   if (balance < 0) {
     insights.push({ type: 'negative', icon: '🔴', title: 'Saldo negativo!', desc: `Suas despesas (${fmt(expense)}) estão superando suas receitas (${fmt(income)}) em ${fmt(Math.abs(balance))}. Identifique e corte gastos não essenciais imediatamente.`, action: 'Ver despesas →' });
   }
 
-  // Recurring expenses
   const recurrings = state.transactions.filter(t => t.type === 'expense' && t.recurrence !== 'once');
   if (recurrings.length > 0) {
-    const totalFixed = recurrings.reduce((s, t) => s + t.value, 0) / 6; // avg monthly
+    const totalFixed = recurrings.reduce((s, t) => s + t.value, 0) / 6;
     insights.push({ type: 'info', icon: '🔁', title: 'Gastos recorrentes', desc: `Você tem ${recurrings.length} despesas recorrentes, totalizando cerca de ${fmt(totalFixed)}/mês. Revise assinaturas e contratos periodicamente.`, action: 'Ver recorrentes →' });
   }
 
-  // Positive: goals progress
   const goalsWithProgress = state.goals.filter(g => g.current > 0 && g.current < g.target);
   if (goalsWithProgress.length > 0) {
     const avgProgress = goalsWithProgress.reduce((s, g) => s + (g.current / g.target), 0) / goalsWithProgress.length * 100;
@@ -990,7 +1213,6 @@ function updateAIScore() {
     else descEl.textContent = 'Situação crítica! Suas despesas superam receitas. Tome ação imediata para reequilibrar seu orçamento.';
   }
 
-  // Update bars
   const ctrl = Math.min(100, Math.max(0, 100 - (expense / (income || 1) * 100)));
   const sav = Math.min(100, savingsRate * 5);
   const goalPct = state.goals.length ? Math.min(100, state.goals.reduce((s, g) => s + (g.current / g.target), 0) / state.goals.length * 100) : 0;
@@ -1007,7 +1229,7 @@ function updateAIScore() {
 
 function renderProjectionChart(scenario = 'moderate') {
   const ctx = document.getElementById('projectionChart');
-  if (!ctx) return;
+  if (!ctx || typeof Chart === 'undefined') return;
 
   destroyChart('projection');
 
@@ -1047,17 +1269,20 @@ function renderProjectionChart(scenario = 'moderate') {
       }]
     },
     options: {
-      responsive: true, maintainAspectRatio: false,
+      responsive: true,
+      maintainAspectRatio: false,
       plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ' ' + fmt(ctx.raw) } } },
       scales: {
         x: { grid: { display: false }, ticks: { color: '#8892a4', font: { size: 12 } }, border: { display: false } },
-        y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#8892a4', callback: v => 'R$' + (v/1000).toFixed(0) + 'k' }, border: { display: false } }
+        y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#8892a4', callback: v => 'R$' + (v / 1000).toFixed(0) + 'k' }, border: { display: false } }
       }
     }
   });
 }
 
-function updateProjection(val) { renderProjectionChart(val); }
+function updateProjection(val) {
+  renderProjectionChart(val);
+}
 
 function runAIAnalysis() {
   showToast('info', 'Analisando...', 'A IA está processando seus dados financeiros.');
@@ -1075,7 +1300,7 @@ function generateAIInsightBanner(txs, income, expense, savingsRate) {
   const insights = [
     savingsRate < 10 ? `Sua taxa de poupança é de apenas ${savingsRate.toFixed(1)}%. Reduza gastos para chegar a pelo menos 20%.` : null,
     income > expense ? `Excelente! Você teve saldo positivo de ${fmt(income - expense)} este mês.` : null,
-    `Seu maior gasto do período é em: ${getTopCategory(txs)}. Monitore de perto.`,
+    `Seu maior gasto do período é em: ${getTopCategory(txs)}. Monitore de perto.`
   ].filter(Boolean);
 
   insightEl.textContent = insights[Math.floor(Math.random() * insights.length)] || 'Continue monitorando suas finanças para receber insights personalizados.';
@@ -1093,12 +1318,12 @@ function getTopCategory(txs) {
 const AI_RESPONSES = {
   keywords: {
     'poupança|economizar|guardar': () => {
-      const { income, expense, savingsRate } = calcSummary(getFilteredTx());
-      return `Atualmente você está poupando ${savingsRate.toFixed(1)}% da renda. Para aumentar, recomendo: 1) Aplique a regra 50/30/20 (50% necessidades, 30% desejos, 20% poupança); 2) Automatize transferências para poupança no início do mês; 3) Reduza gastos em ${getTopCategory(getFilteredTx())}.`;
+      const { savingsRate } = calcSummary(getFilteredTx());
+      return `Atualmente você está poupando ${savingsRate.toFixed(1)}% da renda. Para aumentar, recomendo: 1) Aplique a regra 50/30/20; 2) Automatize transferências para poupança; 3) Reduza gastos em ${getTopCategory(getFilteredTx())}.`;
     },
-    'meta|objetivo|sonho': () => `Você tem ${state.goals.length} meta(s) ativa(s). Para criar novas metas eficazes, use o método SMART: específica, mensurável, atingível, relevante e temporal. Vá para a aba "Metas" e use o Simulador de Economia!`,
-    'invest|rendimento|cdb|tesouro': () => `Para investimentos, considere: 1) Tesouro Selic (segurança + liquidez); 2) CDBs com mais de 100% do CDI; 3) Fundos de renda fixa; 4) Ações e FIIs para longo prazo. Primeiro, construa sua reserva de emergência de 6 meses de despesas.`,
-    'dívida|débito|empréstimo': () => `Para eliminar dívidas: 1) Liste todas com juros e saldos; 2) Use "bola de neve" (menor primeiro) ou "avalanche" (maior juros primeiro); 3) Negocie taxas menores; 4) Evite novas dívidas. Você está conseguindo pagar suas contas em dia?`,
+    'meta|objetivo|sonho': () => `Você tem ${state.goals.length} meta(s) ativa(s). Para criar novas metas eficazes, use o método SMART. Vá para a aba "Metas" e use o Simulador de Economia!`,
+    'invest|rendimento|cdb|tesouro': () => `Para investimentos, considere: 1) Tesouro Selic; 2) CDBs com mais de 100% do CDI; 3) Fundos de renda fixa; 4) Ações e FIIs para longo prazo. Primeiro, construa sua reserva de emergência.`,
+    'dívida|débito|empréstimo': () => `Para eliminar dívidas: 1) Liste todas com juros e saldos; 2) Use bola de neve ou avalanche; 3) Negocie taxas menores; 4) Evite novas dívidas.`,
     'saldo|dinheiro|quanto': () => {
       const { income, expense, balance } = calcSummary(getFilteredTx());
       return `Este mês: Receitas: ${fmt(income)} | Despesas: ${fmt(expense)} | Saldo: ${fmt(balance)}. ${balance >= 0 ? '✅ Positivo!' : '⚠️ Atenção: saldo negativo!'}`;
@@ -1108,31 +1333,30 @@ const AI_RESPONSES = {
       const by = {};
       txs.filter(t => t.type === 'expense').forEach(t => { by[t.category] = (by[t.category] || 0) + t.value; });
       const top = Object.entries(by).sort((a, b) => b[1] - a[1]).slice(0, 3);
-      return `Seus 3 maiores gastos: ${top.map((c, i) => `${i+1}. ${c[0]}: ${fmt(c[1])}`).join(', ')}. Foque em reduzir o primeiro item para ter impacto rápido.`;
+      return `Seus 3 maiores gastos: ${top.map((c, i) => `${i + 1}. ${c[0]}: ${fmt(c[1])}`).join(', ')}. Foque em reduzir o primeiro item para ter impacto rápido.`;
     }
   },
   default: [
-    'Baseado no seu histórico, recomendo revisar seus gastos com alimentação fora de casa. Cozinhar mais em casa pode economizar até R$ 400/mês.',
-    'Dica financeira: a regra de 72 diz que para saber em quanto tempo seu dinheiro dobra, divida 72 pela taxa de juros anual. Ex: 12% ao ano = 6 anos para dobrar!',
-    'Você sabia? Pequenos gastos diários (como café, água, snacks) podem somar mais de R$ 200/mês. Monitore esses "pequenos vampiros financeiros".',
-    'Para alcançar liberdade financeira, foque em aumentar receitas E reduzir despesas simultaneamente. Pequenas melhoras em ambos têm efeito multiplicador.',
-    'Recomendo criar uma reserva de emergência de 6 meses de despesas antes de investir em ativos de maior risco.'
+    'Baseado no seu histórico, recomendo revisar seus gastos com alimentação fora de casa.',
+    'Dica financeira: a regra de 72 diz em quanto tempo seu dinheiro dobra.',
+    'Pequenos gastos diários podem somar mais de R$ 200/mês.',
+    'Para alcançar liberdade financeira, foque em aumentar receitas e reduzir despesas.',
+    'Crie uma reserva de emergência de 6 meses de despesas antes de investir em ativos de maior risco.'
   ]
 };
 
 function sendChatMsg() {
   const input = document.getElementById('chatInput');
-  const msg = input.value.trim();
+  const msg = input?.value.trim() || '';
   if (!msg) return;
 
   addChatMessage('user', msg);
   input.value = '';
 
-  // Typing indicator
   const typingEl = document.createElement('div');
   typingEl.className = 'chat-msg ai';
   typingEl.innerHTML = `<div class="chat-avatar">AI</div><div class="chat-bubble"><div class="chat-typing"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div>`;
-  document.getElementById('chatMessages').appendChild(typingEl);
+  document.getElementById('chatMessages')?.appendChild(typingEl);
   scrollChat();
 
   setTimeout(() => {
@@ -1152,6 +1376,8 @@ function getAIResponse(msg) {
 
 function addChatMessage(role, text) {
   const container = document.getElementById('chatMessages');
+  if (!container) return;
+
   const el = document.createElement('div');
   el.className = `chat-msg ${role}`;
   const avatar = role === 'ai' ? 'AI' : (state.user?.name?.[0] || 'U');
@@ -1169,23 +1395,29 @@ function scrollChat() {
 // EDUCATION PAGE
 // ==========================================
 const EDUCATION_LESSONS = [
-  { id: 'budgeting-101', tag: 'Fundamentos', title: 'Orçamento 50/30/20', emoji: '📊', desc: 'Aprenda a dividir sua renda: 50% para necessidades, 30% para desejos e 20% para poupança. O método mais eficaz para controle financeiro.', duration: '5 min', difficulty: 'Iniciante' },
-  { id: 'emergency-fund', tag: 'Proteção', title: 'Reserva de Emergência', emoji: '🛡️', desc: 'Entenda por que você precisa de 3 a 6 meses de despesas guardadas e como construir sua reserva de emergência passo a passo.', duration: '7 min', difficulty: 'Iniciante' },
-  { id: 'debt-free', tag: 'Dívidas', title: 'Elimine Suas Dívidas', emoji: '⚡', desc: 'Dois métodos poderosos para liquidar dívidas: bola de neve e avalanche. Descubra qual se encaixa melhor no seu perfil.', duration: '8 min', difficulty: 'Iniciante' },
-  { id: 'investing-basics', tag: 'Investimentos', title: 'Primeiros Investimentos', emoji: '📈', desc: 'Tesouro Direto, CDBs, fundos e ações. Entenda cada opção, seus riscos e rentabilidades para começar a investir com segurança.', duration: '12 min', difficulty: 'Intermediário' },
-  { id: 'compound-interest', tag: 'Crescimento', title: 'Juros Compostos', emoji: '🚀', desc: 'A "oitava maravilha do mundo" segundo Einstein. Descubra como os juros sobre juros podem multiplicar seu patrimônio ao longo do tempo.', duration: '6 min', difficulty: 'Iniciante' },
-  { id: 'inflation-proof', tag: 'Proteção', title: 'Proteja-se da Inflação', emoji: '🔥', desc: 'Entenda como a inflação corrói seu dinheiro e como selecionar investimentos que superam a inflação consistentemente.', duration: '9 min', difficulty: 'Intermediário' },
-  { id: 'passive-income', tag: 'Avançado', title: 'Renda Passiva', emoji: '💡', desc: 'FIIs, dividendos e outras formas de fazer dinheiro trabalhar para você. Construa múltiplas fontes de renda passiva.', duration: '15 min', difficulty: 'Avançado' },
-  { id: 'mindset-money', tag: 'Comportamento', title: 'Mentalidade Financeira', emoji: '🧠', desc: 'Descubra como crenças e comportamentos impactam sua saúde financeira. Técnicas para mudar hábitos de consumo e decisões de compra.', duration: '10 min', difficulty: 'Iniciante' },
+  { id: 'budgeting-101', tag: 'Fundamentos', title: 'Orçamento 50/30/20', emoji: '📊', desc: 'Aprenda a dividir sua renda: 50% para necessidades, 30% para desejos e 20% para poupança.', duration: '5 min', difficulty: 'Iniciante' },
+  { id: 'emergency-fund', tag: 'Proteção', title: 'Reserva de Emergência', emoji: '🛡️', desc: 'Entenda por que você precisa de 3 a 6 meses de despesas guardadas.', duration: '7 min', difficulty: 'Iniciante' },
+  { id: 'debt-free', tag: 'Dívidas', title: 'Elimine Suas Dívidas', emoji: '⚡', desc: 'Dois métodos poderosos para liquidar dívidas: bola de neve e avalanche.', duration: '8 min', difficulty: 'Iniciante' },
+  { id: 'investing-basics', tag: 'Investimentos', title: 'Primeiros Investimentos', emoji: '📈', desc: 'Tesouro Direto, CDBs, fundos e ações.', duration: '12 min', difficulty: 'Intermediário' },
+  { id: 'compound-interest', tag: 'Crescimento', title: 'Juros Compostos', emoji: '🚀', desc: 'Descubra como os juros sobre juros podem multiplicar seu patrimônio.', duration: '6 min', difficulty: 'Iniciante' },
+  { id: 'inflation-proof', tag: 'Proteção', title: 'Proteja-se da Inflação', emoji: '🔥', desc: 'Entenda como a inflação corrói seu dinheiro.', duration: '9 min', difficulty: 'Intermediário' },
+  { id: 'passive-income', tag: 'Avançado', title: 'Renda Passiva', emoji: '💡', desc: 'FIIs, dividendos e outras formas de fazer dinheiro trabalhar para você.', duration: '15 min', difficulty: 'Avançado' },
+  { id: 'mindset-money', tag: 'Comportamento', title: 'Mentalidade Financeira', emoji: '🧠', desc: 'Descubra como crenças e comportamentos impactam sua saúde financeira.', duration: '10 min', difficulty: 'Iniciante' }
 ];
 
 function renderEducation() {
   const grid = document.getElementById('eduGrid');
+  if (!grid) return;
+
   const completed = state.eduProgress.completed || [];
 
-  document.getElementById('lessonsCompleted').textContent = completed.length;
-  document.getElementById('eduStreak').textContent = state.eduProgress.streak || 0;
-  document.getElementById('eduPoints').textContent = state.eduProgress.points || 0;
+  const lessonsCompleted = document.getElementById('lessonsCompleted');
+  const eduStreak = document.getElementById('eduStreak');
+  const eduPoints = document.getElementById('eduPoints');
+
+  if (lessonsCompleted) lessonsCompleted.textContent = completed.length;
+  if (eduStreak) eduStreak.textContent = state.eduProgress.streak || 0;
+  if (eduPoints) eduPoints.textContent = state.eduProgress.points || 0;
 
   grid.innerHTML = EDUCATION_LESSONS.map(lesson => {
     const isDone = completed.includes(lesson.id);
@@ -1235,12 +1467,13 @@ function openLesson(id) {
 
 function getLessonContent(id) {
   const contents = {
-    'budgeting-101': `<p><strong>A Regra 50/30/20</strong> é um dos métodos mais simples e eficazes para organizar suas finanças.</p><br><p><strong>50% — Necessidades:</strong> Moradia, alimentação, transporte, saúde, contas básicas.</p><p><strong>30% — Desejos:</strong> Lazer, restaurantes, viagens, roupas extras, entretenimento.</p><p><strong>20% — Poupança/Investimentos:</strong> Reserva de emergência, aposentadoria, metas.</p><br><p><strong>Exemplo prático:</strong> Com salário de R$ 5.000:<br>• R$ 2.500 para necessidades<br>• R$ 1.500 para desejos<br>• R$ 1.000 para poupança</p><br><p>Use o FinanceAI para monitorar em qual categoria você está gastando mais e ajustar!`,
-    'emergency-fund': `<p><strong>Por que a Reserva de Emergência é essencial?</strong></p><br><p>Imprevistos acontecem — demissão, doença, conserto do carro. Sem reserva, você recorre a dívidas com juros altos.</p><br><p><strong>Quanto guardar?</strong><br>• Autônomo/freelancer: 6 a 12 meses de despesas<br>• CLT: 3 a 6 meses de despesas</p><br><p><strong>Onde guardar?</strong><br>• Tesouro Selic (segurança + liquidez)<br>• CDB de banco grande com liquidez diária<br>• Conta rendimento (Nubank, Inter, etc.)</p><br><p><strong>Passo a passo:</strong><br>1. Calcule suas despesas mensais<br>2. Defina a meta (ex: 6x despesas)<br>3. Separe um valor fixo por mês<br>4. Não use para outros fins!`,
-    'investing-basics': `<p><strong>Comece a investir em 4 passos:</strong></p><br><p><strong>1. Quitar dívidas</strong> — Dívidas com juros acima de 12% ao ano devem ser prioridade antes de investir.</p><p><strong>2. Montar reserva</strong> — Antes de investir em risco, tenha sua reserva de emergência completa.</p><p><strong>3. Conhecer o perfil</strong> — Conservador, moderado ou arrojado? Defina tolerância ao risco.</p><p><strong>4. Diversificar</strong> — Nunca coloque tudo em um só investimento.</p><br><p><strong>Opções por perfil:</strong><br>• Conservador: Tesouro Selic, CDB<br>• Moderado: Fundos mistos, Tesouro IPCA<br>• Arrojado: Ações, FIIs, ETFs`,
-    'compound-interest': `<p><strong>Juros Compostos — A Mágica do Tempo</strong></p><br><p>Se você investir R$ 500/mês com 1% ao mês:</p><br><p>• Em 5 anos: R$ 41.000 investidos → R$ 41.137 de rendimento<br>• Em 10 anos: R$ 60.000 investidos → R$ 115.000 total<br>• Em 20 anos: R$ 120.000 investidos → R$ 495.000 total!</p><br><p>O segredo? <strong>Comece cedo e seja consistente.</strong> Cada mês de atraso tem um custo enorme no longo prazo.</p><br><p>Use a Regra de 72: divida 72 pela taxa de juros para saber em quantos anos seu dinheiro dobra. Com 12% ao ano: 72/12 = 6 anos!`
+    'budgeting-101': `<p><strong>A Regra 50/30/20</strong> é um dos métodos mais simples e eficazes para organizar suas finanças.</p><br><p><strong>50% — Necessidades:</strong> Moradia, alimentação, transporte, saúde, contas básicas.</p><p><strong>30% — Desejos:</strong> Lazer, restaurantes, viagens, roupas extras, entretenimento.</p><p><strong>20% — Poupança/Investimentos:</strong> Reserva de emergência, aposentadoria, metas.</p>`,
+    'emergency-fund': `<p><strong>Por que a Reserva de Emergência é essencial?</strong></p><br><p>Imprevistos acontecem. Sem reserva, você recorre a dívidas com juros altos.</p>`,
+    'investing-basics': `<p><strong>Comece a investir em 4 passos:</strong></p><br><p><strong>1. Quitar dívidas</strong></p><p><strong>2. Montar reserva</strong></p><p><strong>3. Conhecer o perfil</strong></p><p><strong>4. Diversificar</strong></p>`,
+    'compound-interest': `<p><strong>Juros Compostos — A Mágica do Tempo</strong></p><br><p>Comece cedo e seja consistente.</p>`
   };
-  return contents[id] || `<p>${EDUCATION_LESSONS.find(l => l.id === id)?.desc || 'Conteúdo em breve.'}</p><br><p>Este módulo está sendo preparado com conteúdo especializado. Continue acompanhando as atualizações!</p>`;
+
+  return contents[id] || `<p>${EDUCATION_LESSONS.find(l => l.id === id)?.desc || 'Conteúdo em breve.'}</p>`;
 }
 
 function completeLesson(id, overlay) {
@@ -1267,7 +1500,7 @@ function renderReports() {
 
 function renderMonthlyReportChart() {
   const ctx = document.getElementById('monthlyReportChart');
-  if (!ctx) return;
+  if (!ctx || typeof Chart === 'undefined') return;
 
   destroyChart('monthlyReport');
 
@@ -1285,11 +1518,12 @@ function renderMonthlyReportChart() {
       ]
     },
     options: {
-      responsive: true, maintainAspectRatio: false,
+      responsive: true,
+      maintainAspectRatio: false,
       plugins: { tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${fmt(ctx.raw)}` } } },
       scales: {
         x: { grid: { display: false }, ticks: { color: '#8892a4' }, border: { display: false } },
-        y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#8892a4', callback: v => 'R$' + (v/1000).toFixed(1) + 'k' }, border: { display: false } }
+        y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#8892a4', callback: v => 'R$' + (v / 1000).toFixed(1) + 'k' }, border: { display: false } }
       }
     }
   });
@@ -1297,7 +1531,7 @@ function renderMonthlyReportChart() {
 
 function renderCategoryReportChart() {
   const ctx = document.getElementById('categoryReportChart');
-  if (!ctx) return;
+  if (!ctx || typeof Chart === 'undefined') return;
 
   destroyChart('categoryReport');
 
@@ -1305,7 +1539,7 @@ function renderCategoryReportChart() {
   const by = {};
   txs.forEach(t => { by[t.category] = (by[t.category] || 0) + t.value; });
   const sorted = Object.entries(by).sort((a, b) => b[1] - a[1]).slice(0, 8);
-  const colors = ['#6366f1','#8b5cf6','#ec4899','#f59e0b','#10b981','#3b82f6','#ef4444','#14b8a6'];
+  const colors = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444', '#14b8a6'];
 
   state.charts.categoryReport = new Chart(ctx, {
     type: 'bar',
@@ -1315,10 +1549,11 @@ function renderCategoryReportChart() {
     },
     options: {
       indexAxis: 'y',
-      responsive: true, maintainAspectRatio: false,
+      responsive: true,
+      maintainAspectRatio: false,
       plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${fmt(ctx.raw)}` } } },
       scales: {
-        x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#8892a4', callback: v => 'R$' + (v/1000).toFixed(0) + 'k' }, border: { display: false } },
+        x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#8892a4', callback: v => 'R$' + (v / 1000).toFixed(0) + 'k' }, border: { display: false } },
         y: { grid: { display: false }, ticks: { color: '#8892a4', font: { size: 12 } }, border: { display: false } }
       }
     }
@@ -1327,7 +1562,7 @@ function renderCategoryReportChart() {
 
 function renderTrendChart() {
   const ctx = document.getElementById('trendChart');
-  if (!ctx) return;
+  if (!ctx || typeof Chart === 'undefined') return;
 
   destroyChart('trend');
 
@@ -1360,11 +1595,12 @@ function renderTrendChart() {
       }]
     },
     options: {
-      responsive: true, maintainAspectRatio: false,
+      responsive: true,
+      maintainAspectRatio: false,
       plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` Saldo: ${fmt(ctx.raw)}` } } },
       scales: {
         x: { grid: { display: false }, ticks: { color: '#8892a4' }, border: { display: false } },
-        y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#8892a4', callback: v => 'R$' + (v/1000).toFixed(1) + 'k' }, border: { display: false } }
+        y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#8892a4', callback: v => 'R$' + (v / 1000).toFixed(1) + 'k' }, border: { display: false } }
       }
     }
   });
@@ -1427,9 +1663,13 @@ function renderDetailedReport() {
 // SETTINGS PAGE
 // ==========================================
 function renderSettings() {
-  document.getElementById('settingName').value = state.user?.name || '';
-  document.getElementById('settingEmail').value = state.user?.email || '';
-  if (state.settings.salary) document.getElementById('settingSalary').value = state.settings.salary;
+  const settingName = document.getElementById('settingName');
+  const settingEmail = document.getElementById('settingEmail');
+  const settingSalary = document.getElementById('settingSalary');
+
+  if (settingName) settingName.value = state.user?.name || '';
+  if (settingEmail) settingEmail.value = state.user?.email || '';
+  if (settingSalary && state.settings.salary) settingSalary.value = state.settings.salary;
 
   const dm = document.getElementById('darkModeToggle');
   if (dm) dm.checked = document.documentElement.getAttribute('data-theme') === 'dark';
@@ -1471,8 +1711,8 @@ function saveLimits() {
 }
 
 function saveSettings() {
-  const name = document.getElementById('settingName').value.trim();
-  const salary = parseFloat(document.getElementById('settingSalary').value) || 0;
+  const name = document.getElementById('settingName')?.value.trim() || '';
+  const salary = parseFloat(document.getElementById('settingSalary')?.value || '0') || 0;
 
   if (name && state.user) {
     state.user.name = name;
@@ -1489,13 +1729,16 @@ function saveSettings() {
 
 function clearAllData() {
   if (!confirm('⚠️ ATENÇÃO: Todos os dados serão apagados. Esta ação é IRREVERSÍVEL!\n\nDigite "CONFIRMAR" para prosseguir.')) return;
+
   const k = state.user.email;
   ['transactions', 'goals', 'settings', 'notifications', 'eduProgress'].forEach(key => localStorage.removeItem(`financeai_${key}_${k}`));
+
   state.transactions = [];
   state.goals = [];
   state.settings = { salary: 0, limits: {} };
   state.notifications = [];
   state.eduProgress = { completed: [], streak: 0, points: 0 };
+
   navigate('dashboard');
   showToast('success', 'Dados apagados', 'Todos os dados foram removidos.');
 }
@@ -1547,6 +1790,8 @@ function updateNotifBadge() {
 
 function toggleNotifications() {
   const panel = document.getElementById('notifPanel');
+  if (!panel) return;
+
   panel.classList.toggle('hidden');
   if (!panel.classList.contains('hidden')) {
     state.notifications.forEach(n => n.read = true);
@@ -1559,7 +1804,7 @@ function clearNotifications() {
   state.notifications = [];
   saveUserData();
   renderNotifications();
-  document.getElementById('notifPanel').classList.add('hidden');
+  document.getElementById('notifPanel')?.classList.add('hidden');
 }
 
 // ==========================================
@@ -1571,8 +1816,10 @@ function toggleTheme() {
   document.documentElement.setAttribute('data-theme', newTheme);
   state.settings.darkMode = !isDark;
   saveUserData();
+
   const dm = document.getElementById('darkModeToggle');
   if (dm) dm.checked = !isDark;
+
   reDrawCharts();
 }
 
@@ -1594,16 +1841,19 @@ function exportPDF() {
 
   setTimeout(() => {
     try {
+      if (!window.jspdf || !window.jspdf.jsPDF) {
+        showToast('error', 'Erro ao gerar PDF', 'Biblioteca jsPDF não carregada.');
+        return;
+      }
+
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
 
-      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
       const textColor = [26, 29, 46];
       const accentColor = [99, 102, 241];
       const incomeColor = [16, 185, 129];
       const expenseColor = [239, 68, 68];
 
-      // Header
       doc.setFillColor(...accentColor);
       doc.rect(0, 0, 210, 40, 'F');
       doc.setTextColor(255, 255, 255);
@@ -1615,20 +1865,17 @@ function exportPDF() {
       doc.text('Relatório Financeiro Mensal', 20, 28);
       doc.text(new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }), 20, 36);
 
-      // User info
       doc.setTextColor(...textColor);
       doc.setFontSize(10);
       doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 130, 28);
       doc.text(`Usuário: ${state.user?.name || 'N/A'}`, 130, 34);
 
-      // Summary section
       const txs = getFilteredTx();
       const { income, expense, balance, savingsRate } = calcSummary(txs);
 
       let y = 55;
       doc.setFontSize(14);
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(...textColor);
       doc.text('Resumo do Período', 20, y);
 
       y += 8;
@@ -1636,7 +1883,7 @@ function exportPDF() {
         { label: 'Total de Receitas', value: fmt(income), color: incomeColor },
         { label: 'Total de Despesas', value: fmt(expense), color: expenseColor },
         { label: 'Saldo', value: fmt(balance), color: balance >= 0 ? incomeColor : expenseColor },
-        { label: 'Taxa de Poupança', value: savingsRate.toFixed(1) + '%', color: accentColor },
+        { label: 'Taxa de Poupança', value: savingsRate.toFixed(1) + '%', color: accentColor }
       ];
 
       metrics.forEach((m, i) => {
@@ -1655,8 +1902,6 @@ function exportPDF() {
       });
 
       y += 52;
-
-      // Transactions table
       doc.setFontSize(14);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(...textColor);
@@ -1682,13 +1927,17 @@ function exportPDF() {
       const recent = [...txs].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 25);
 
       recent.forEach((tx, idx) => {
-        if (y > 270) { doc.addPage(); y = 20; }
+        if (y > 270) {
+          doc.addPage();
+          y = 20;
+        }
         doc.setFillColor(idx % 2 === 0 ? 248 : 255, idx % 2 === 0 ? 249 : 255, idx % 2 === 0 ? 255 : 255);
         doc.rect(20, y, 170, 7, 'F');
         doc.setTextColor(...textColor);
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(8);
         x = 20;
+
         const cells = [
           fmtDateDisplay(tx.date),
           tx.desc.substring(0, 28),
@@ -1696,6 +1945,7 @@ function exportPDF() {
           tx.type === 'income' ? 'Receita' : 'Despesa',
           (tx.type === 'income' ? '+' : '-') + ' ' + fmt(tx.value)
         ];
+
         cells.forEach((c, i) => {
           if (i === 1 && tx.type === 'income') doc.setTextColor(...incomeColor);
           else if (i === 1 && tx.type === 'expense') doc.setTextColor(...expenseColor);
@@ -1704,10 +1954,10 @@ function exportPDF() {
           doc.text(c, x + 2, y + 5);
           x += colWidths[i];
         });
+
         y += 7;
       });
 
-      // Footer
       const pageCount = doc.internal.getNumberOfPages();
       for (let p = 1; p <= pageCount; p++) {
         doc.setPage(p);
@@ -1730,6 +1980,8 @@ function exportPDF() {
 // ==========================================
 function showToast(type, title, msg) {
   const container = document.getElementById('toastContainer');
+  if (!container) return;
+
   const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
 
   const toast = document.createElement('div');
@@ -1744,6 +1996,7 @@ function showToast(type, title, msg) {
   `;
 
   container.appendChild(toast);
+
   setTimeout(() => {
     toast.style.animation = 'slideOutRight 0.3s ease forwards';
     setTimeout(() => toast.remove(), 300);
@@ -1754,7 +2007,7 @@ function showToast(type, title, msg) {
 // MODAL HELPERS
 // ==========================================
 function closeModal(id) {
-  document.getElementById(id).classList.add('hidden');
+  document.getElementById(id)?.classList.add('hidden');
 }
 
 document.addEventListener('click', e => {
@@ -1769,10 +2022,15 @@ document.addEventListener('click', e => {
 // ==========================================
 // HELPERS
 // ==========================================
-function genId() { return Math.random().toString(36).substring(2, 11) + Date.now().toString(36); }
+function genId() {
+  return Math.random().toString(36).substring(2, 11) + Date.now().toString(36);
+}
 
 function fmt(val) {
-  return 'R$ ' + (val || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return 'R$ ' + (val || 0).toLocaleString('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
 }
 
 function fmtDate(d) {
@@ -1780,12 +2038,16 @@ function fmtDate(d) {
 }
 
 function fmtDateDisplay(dateStr) {
-  return new Date(dateStr + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  return new Date(dateStr + 'T12:00:00').toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  });
 }
 
 function fmtMonthYear(ym) {
   const [y, m] = ym.split('-');
-  const months = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
   return `${months[parseInt(m) - 1]} ${y}`;
 }
 
@@ -1798,7 +2060,7 @@ function getLast6Months() {
   const months = [];
   for (let i = 5; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const labels = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+    const labels = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
     months.push({ year: d.getFullYear(), month: d.getMonth(), label: `${labels[d.getMonth()]}/${d.getFullYear().toString().slice(2)}` });
   }
   return months;
@@ -1806,7 +2068,10 @@ function getLast6Months() {
 
 function getMonthTotal(year, month, type) {
   return state.transactions
-    .filter(t => { const d = new Date(t.date); return d.getFullYear() === year && d.getMonth() === month && t.type === type; })
+    .filter(t => {
+      const d = new Date(t.date);
+      return d.getFullYear() === year && d.getMonth() === month && t.type === type;
+    })
     .reduce((s, t) => s + t.value, 0);
 }
 
@@ -1832,8 +2097,14 @@ function destroyAllCharts() {
 // ==========================================
 // BOOTSTRAP
 // ==========================================
-document.addEventListener('DOMContentLoaded', () => {
-  // Check for existing session
+document.addEventListener('DOMContentLoaded', async () => {
+  try {
+    await ensureSupabase();
+    console.log('Supabase ready');
+  } catch (err) {
+    console.error('Supabase init failed:', err);
+  }
+
   const currentUser = DB.get('currentUser');
   if (currentUser) {
     const users = DB.get('users', {});
@@ -1845,20 +2116,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Show auth with demo hint
   setTimeout(() => {
     const hint = document.createElement('div');
-    hint.style.cssText = `position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:12px 20px;font-size:13px;color:var(--text-secondary);z-index:999;box-shadow:var(--shadow-lg);text-align:center;`;
+    hint.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:12px 20px;font-size:13px;color:var(--text-secondary);z-index:999;box-shadow:var(--shadow-lg);text-align:center;';
     hint.innerHTML = '👋 Para demo rápido: crie uma conta ou use <strong style="color:var(--accent)">demo@financeai.com</strong> / <strong style="color:var(--accent)">demo1234</strong>';
     document.body.appendChild(hint);
     setTimeout(() => hint.remove(), 6000);
 
-    // Create demo account if not exists
     const users = DB.get('users', {});
     if (!users['demo@financeai.com']) {
       users['demo@financeai.com'] = { name: 'Demo User', password: btoa('demo1234'), createdAt: new Date().toISOString() };
       DB.set('users', users);
-      // Pre-seed demo
       const prevUser = state.user;
       state.user = { name: 'Demo User', email: 'demo@financeai.com' };
       seedDemoData();
