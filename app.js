@@ -248,23 +248,6 @@ async function handleLogout() {
     console.error('[LOGOUT] erro ao sair do Supabase:', err);
   }
 }
-  state.user = null;
-  DB.set('currentUser', null);
-  destroyAllCharts();
-
-  const appEl = document.getElementById('app');
-  const authEl = document.getElementById('authScreen');
-
-  if (appEl) appEl.classList.add('hidden');
-
-  if (authEl) {
-    authEl.style.display = 'flex';
-    authEl.classList.add('active');
-  }
-
-  console.log('[LOGOUT] sessão local limpa');
-  showToast('info', 'Até logo!', 'Sessão encerrada com sucesso.');
-}
 
 function switchAuthTab(tab) {
   document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
@@ -2314,4 +2297,4 @@ document.addEventListener('DOMContentLoaded', async () => {
       state.user = prevUser;
     }
   }, 1000);
-}); 
+});
