@@ -10,11 +10,11 @@
 const SUPABASE_URL = "https://esejkititjntjotsgsmxt.supabase.co";
 const SUPABASE_KEY = "sb_publishable_82tecE-dAzuRDzOYAWFthw_tgLWKY6L";
 
-let supabase = null;
+let supabaseClient = null;
 let supabaseReady = false;
 
 async function ensureSupabase() {
-  if (supabaseReady && supabase) return supabase;
+  if (supabaseReady && supabaseClient) return supabaseClient;
 
   if (!window.supabase) {
     await new Promise((resolve, reject) => {
@@ -32,7 +32,7 @@ async function ensureSupabase() {
       }
 
       const script = document.createElement('script');
-      script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+      script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js';
       script.async = true;
       script.dataset.supabaseCdn = 'true';
       script.onload = resolve;
@@ -45,9 +45,9 @@ async function ensureSupabase() {
     throw new Error('Supabase library não carregou corretamente.');
   }
 
-  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
   supabaseReady = true;
-  return supabase;
+  return supabaseClient;
 }
 
 // ==========================================
@@ -218,6 +218,23 @@ async function handleRegister() {
 async function handleLogout() {
   console.log('[LOGOUT] clique recebido');
 
+  state.user = null;
+  DB.set('currentUser', null);
+  destroyAllCharts();
+
+  const appEl = document.getElementById('app');
+  const authEl = document.getElementById('authScreen');
+
+  if (appEl) appEl.classList.add('hidden');
+
+  if (authEl) {
+    authEl.style.display = 'flex';
+    authEl.classList.add('active');
+  }
+
+  console.log('[LOGOUT] sessão local limpa');
+  showToast('info', 'Até logo!', 'Sessão encerrada com sucesso.');
+
   try {
     const client = await ensureSupabase();
     const { error } = await client.auth.signOut();
@@ -230,7 +247,7 @@ async function handleLogout() {
   } catch (err) {
     console.error('[LOGOUT] erro ao sair do Supabase:', err);
   }
-
+}
   state.user = null;
   DB.set('currentUser', null);
   destroyAllCharts();
