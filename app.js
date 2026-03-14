@@ -19,10 +19,15 @@ async function ensureSupabase() {
   if (!window.supabase) {
     await new Promise((resolve, reject) => {
       const existing = document.querySelector('script[data-supabase-cdn="true"]');
+
       if (existing) {
+        if (window.supabase?.createClient) {
+          resolve();
+          return;
+        }
+
         existing.addEventListener('load', resolve, { once: true });
         existing.addEventListener('error', reject, { once: true });
-        if (window.supabase) resolve();
         return;
       }
 
@@ -87,8 +92,8 @@ let state = {
 // AUTH
 // ==========================================
 async function handleLogin() {
-  const email = document.getElementById('loginEmail').value.trim();
-  const pwd = document.getElementById('loginPassword').value;
+  const email = document.getElementById('loginEmail')?.value.trim() || '';
+  const pwd = document.getElementById('loginPassword')?.value || '';
 
   if (!email || !pwd) {
     showToast('error', 'Campos obrigatórios', 'Preencha email e senha.');
@@ -142,10 +147,10 @@ async function handleLogin() {
 }
 
 async function handleRegister() {
-  const name = document.getElementById('regName').value.trim();
-  const email = document.getElementById('regEmail').value.trim();
-  const pwd = document.getElementById('regPassword').value;
-  const confirm = document.getElementById('regConfirm').value;
+  const name = document.getElementById('regName')?.value.trim() || '';
+  const email = document.getElementById('regEmail')?.value.trim() || '';
+  const pwd = document.getElementById('regPassword')?.value || '';
+  const confirm = document.getElementById('regConfirm')?.value || '';
 
   if (!name || !email || !pwd) {
     showToast('error', 'Campos obrigatórios', 'Preencha todos os campos.');
@@ -238,19 +243,8 @@ async function handleLogout() {
 function switchAuthTab(tab) {
   document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
-  document.querySelector(`.auth-tab[data-tab="${tab}"]`).classList.add('active');
-  document.getElementById(tab + 'Form').classList.add('active');
-}
-
-function showForgotPassword() {
-  showToast('info', 'Recuperação de senha', 'Em um app real, um email seria enviado. Para demo, use a senha cadastrada.');
-}
-
-function switchAuthTab(tab) {
-  document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
-  document.querySelector(`.auth-tab[data-tab="${tab}"]`).classList.add('active');
-  document.getElementById(tab + 'Form').classList.add('active');
+  document.querySelector(`.auth-tab[data-tab="${tab}"]`)?.classList.add('active');
+  document.getElementById(tab + 'Form')?.classList.add('active');
 }
 
 function showForgotPassword() {
@@ -367,6 +361,7 @@ function seedDemoData() {
 // LOAD USER DATA
 // ==========================================
 function loadUserData() {
+  if (!state.user?.email) return;
   const k = state.user.email;
   state.transactions = DB.get(`transactions_${k}`, []);
   state.goals = DB.get(`goals_${k}`, []);
@@ -376,6 +371,7 @@ function loadUserData() {
 }
 
 function saveUserData() {
+  if (!state.user?.email) return;
   const k = state.user.email;
   DB.set(`transactions_${k}`, state.transactions);
   DB.set(`goals_${k}`, state.goals);
@@ -388,9 +384,10 @@ function saveUserData() {
 // APP INITIALIZATION
 // ==========================================
 function initApp() {
-  document.getElementById('authScreen').classList.remove('active');
-  document.getElementById('authScreen').style.display = 'none';
-  document.getElementById('app').classList.remove('hidden');
+  document.getElementById('authScreen')?.classList.remove('active');
+  const authScreen = document.getElementById('authScreen');
+  if (authScreen) authScreen.style.display = 'none';
+  document.getElementById('app')?.classList.remove('hidden');
 
   const isDark = state.settings.darkMode !== false;
   document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
@@ -409,8 +406,8 @@ function initApp() {
   const settingEmail = document.getElementById('settingEmail');
   const settingSalary = document.getElementById('settingSalary');
 
-  if (settingName) settingName.value = state.user.name || '';
-  if (settingEmail) settingEmail.value = state.user.email || '';
+  if (settingName) settingName.value = state.user?.name || '';
+  if (settingEmail) settingEmail.value = state.user?.email || '';
   if (settingSalary && state.settings.salary) settingSalary.value = state.settings.salary;
 
   const txDate = document.getElementById('txDate');
@@ -421,7 +418,7 @@ function initApp() {
 }
 
 function updateUserUI() {
-  const name = state.user.name || 'Usuário';
+  const name = state.user?.name || 'Usuário';
   const initials = name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
   const sidebarName = document.getElementById('sidebarName');
   const sidebarAvatar = document.getElementById('sidebarAvatar');
@@ -547,7 +544,7 @@ function getPrevPeriodSummary() {
 function changePeriod(p, btn) {
   state.period = p;
   document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
+  btn?.classList.add('active');
   renderDashboard();
 }
 
@@ -834,6 +831,7 @@ function openTransactionModal(type = 'expense') {
   const txNotes = document.getElementById('txNotes');
   const txRecurrence = document.getElementById('txRecurrence');
   const transactionModal = document.getElementById('transactionModal');
+  const txPayment = document.getElementById('txPayment');
 
   if (modalTitle) modalTitle.textContent = 'Nova Transação';
   if (txDesc) txDesc.value = '';
@@ -841,6 +839,7 @@ function openTransactionModal(type = 'expense') {
   if (txDate) txDate.value = fmtDate(new Date());
   if (txNotes) txNotes.value = '';
   if (txRecurrence) txRecurrence.value = 'once';
+  if (txPayment) txPayment.value = '';
 
   setTransactionType(type);
   buildTxCategories(type);
@@ -886,10 +885,9 @@ const categoryEmoji = {
 async function saveTransactionToSupabase(tx) {
   try {
     const client = await ensureSupabase();
-
     const { data: authData, error: authError } = await client.auth.getUser();
 
-    if (authError || !authData.user) {
+    if (authError || !authData?.user) {
       console.error('Supabase auth error:', authError);
       showToast('warning', 'Sem sessão real', 'Faça login novamente para salvar no banco.');
       return false;
@@ -922,47 +920,6 @@ async function saveTransactionToSupabase(tx) {
   } catch (err) {
     console.error('Supabase connection error:', err);
     showToast('warning', 'Salvou só no app', 'Falha na conexão com Supabase.');
-    return false;
-  }
-}
-
-    const user = authData.user;
-
-    const payload = {
-      user_id: user.id,
-      description: tx.desc,
-      amount: Number(tx.value),
-      type: tx.type,
-      transaction_date: tx.date
-    };
-
-    const { data, error } = await client
-      .from('transactions')
-      .insert([payload])
-      .select();
-
-    if (error) {
-      console.error('Supabase insert error:', error);
-      showToast('warning', 'Salvou só no app', error.message);
-      return false;
-    }
-
-    console.log('Supabase insert success:', data);
-    showToast('success', 'Banco atualizado', 'Transação salva no Supabase com sucesso.');
-    return true;
-  } catch (err) {
-    console.error('Supabase connection error:', err);
-    showToast('warning', 'Salvou só no app', 'Falha na conexão com Supabase.');
-    return false;
-  }
-}
-
-
-    console.log('Supabase insert success:', data);
-    return true;
-  } catch (err) {
-    console.error('Supabase connection error:', err);
-    showToast('warning', 'Salvou só no app', 'A transação ficou no app, mas a conexão com Supabase falhou.');
     return false;
   }
 }
@@ -1941,7 +1898,7 @@ function toggleNotifications() {
 
   panel.classList.toggle('hidden');
   if (!panel.classList.contains('hidden')) {
-    state.notifications.forEach(n => n.read = true);
+    state.notifications.forEach(n => { n.read = true; });
     saveUserData();
     updateNotifBadge();
   }
@@ -2167,6 +2124,53 @@ document.addEventListener('click', e => {
 });
 
 // ==========================================
+// BINDINGS
+// ==========================================
+function bindAuthEvents() {
+  const loginEmail = document.getElementById('loginEmail');
+  const loginPassword = document.getElementById('loginPassword');
+  const regName = document.getElementById('regName');
+  const regEmail = document.getElementById('regEmail');
+  const regPassword = document.getElementById('regPassword');
+  const regConfirm = document.getElementById('regConfirm');
+
+  [loginEmail, loginPassword].forEach(el => {
+    if (!el) return;
+    el.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleLogin();
+      }
+    });
+  });
+
+  [regName, regEmail, regPassword, regConfirm].forEach(el => {
+    if (!el) return;
+    el.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleRegister();
+      }
+    });
+  });
+}
+
+function bindGlobalButtons() {
+  const buttonMap = [
+    ['loginBtn', handleLogin],
+    ['registerBtn', handleRegister],
+    ['saveTransactionBtn', saveTransaction],
+    ['saveGoalBtn', saveGoal]
+  ];
+
+  buttonMap.forEach(([id, handler]) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.onclick = handler;
+  });
+}
+
+// ==========================================
 // HELPERS
 // ==========================================
 function genId() {
@@ -2195,7 +2199,7 @@ function fmtDateDisplay(dateStr) {
 function fmtMonthYear(ym) {
   const [y, m] = ym.split('-');
   const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-  return `${months[parseInt(m) - 1]} ${y}`;
+  return `${months[parseInt(m, 10) - 1]} ${y}`;
 }
 
 function recurrenceLabel(r) {
@@ -2245,6 +2249,9 @@ function destroyAllCharts() {
 // BOOTSTRAP
 // ==========================================
 document.addEventListener('DOMContentLoaded', async () => {
+  bindAuthEvents();
+  bindGlobalButtons();
+
   try {
     await ensureSupabase();
     console.log('Supabase ready');
