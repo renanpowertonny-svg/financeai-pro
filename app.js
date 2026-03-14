@@ -141,19 +141,6 @@ async function handleLogin() {
   }
 }
 
-
-  const users = DB.get('users', {});
-  if (!users[email] || users[email].password !== btoa(pwd)) {
-    showToast('error', 'Acesso negado', 'Email ou senha incorretos.');
-    return;
-  }
-
-  state.user = { ...users[email], email };
-  DB.set('currentUser', email);
-  loadUserData();
-  initApp();
-}
-
 async function handleRegister() {
   const name = document.getElementById('regName').value.trim();
   const email = document.getElementById('regEmail').value.trim();
@@ -223,24 +210,6 @@ async function handleRegister() {
   }
 }
 
-
-  const users = DB.get('users', {});
-  if (users[email]) {
-    showToast('error', 'Email já cadastrado', 'Use outro email ou faça login.');
-    return;
-  }
-
-  users[email] = { name, password: btoa(pwd), createdAt: new Date().toISOString() };
-  DB.set('users', users);
-
-  state.user = { name, email };
-  DB.set('currentUser', email);
-  seedDemoData();
-  loadUserData();
-  initApp();
-  showToast('success', 'Conta criada!', `Bem-vindo(a), ${name}!`);
-}
-
 async function handleLogout() {
   try {
     const client = await ensureSupabase();
@@ -266,8 +235,15 @@ async function handleLogout() {
   showToast('info', 'Até logo!', 'Sessão encerrada com sucesso.');
 }
 
+function switchAuthTab(tab) {
+  document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
+  document.querySelector(`.auth-tab[data-tab="${tab}"]`).classList.add('active');
+  document.getElementById(tab + 'Form').classList.add('active');
+}
 
-  showToast('info', 'Até logo!', 'Sessão encerrada com sucesso.');
+function showForgotPassword() {
+  showToast('info', 'Recuperação de senha', 'Em um app real, um email seria enviado. Para demo, use a senha cadastrada.');
 }
 
 function switchAuthTab(tab) {
@@ -911,14 +887,6 @@ async function saveTransactionToSupabase(tx) {
   try {
     const client = await ensureSupabase();
 
-    const payload = {
-      description: tx.desc,
-      amount: Number(tx.value),
-      type: tx.type,
-async function saveTransactionToSupabase(tx) {
-  try {
-    const client = await ensureSupabase();
-
     const { data: authData, error: authError } = await client.auth.getUser();
 
     if (authError || !authData.user) {
@@ -926,6 +894,37 @@ async function saveTransactionToSupabase(tx) {
       showToast('warning', 'Sem sessão real', 'Faça login novamente para salvar no banco.');
       return false;
     }
+
+    const user = authData.user;
+
+    const payload = {
+      user_id: user.id,
+      description: tx.desc,
+      amount: Number(tx.value),
+      type: tx.type,
+      transaction_date: tx.date
+    };
+
+    const { data, error } = await client
+      .from('transactions')
+      .insert([payload])
+      .select();
+
+    if (error) {
+      console.error('Supabase insert error:', error);
+      showToast('warning', 'Salvou só no app', error.message);
+      return false;
+    }
+
+    console.log('Supabase insert success:', data);
+    showToast('success', 'Banco atualizado', 'Transação salva no Supabase com sucesso.');
+    return true;
+  } catch (err) {
+    console.error('Supabase connection error:', err);
+    showToast('warning', 'Salvou só no app', 'Falha na conexão com Supabase.');
+    return false;
+  }
+}
 
     const user = authData.user;
 
