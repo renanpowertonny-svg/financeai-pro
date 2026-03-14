@@ -249,23 +249,6 @@ async function handleLogout() {
   showToast('info', 'Até logo!', 'Sessão encerrada com sucesso.');
 }
 
-  state.user = null;
-  DB.set('currentUser', null);
-  destroyAllCharts();
-
-  const appEl = document.getElementById('app');
-  const authEl = document.getElementById('authScreen');
-
-  if (appEl) appEl.classList.add('hidden');
-
-  if (authEl) {
-    authEl.style.display = 'flex';
-    authEl.classList.add('active');
-  }
-
-  showToast('info', 'Até logo!', 'Sessão encerrada com sucesso.');
-}
-
 function switchAuthTab(tab) {
   document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
@@ -2186,7 +2169,8 @@ function bindGlobalButtons() {
     ['loginBtn', handleLogin],
     ['registerBtn', handleRegister],
     ['saveTransactionBtn', saveTransaction],
-    ['saveGoalBtn', saveGoal]
+    ['saveGoalBtn', saveGoal],
+    ['logoutBtn', handleLogout]
   ];
 
   buttonMap.forEach(([id, handler]) => {
@@ -2313,4 +2297,4 @@ document.addEventListener('DOMContentLoaded', async () => {
       state.user = prevUser;
     }
   }, 1000);
-});
+}); 
