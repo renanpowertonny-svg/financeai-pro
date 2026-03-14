@@ -216,12 +216,38 @@ async function handleRegister() {
 }
 
 async function handleLogout() {
+  console.log('[LOGOUT] clique recebido');
+
   try {
     const client = await ensureSupabase();
-    await client.auth.signOut();
+    const { error } = await client.auth.signOut();
+
+    if (error) {
+      console.error('[LOGOUT] erro no signOut:', error);
+    } else {
+      console.log('[LOGOUT] signOut Supabase concluído');
+    }
   } catch (err) {
-    console.error('Erro ao sair do Supabase:', err);
+    console.error('[LOGOUT] erro ao sair do Supabase:', err);
   }
+
+  state.user = null;
+  DB.set('currentUser', null);
+  destroyAllCharts();
+
+  const appEl = document.getElementById('app');
+  const authEl = document.getElementById('authScreen');
+
+  if (appEl) appEl.classList.add('hidden');
+
+  if (authEl) {
+    authEl.style.display = 'flex';
+    authEl.classList.add('active');
+  }
+
+  console.log('[LOGOUT] sessão local limpa');
+  showToast('info', 'Até logo!', 'Sessão encerrada com sucesso.');
+}
 
   state.user = null;
   DB.set('currentUser', null);
