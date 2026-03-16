@@ -92,18 +92,19 @@ let state = {
 // AUTH
 // ==========================================
 async function handleLogin() {
+
+  const emailInput = document.getElementById("loginEmail");
+  const passwordInput = document.getElementById("loginPassword");
+
+  const email = emailInput ? emailInput.value.trim() : "";
+  const password = passwordInput ? passwordInput.value : "";
+
+  if (!email || !password) {
+    alert("Informe email e senha.");
+    return;
+  }
+
   try {
-
-    const emailInput = document.getElementById("loginEmail");
-    const passwordInput = document.getElementById("loginPassword");
-
-    const email = emailInput ? emailInput.value.trim() : "";
-    const password = passwordInput ? passwordInput.value : "";
-
-    if (!email || !password) {
-      alert("Informe email e senha.");
-      return;
-    }
 
     const client = await ensureSupabase();
 
@@ -118,21 +119,17 @@ async function handleLogin() {
       return;
     }
 
-    console.log("Login realizado:", data);
-
     state.user = data.user;
 
     DB.set("currentUser", data.user);
 
-    const authScreen = document.getElementById("authScreen");
-    const app = document.getElementById("app");
+    document.getElementById("authScreen").classList.remove("active");
+    document.getElementById("app").classList.remove("hidden");
 
-    if (authScreen) authScreen.classList.remove("active");
-    if (app) app.classList.remove("hidden");
+    console.log("Login realizado");
 
   } catch (err) {
     console.error("Erro inesperado login:", err);
-    alert("Erro ao tentar entrar.");
   }
 }
 
