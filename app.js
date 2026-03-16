@@ -92,13 +92,49 @@ let state = {
 // AUTH
 // ==========================================
 async function handleLogin() {
-  const email = document.getElementById('loginEmail')?.value.trim() || '';
-  const pwd = document.getElementById('loginPassword')?.value || '';
+  try {
 
-  if (!email || !pwd) {
-    showToast('error', 'Campos obrigatórios', 'Preencha email e senha.');
-    return;
+    const emailInput = document.getElementById("loginEmail");
+    const passwordInput = document.getElementById("loginPassword");
+
+    const email = emailInput ? emailInput.value.trim() : "";
+    const password = passwordInput ? passwordInput.value : "";
+
+    if (!email || !password) {
+      alert("Informe email e senha.");
+      return;
+    }
+
+    const client = await ensureSupabase();
+
+    const { data, error } = await client.auth.signInWithPassword({
+      email: email,
+      password: password
+    });
+
+    if (error) {
+      console.error("Erro login:", error);
+      alert("Email ou senha inválidos.");
+      return;
+    }
+
+    console.log("Login realizado:", data);
+
+    state.user = data.user;
+
+    DB.set("currentUser", data.user);
+
+    const authScreen = document.getElementById("authScreen");
+    const app = document.getElementById("app");
+
+    if (authScreen) authScreen.classList.remove("active");
+    if (app) app.classList.remove("hidden");
+
+  } catch (err) {
+    console.error("Erro inesperado login:", err);
+    alert("Erro ao tentar entrar.");
   }
+}
 
   try {
     const client = await ensureSupabase();
