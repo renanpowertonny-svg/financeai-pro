@@ -164,54 +164,6 @@ function showForgotPassword() {
 
  
 
-    const user = data?.user;
-    if (!user) {
-      showToast('error', 'Acesso negado', 'Usuário não autenticado.');
-      return;
-    }
-
-    const name = user.user_metadata?.name || user.email?.split('@')[0] || 'Usuário';
-
-    state.user = {
-      id: user.id,
-      name,
-      email: user.email
-    };
-
-    DB.set('currentUser', user.email);
-
-    const users = DB.get('users', {});
-    if (!users[user.email]) {
-      users[user.email] = {
-        name,
-        password: btoa(pwd),
-        createdAt: new Date().toISOString()
-      };
-      DB.set('users', users);
-    }
-
-    loadUserData();
-
-    if (!state.transactions.length && !state.goals.length) {
-      seedDemoData();
-      loadUserData();
-    }
-
-    initApp();
-    showToast('success', 'Login realizado', `Bem-vindo(a), ${name}!`);
-  } catch (err) {
-    console.error('Erro no login:', err);
-    showToast('error', 'Erro no login', 'Falha ao conectar com Supabase.');
-  }
-}
-
-async function handleRegister() {
-  const name = document.getElementById('regName')?.value.trim() || '';
-  const email = document.getElementById('regEmail')?.value.trim() || '';
-  const pwd = document.getElementById('regPassword')?.value || '';
-  const confirm = document.getElementById('regConfirm')?.value || '';
-
-  if (!name || !email || !pwd || !confirm) {
     showToast('error', 'Campos obrigatórios', 'Preencha todos os campos.');
     return;
   }
