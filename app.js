@@ -38,69 +38,124 @@ async function ensureSupabase() {
       script.onload = resolve;
       script.onerror = () => reject(new Error('Falha ao carregar Supabase CDN.'));
       document.head.appendChild(script);
-    });
-  }
-
-  if (!window.supabase || !window.supabase.createClient) {
-    throw new Error('Supabase library não carregou corretamente.');
-  }
-
-  supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-  supabaseReady = true;
-  return supabaseClient;
-}
-
-// ==========================================
-// STATE MANAGEMENT
-// ==========================================
-const DB = {
-  get: (key, def = null) => {
-    try {
-      const v = localStorage.getItem('financeai_' + key);
-      return v !== null ? JSON.parse(v) : def;
-    } catch {
-      return def;
-    }
-  },
-  set: (key, val) => {
-    try {
-      localStorage.setItem('financeai_' + key, JSON.stringify(val));
-    } catch {}
-  }
-};
-
-let state = {
-  user: null,
-  transactions: [],
-  goals: [],
-  notifications: [],
-  settings: {
-    salary: 0,
-    limits: {},
-    darkMode: true,
-    notif: true,
-    autoReport: true
-  },
-  currentPage: 'dashboard',
-  period: 'month',
-  charts: {},
-  aiInsights: [],
-  eduProgress: { completed: [], streak: 0, points: 0 }
-};
-
-// ==========================================
-// AUTH
+   // ==========================================
+// AUTH (SUPABASE CORRIGIDO)
 // ==========================================
 async function handleLogin() {
-  const email =
-    document.getElementById('loginEmail')?.value.trim() ||
-    document.getElementById('email')?.value.trim() ||
-    '';
+  const email = document.getElementById('loginEmail')?.value.trim();
+  const pwd = document.getElementById('loginPassword')?.value;
 
-  const pwd =
-    document.getElementById('loginPassword')?.value ||
-    document.getElementById('password')?.value ||
-    '';
+  if (!email || !pwd) {
+    showToast('error', 'Campos obrigatórios', 'Preencha email e senha.');
+    return;
+  }
+
+  try {
+    const client = await ensureSupabase();
+
+    const { data, error } = await client.auth.signInWithPassword({
+      email,
+      password: pwd
+    });
+
+    if (error) {
+      showToast('error', 'Erro', error.message);
+      return;
+    }
+
+    const user = data.user;
+
+    state.user = {
+      id: user.id,
+      name: user.user_metadata?.name || email,
+      email: user.email
+    };
+
+    DB.set('currentUser', user.email);
+
+    loadUserData();
+
+    if (!state.transactions.length) {
+      seedDemoData();
+      loadUserData();
+    }
+
+    initApp();
+    showToast('success', 'Login realizado', 'Bem-vindo!');
+  } catch (err) {
+    console.error(err);
+    showToast('error', 'Erro', 'Falha ao conectar com Supabase.');
+  }
+}
+
+async function handleRegister() {
+  const name = document.getElementById('regName')?.value.trim();
+  const email = document.getElementById('regEmail')?.value.trim();
+  const pwd = document.getElementById('regPassword')?.value;
+  const confirm = document.getElementById('regConfirm')?.value;
+
+  if (!name || !email || !pwd || !confirm) {
+    showToast('error', 'Campos obrigatórios', 'Preencha tudo.');
+    return;
+  }
+
+  if (pwd !== confirm) {
+    showToast('error', 'Erro', 'Senhas não coincidem.');
+    return;
+  }
+
+  try {
+    const client = await ensureSupabase();
+
+    const { data, error } = await client.auth.signUp({
+      email,
+      password: pwd,
+      options: {
+        data: { name }
+      }
+    });
+
+    if (error) {
+      showToast('error', 'Erro', error.message);
+      return;
+    }
+
+    showToast('success', 'Conta criada', 'Faça login agora.');
+    switchAuthTab('login');
+  } catch (err) {
+    console.error(err);
+    showToast('error', 'Erro', 'Falha no cadastro.');
+  }
+}
+
+async function handleLogout() {
+  try {
+    const client = await ensureSupabase();
+    await client.auth.signOut();
+  } catch (err) {
+    console.error(err);
+  }
+
+  state.user = null;
+  DB.set('currentUser', null);
+
+  document.getElementById('app').classList.add('hidden');
+  document.getElementById('authScreen').classList.add('active');
+
+  showToast('info', 'Logout', 'Sessão encerrada.');
+}
+
+function switchAuthTab(tab) {
+  document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
+
+  document.querySelector(`.auth-tab[data-tab="${tab}"]`)?.classList.add('active');
+  document.getElementById(tab + 'Form')?.classList.add('active');
+}
+
+function showForgotPassword() {
+  showToast('info', 'Recuperação', 'Funcionalidade em breve.');
+}
 
   if (!email || !pwd) {
     showToast('error', 'Campos obrigatórios', 'Informe email e senha.');
