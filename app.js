@@ -92,46 +92,20 @@ let state = {
 // AUTH
 // ==========================================
 async function handleLogin() {
+  const email =
+    document.getElementById('loginEmail')?.value.trim() ||
+    document.getElementById('email')?.value.trim() ||
+    '';
 
-  const emailInput = document.getElementById("loginEmail");
-  const passwordInput = document.getElementById("loginPassword");
+  const pwd =
+    document.getElementById('loginPassword')?.value ||
+    document.getElementById('password')?.value ||
+    '';
 
-  const email = emailInput ? emailInput.value.trim() : "";
-  const password = passwordInput ? passwordInput.value : "";
-
-  if (!email || !password) {
-    alert("Informe email e senha.");
+  if (!email || !pwd) {
+    showToast('error', 'Campos obrigatórios', 'Informe email e senha.');
     return;
   }
-
-  try {
-
-    const client = await ensureSupabase();
-
-    const { data, error } = await client.auth.signInWithPassword({
-      email: email,
-      password: password
-    });
-
-    if (error) {
-      console.error("Erro login:", error);
-      alert("Email ou senha inválidos.");
-      return;
-    }
-
-    state.user = data.user;
-
-    DB.set("currentUser", data.user);
-
-    document.getElementById("authScreen").classList.remove("active");
-    document.getElementById("app").classList.remove("hidden");
-
-    console.log("Login realizado");
-
-  } catch (err) {
-    console.error("Erro inesperado login:", err);
-  }
-}
 
   try {
     const client = await ensureSupabase();
@@ -142,19 +116,21 @@ async function handleLogin() {
     });
 
     if (error) {
-      showToast('error', 'Acesso negado', error.message);
+      console.error('Erro login:', error);
+      showToast('error', 'Acesso negado', error.message || 'Email ou senha inválidos.');
       return;
     }
 
-    const user = data.user;
+    const user = data?.user;
     if (!user) {
       showToast('error', 'Acesso negado', 'Usuário não autenticado.');
       return;
     }
 
-    const name = user.user_metadata?.name || email.split('@')[0];
+    const name = user.user_metadata?.name || user.email?.split('@')[0] || 'Usuário';
 
     state.user = {
+      id: user.id,
       name,
       email: user.email
     };
@@ -172,9 +148,16 @@ async function handleLogin() {
     }
 
     loadUserData();
+
+    if (!state.transactions.length && !state.goals.length) {
+      seedDemoData();
+      loadUserData();
+    }
+
     initApp();
+    showToast('success', 'Login realizado', `Bem-vindo(a), ${name}!`);
   } catch (err) {
-    console.error(err);
+    console.error('Erro no login:', err);
     showToast('error', 'Erro no login', 'Falha ao conectar com Supabase.');
   }
 }
@@ -185,7 +168,7 @@ async function handleRegister() {
   const pwd = document.getElementById('regPassword')?.value || '';
   const confirm = document.getElementById('regConfirm')?.value || '';
 
-  if (!name || !email || !pwd) {
+  if (!name || !email || !pwd || !confirm) {
     showToast('error', 'Campos obrigatórios', 'Preencha todos os campos.');
     return;
   }
@@ -208,22 +191,24 @@ async function handleRegister() {
       password: pwd,
       options: {
         data: {
-          name: name
+          name
         }
       }
     });
 
     if (error) {
+      console.error('Erro cadastro:', error);
       showToast('error', 'Erro no cadastro', error.message);
       return;
     }
 
-    if (!data.user) {
+    if (!data?.user) {
       showToast('error', 'Erro no cadastro', 'Usuário não foi criado.');
       return;
     }
 
     state.user = {
+      id: data.user.id,
       name,
       email
     };
@@ -239,11 +224,16 @@ async function handleRegister() {
     DB.set('users', users);
 
     loadUserData();
-    initApp();
 
+    if (!state.transactions.length && !state.goals.length) {
+      seedDemoData();
+      loadUserData();
+    }
+
+    initApp();
     showToast('success', 'Conta criada!', `Bem-vindo(a), ${name}!`);
   } catch (err) {
-    console.error(err);
+    console.error('Erro no cadastro:', err);
     showToast('error', 'Erro no cadastro', 'Falha ao conectar com Supabase.');
   }
 }
@@ -251,7 +241,24 @@ async function handleRegister() {
 async function handleLogout() {
   console.log('[LOGOUT] clique recebido');
 
+  try {
+    const client = await ensureSupabase();
+    const { error } = await client.auth.signOut();
+
+    if (error) {
+      console.error('[LOGOUT] erro no signOut:', error);
+    }
+  } catch (err) {
+    console.error('[LOGOUT] erro ao sair do Supabase:', err);
+  }
+
   state.user = null;
+  state.transactions = [];
+  state.goals = [];
+  state.notifications = [];
+  state.aiInsights = [];
+  state.eduProgress = { completed: [], streak: 0, points: 0 };
+
   DB.set('currentUser', null);
   destroyAllCharts();
 
@@ -265,32 +272,24 @@ async function handleLogout() {
     authEl.classList.add('active');
   }
 
-  console.log('[LOGOUT] sessão local limpa');
   showToast('info', 'Até logo!', 'Sessão encerrada com sucesso.');
-
-  try {
-    const client = await ensureSupabase();
-    const { error } = await client.auth.signOut();
-
-    if (error) {
-      console.error('[LOGOUT] erro no signOut:', error);
-    } else {
-      console.log('[LOGOUT] signOut Supabase concluído');
-    }
-  } catch (err) {
-    console.error('[LOGOUT] erro ao sair do Supabase:', err);
-  }
 }
 
 function switchAuthTab(tab) {
   document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
+
   document.querySelector(`.auth-tab[data-tab="${tab}"]`)?.classList.add('active');
-  document.getElementById(tab + 'Form')?.classList.add('active');
+  document.getElementById(`${tab}Form`)?.classList.add('active');
 }
 
 function showForgotPassword() {
-  showToast('info', 'Recuperação de senha', 'Em um app real, um email seria enviado. Para demo, use a senha cadastrada.');
+  showToast(
+    'info',
+    'Recuperação de senha',
+    'Em um app real, um email seria enviado. Para demo, use a senha cadastrada.'
+  );
+}
 }
 
 // ==========================================
