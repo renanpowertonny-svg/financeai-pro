@@ -162,19 +162,7 @@ function showForgotPassword() {
     return;
   }
 
-  try {
-    const client = await ensureSupabase();
-
-    const { data, error } = await client.auth.signInWithPassword({
-      email,
-      password: pwd
-    });
-
-    if (error) {
-      console.error('Erro login:', error);
-      showToast('error', 'Acesso negado', error.message || 'Email ou senha inválidos.');
-      return;
-    }
+ 
 
     const user = data?.user;
     if (!user) {
