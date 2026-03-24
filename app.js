@@ -1626,52 +1626,93 @@ function getPriorityProgramId(ctx) {
 function renderEducationHero(ctx) {
   const diagnosis = getEducationDiagnosis(ctx);
   const mission = getEducationMission(ctx);
-  const completedCount = state.eduProgress.completed.length;
-  const progressPct = Math.min((completedCount / EDUCATION_PROGRAMS.length) * 100, 100).toFixed(0);
+
+  const impact = Math.round(ctx.topExpenseValue || 0);
+  const potentialSave = Math.round((ctx.topExpenseValue || 0) * 0.2);
 
   return `
-    <div class="edu-card" style="grid-column:1/-1;padding:24px;border:1px solid rgba(99,102,241,.28);background:linear-gradient(135deg, rgba(99,102,241,.14), rgba(15,23,42,.92));">
-      <div style="display:flex;flex-wrap:wrap;gap:18px;justify-content:space-between;align-items:flex-start;">
-        <div style="flex:1;min-width:280px;">
-          <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#818cf8;margin-bottom:10px;">Diagnóstico Inteligente</div>
-          <div style="font-size:28px;font-weight:800;line-height:1.2;color:var(--text-primary);margin-bottom:10px;">${diagnosis.title}</div>
-          <div style="font-size:15px;line-height:1.75;color:var(--text-secondary);margin-bottom:14px;">${diagnosis.desc}</div>
-          <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
-            <span style="padding:8px 12px;border-radius:999px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.25);font-size:12px;color:#fca5a5;">${diagnosis.level}</span>
-            <span style="padding:8px 12px;border-radius:999px;background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.25);font-size:12px;color:#86efac;">Ganho esperado: ${diagnosis.gain}</span>
-          </div>
-          <div style="font-size:13px;color:var(--text-muted);">Disciplina atual: <strong style="color:var(--text-primary);">${ctx.disciplineScore}/100</strong> · Retenção: <strong style="color:var(--text-primary);">${ctx.savingsRate.toFixed(1)}%</strong> · Maior gasto: <strong style="color:var(--text-primary);">${ctx.topExpenseCategory || 'N/D'}</strong></div>
+    <div class="edu-card" style="grid-column:1/-1;padding:28px;border:1px solid rgba(99,102,241,.25);background:linear-gradient(135deg, rgba(99,102,241,.12), rgba(15,23,42,.95));">
+
+      <!-- PROBLEMA PRINCIPAL -->
+      <div style="margin-bottom:18px;">
+        <div style="font-size:12px;text-transform:uppercase;color:#818cf8;margin-bottom:6px;">
+          Situação atual
         </div>
-        <div style="width:290px;max-width:100%;padding:18px;border-radius:18px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);">
-          <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#818cf8;margin-bottom:10px;">Missão recomendada</div>
-          <div style="font-size:20px;font-weight:800;line-height:1.3;margin-bottom:8px;color:var(--text-primary);">${mission.title}</div>
-          <div style="font-size:14px;line-height:1.65;color:var(--text-secondary);margin-bottom:14px;">${mission.desc}</div>
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-            <span style="font-size:13px;color:var(--text-muted);">Recompensa</span>
-            <strong style="font-size:14px;color:#86efac;">+${mission.reward} pontos</strong>
-          </div>
-          <button class="btn-primary" style="width:100%;" onclick="completeEducationMission('${mission.id}', ${mission.reward})">${mission.button}</button>
+
+        <div style="font-size:28px;font-weight:800;color:var(--text-primary);line-height:1.2;">
+          ${diagnosis.title}
+        </div>
+
+        <div style="font-size:15px;color:var(--text-secondary);margin-top:10px;max-width:680px;">
+          ${diagnosis.desc}
         </div>
       </div>
 
-      <div style="margin-top:18px;padding-top:18px;border-top:1px solid rgba(255,255,255,.06);display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
-        <div style="padding:14px;border-radius:14px;background:rgba(255,255,255,.03);">
-          <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">Progresso educacional</div>
-          <div style="font-size:22px;font-weight:800;color:var(--text-primary);">${progressPct}%</div>
+      <!-- IMPACTO -->
+      <div style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:20px;">
+        <div style="padding:12px 16px;border-radius:12px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.25);">
+          <div style="font-size:11px;color:#fca5a5;">Impacto atual</div>
+          <div style="font-size:18px;font-weight:800;color:#fecaca;">
+            R$ ${impact.toLocaleString()}
+          </div>
         </div>
-        <div style="padding:14px;border-radius:14px;background:rgba(255,255,255,.03);">
-          <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">Reserva coberta</div>
-          <div style="font-size:22px;font-weight:800;color:var(--text-primary);">${ctx.emergencyCoveragePct.toFixed(0)}%</div>
+
+        <div style="padding:12px 16px;border-radius:12px;background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.25);">
+          <div style="font-size:11px;color:#86efac;">Potencial de melhoria</div>
+          <div style="font-size:18px;font-weight:800;color:#bbf7d0;">
+            +R$ ${potentialSave.toLocaleString()}/mês
+          </div>
         </div>
-        <div style="padding:14px;border-radius:14px;background:rgba(255,255,255,.03);">
-          <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">Gasto nos 5 dias após renda</div>
-          <div style="font-size:22px;font-weight:800;color:var(--text-primary);">${fmt(ctx.spendAfterIncome)}</div>
-        </div>
-        <div style="padding:14px;border-radius:14px;background:rgba(255,255,255,.03);">
-          <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">Despesas recorrentes</div>
-          <div style="font-size:22px;font-weight:800;color:var(--text-primary);">${ctx.recurringCount}</div>
+
+        <div style="padding:12px 16px;border-radius:12px;background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.25);">
+          <div style="font-size:11px;color:#a5b4fc;">Retenção atual</div>
+          <div style="font-size:18px;font-weight:800;color:white;">
+            ${ctx.savingsRate.toFixed(1)}%
+          </div>
         </div>
       </div>
+
+      <!-- AÇÃO DIRETA -->
+      <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:20px;">
+        <div style="font-size:14px;color:var(--text-secondary);">
+          Próximo passo recomendado:
+        </div>
+
+        <button class="btn-primary" onclick="applyEducationAction('${diagnosis.lessonId}')">
+          Resolver agora
+        </button>
+      </div>
+
+      <!-- FAÇA AGORA -->
+      <div style="margin-top:20px;padding-top:20px;border-top:1px solid rgba(255,255,255,.06);">
+
+        <div style="font-size:13px;text-transform:uppercase;color:#818cf8;margin-bottom:10px;">
+          Ações rápidas (faça agora)
+        </div>
+
+        <div style="display:flex;flex-wrap:wrap;gap:10px;">
+          <button class="btn-ghost" onclick="navigate('transactions')">Revisar gastos</button>
+          <button class="btn-ghost" onclick="navigate('goals')">Criar meta</button>
+          <button class="btn-ghost" onclick="navigate('settings')">Definir limites</button>
+          <button class="btn-ghost" onclick="navigate('ai')">Ver análise IA</button>
+        </div>
+      </div>
+
+      <!-- MISSÃO -->
+      <div style="margin-top:20px;padding:16px;border-radius:16px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);">
+        <div style="font-size:12px;color:#818cf8;margin-bottom:6px;">Missão recomendada</div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:6px;">
+          ${mission.title}
+        </div>
+        <div style="font-size:14px;color:var(--text-secondary);margin-bottom:10px;">
+          ${mission.desc}
+        </div>
+
+        <button class="btn-primary" onclick="completeEducationMission('${mission.id}', ${mission.reward})">
+          ${mission.button}
+        </button>
+      </div>
+
     </div>
   `;
 }
