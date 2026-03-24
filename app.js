@@ -539,6 +539,8 @@ function renderDashboard() {
   renderRecentTransactions(txs);
   renderDashboardGoals();
   generateAIInsightBanner(txs, income, expense, savingsRate);
+
+   analyzeAdvancedAlerts();
 }
 
 function renderRecentTransactions(txs) {
@@ -2604,3 +2606,155 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => hint.remove(), 6000);
   }, 1000);
 });
+
+
+
+// ==========================================
+// ADVANCED ALERT SYSTEM (SAFE LAYER)
+// ==========================================
+
+function analyzeAdvancedAlerts() {
+  if (!state.user) return;
+
+  const txs = getFilteredTx('month');
+  const { income, expense, balance, savingsRate } = calcSummary(txs);
+  const now = new Date();
+  const alerts = [];
+
+  // 1. GASTO ACELERADO
+  const last5DaysExpenses = txs.filter(t => {
+    if (t.type !== 'expense') return false;
+    const d = new Date(t.date + 'T12:00:00');
+    const diffDays = (now - d) / (1000 * 60 * 60 * 24);
+    return diffDays >= 0 && diffDays <= 5;
+  });
+
+  const fastSpend = last5DaysExpenses.reduce((s, t) => s + t.value, 0);
+  if (income > 0 && fastSpend > income * 0.3) {
+    alerts.push({
+      key: 'fast-spend',
+      type: 'warning',
+      title: 'Alerta Financeiro',
+      msg: `⚠ Gasto acelerado detectado: ${fmt(fastSpend)} em poucos dias.`
+    });
+  }
+
+  // 2. PÓS-SALÁRIO
+  const incomeTxs = txs
+    .filter(t => t.type === 'income')
+    .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  const latestIncome = incomeTxs[0];
+  if (latestIncome && income > 0) {
+    const salaryDate = new Date(latestIncome.date + 'T12:00:00');
+
+    const spendAfterSalary = txs
+      .filter(t => {
+        if (t.type !== 'expense') return false;
+        const d = new Date(t.date + 'T12:00:00');
+        const diffDays = (d - salaryDate) / (1000 * 60 * 60 * 24);
+        return diffDays >= 0 && diffDays <= 5;
+      })
+      .reduce((s, t) => s + t.value, 0);
+
+    if (spendAfterSalary > income * 0.4) {
+      alerts.push({
+        key: 'post-salary-burn',
+        type: 'warning',
+        title: 'Alerta Financeiro',
+        msg: `⚠ Você gastou ${fmt(spendAfterSalary)} nos 5 dias após receber.`
+      });
+    }
+  }
+
+  // 3. SALDO NEGATIVO IMINENTE
+  if (income > 0 && balance <= income * 0.1) {
+    alerts.push({
+      key: 'critical-balance',
+      type: balance < 0 ? 'error' : 'warning',
+      title: 'Alerta Financeiro',
+      msg: `🔴 Saldo crítico detectado: ${fmt(balance)} disponível no período.`
+    });
+  }
+
+  // 4. RECORRÊNCIAS PESADAS
+  const recurringExpenses = state.transactions.filter(
+    t => t.type === 'expense' && t.recurrence && t.recurrence !== 'once'
+  );
+  const recurringMonthlyBase = recurringExpenses.reduce((s, t) => s + t.value, 0) / 6;
+
+  if (income > 0 && recurringMonthlyBase > income * 0.4) {
+    alerts.push({
+      key: 'heavy-recurring',
+      type: 'warning',
+      title: 'Alerta Financeiro',
+      msg: `🔁 Seus gastos recorrentes estão altos: cerca de ${fmt(recurringMonthlyBase)}/mês.`
+    });
+  }
+
+  // 5. POUPANÇA BAIXA
+  if (income > 0 && savingsRate < 10) {
+    alerts.push({
+      key: 'low-savings-rate',
+      type: 'warning',
+      title: 'Alerta Financeiro',
+      msg: `📉 Sua taxa de poupança está baixa: ${savingsRate.toFixed(1)}%.`
+    });
+  }
+
+  // 6. CONCENTRAÇÃO POR CATEGORIA
+  const byCategory = {};
+  txs.filter(t => t.type === 'expense').forEach(t => {
+    byCategory[t.category] = (byCategory[t.category] || 0) + t.value;
+  });
+
+  const topCategory = Object.entries(byCategory).sort((a, b) => b[1] - a[1])[0];
+  if (topCategory && income > 0) {
+    const [catName, catValue] = topCategory;
+    const pct = (catValue / income) * 100;
+
+    if (pct > 30) {
+      alerts.push({
+        key: 'category-concentration',
+        type: 'warning',
+        title: 'Alerta Financeiro',
+        msg: `📊 ${catName} está consumindo ${pct.toFixed(0)}% da sua renda no período.`
+      });
+    }
+  }
+
+  // 7. RESERVA DE EMERGÊNCIA
+  const reserveGoal = state.goals.find(g => /reserva|emerg/i.test(g.name || ''));
+  const reserveCurrent = reserveGoal ? reserveGoal.current || 0 : 0;
+  const recommendedReserve = Math.max(expense * 3, 3000);
+
+  if (!reserveGoal || reserveCurrent < recommendedReserve) {
+    alerts.push({
+      key: 'emergency-reserve-low',
+      type: 'warning',
+      title: 'Alerta Financeiro',
+      msg: `🛡 Sua reserva de emergência está abaixo do ideal. Meta recomendada: ${fmt(recommendedReserve)}.`
+    });
+  }
+
+  triggerAlerts(alerts);
+}
+
+function triggerAlerts(alerts) {
+  if (!state.user || !alerts.length) return;
+
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const storageKey = `advancedAlertsSeen_${state.user.email}_${todayKey}`;
+  const seen = DB.get(storageKey, {});
+
+  alerts.forEach(alert => {
+    if (seen[alert.key]) return;
+
+    showToast(alert.type, alert.title, alert.msg);
+    addNotification(alert.type, alert.msg, alert.type);
+
+    seen[alert.key] = true;
+  });
+
+  DB.set(storageKey, seen);
+}
