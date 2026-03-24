@@ -1300,93 +1300,9 @@ function scrollChat() {
 // EDUCATION PAGE
 // ==========================================
 const EDUCATION_LESSONS = [
-  { id: 'budgeting-101', tag: 'Fundamentos', title: 'Orçamento 50/30/20', emoji: '📊', desc: 'Aprenda a dividir sua renda: 50% para necessidades, 30% para desejos e 20% para poupança. O método mais eficaz para controle financeiro.', duration: '5 min', difficulty: 'Iniciante' },
-  { id: 'emergency-fund', tag: 'Proteção', title: 'Reserva de Emergência', emoji: '🛡️', desc: 'Entenda por que você precisa de 3 a 6 meses de despesas guardadas e como construir sua reserva de emergência passo a passo.', duration: '7 min', difficulty: 'Iniciante' },
-  { id: 'debt-free', tag: 'Dívidas', title: 'Elimine Suas Dívidas', emoji: '⚡', desc: 'Dois métodos poderosos para liquidar dívidas: bola de neve e avalanche. Descubra qual se encaixa melhor no seu perfil.', duration: '8 min', difficulty: 'Iniciante' },
-  { id: 'investing-basics', tag: 'Investimentos', title: 'Primeiros Investimentos', emoji: '📈', desc: 'Tesouro Direto, CDBs, fundos e ações. Entenda cada opção, seus riscos e rentabilidades para começar a investir com segurança.', duration: '12 min', difficulty: 'Intermediário' },
-  { id: 'compound-interest', tag: 'Crescimento', title: 'Juros Compostos', emoji: '🚀', desc: 'A "oitava maravilha do mundo" segundo Einstein. Descubra como os juros sobre juros podem multiplicar seu patrimônio ao longo do tempo.', duration: '6 min', difficulty: 'Iniciante' },
-  { id: 'inflation-proof', tag: 'Proteção', title: 'Proteja-se da Inflação', emoji: '🔥', desc: 'Entenda como a inflação corrói seu dinheiro e como selecionar investimentos que superam a inflação consistentemente.', duration: '9 min', difficulty: 'Intermediário' },
-  { id: 'passive-income', tag: 'Avançado', title: 'Renda Passiva', emoji: '💡', desc: 'FIIs, dividendos e outras formas de fazer dinheiro trabalhar para você. Construa múltiplas fontes de renda passiva.', duration: '15 min', difficulty: 'Avançado' },
-  { id: 'mindset-money', tag: 'Comportamento', title: 'Mentalidade Financeira', emoji: '🧠', desc: 'Descubra como crenças e comportamentos impactam sua saúde financeira. Técnicas para mudar hábitos de consumo e decisões de compra.', duration: '10 min', difficulty: 'Iniciante' },
-];
-
-function renderEducation() {
-  const grid = document.getElementById('eduGrid');
-  const completed = state.eduProgress.completed || [];
-
-  document.getElementById('lessonsCompleted').textContent = completed.length;
-  document.getElementById('eduStreak').textContent = state.eduProgress.streak || 0;
-  document.getElementById('eduPoints').textContent = state.eduProgress.points || 0;
-
-  grid.innerHTML = EDUCATION_LESSONS.map(lesson => {
-    const isDone = completed.includes(lesson.id);
-    return `
-      <div class="edu-card ${isDone ? 'completed' : ''}" onclick="openLesson('${lesson.id}')">
-        <div class="edu-card-header">
-          <div class="edu-emoji">${lesson.emoji}</div>
-          <div class="edu-meta">
-            <div class="edu-tag">${lesson.tag}</div>
-            <div class="edu-title">${lesson.title}</div>
-          </div>
-        </div>
-        <div class="edu-desc">${lesson.desc}</div>
-        <div class="edu-footer">
-          <span class="edu-duration">⏱ ${lesson.duration} · ${lesson.difficulty}</span>
-          <span class="edu-badge ${isDone ? 'completed' : 'new'}">${isDone ? '✓ Concluído' : 'Novo'}</span>
-        </div>
-      </div>
-    `;
-  }).join('');
-}
-
-function openLesson(id) {
-  const lesson = EDUCATION_LESSONS.find(l => l.id === id);
-  if (!lesson) return;
-
-  const content = getLessonContent(id);
-  const modal = document.createElement('div');
-  modal.className = 'modal-overlay';
-  modal.innerHTML = `
-    <div class="modal" style="max-width:640px;">
-      <div class="modal-header">
-        <h2>${lesson.emoji} ${lesson.title}</h2>
-        <button onclick="this.closest('.modal-overlay').remove()">✕</button>
-      </div>
-      <div class="modal-body" style="max-height:60vh;overflow-y:auto;">
-        <div style="line-height:1.8;font-size:15px;color:var(--text-secondary);">${content}</div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-ghost" onclick="this.closest('.modal-overlay').remove()">Fechar</button>
-        <button class="btn-primary" onclick="completeLesson('${id}', this.closest('.modal-overlay'))">✓ Marcar como concluído</button>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(modal);
-}
-
-function getLessonContent(id) {
-  const contents = {
-    'budgeting-101': `<p><strong>A Regra 50/30/20</strong> é um dos métodos mais simples e eficazes para organizar suas finanças.</p><br><p><strong>50% — Necessidades:</strong> Moradia, alimentação, transporte, saúde, contas básicas.</p><p><strong>30% — Desejos:</strong> Lazer, restaurantes, viagens, roupas extras, entretenimento.</p><p><strong>20% — Poupança/Investimentos:</strong> Reserva de emergência, aposentadoria, metas.</p><br><p><strong>Exemplo prático:</strong> Com salário de R$ 5.000:<br>• R$ 2.500 para necessidades<br>• R$ 1.500 para desejos<br>• R$ 1.000 para poupança</p><br><p>Use o FinanceAI para monitorar em qual categoria você está gastando mais e ajustar!`,
-    'emergency-fund': `<p><strong>Por que a Reserva de Emergência é essencial?</strong></p><br><p>Imprevistos acontecem — demissão, doença, conserto do carro. Sem reserva, você recorre a dívidas com juros altos.</p><br><p><strong>Quanto guardar?</strong><br>• Autônomo/freelancer: 6 a 12 meses de despesas<br>• CLT: 3 a 6 meses de despesas</p><br><p><strong>Onde guardar?</strong><br>• Tesouro Selic (segurança + liquidez)<br>• CDB de banco grande com liquidez diária<br>• Conta rendimento (Nubank, Inter, etc.)</p><br><p><strong>Passo a passo:</strong><br>1. Calcule suas despesas mensais<br>2. Defina a meta (ex: 6x despesas)<br>3. Separe um valor fixo por mês<br>4. Não use para outros fins!`,
-    'investing-basics': `<p><strong>Comece a investir em 4 passos:</strong></p><br><p><strong>1. Quitar dívidas</strong> — Dívidas com juros acima de 12% ao ano devem ser prioridade antes de investir.</p><p><strong>2. Montar reserva</strong> — Antes de investir em risco, tenha sua reserva de emergência completa.</p><p><strong>3. Conhecer o perfil</strong> — Conservador, moderado ou arrojado? Defina tolerância ao risco.</p><p><strong>4. Diversificar</strong> — Nunca coloque tudo em um só investimento.</p><br><p><strong>Opções por perfil:</strong><br>• Conservador: Tesouro Selic, CDB<br>• Moderado: Fundos mistos, Tesouro IPCA<br>• Arrojado: Ações, FIIs, ETFs`,
-    'compound-interest': `<p><strong>Juros Compostos — A Mágica do Tempo</strong></p><br><p>Se você investir R$ 500/mês com 1% ao mês:</p><br><p>• Em 5 anos: R$ 41.000 investidos → R$ 41.137 de rendimento<br>• Em 10 anos: R$ 60.000 investidos → R$ 115.000 total<br>• Em 20 anos: R$ 120.000 investidos → R$ 495.000 total!</p><br><p>O segredo? <strong>Comece cedo e seja consistente.</strong> Cada mês de atraso tem um custo enorme no longo prazo.</p><br><p>Use a Regra de 72: divida 72 pela taxa de juros para saber em quantos anos seu dinheiro dobra. Com 12% ao ano: 72/12 = 6 anos!`
-  };
-  return contents[id] || `<p>${EDUCATION_LESSONS.find(l => l.id === id)?.desc || 'Conteúdo em breve.'}</p><br><p>Este módulo está sendo preparado com conteúdo especializado. Continue acompanhando as atualizações!</p>`;
-}
-
-function completeLesson(id, overlay) {
-  if (!state.eduProgress.completed.includes(id)) {
-    state.eduProgress.completed.push(id);
-    state.eduProgress.points = (state.eduProgress.points || 0) + 50;
-    state.eduProgress.streak = (state.eduProgress.streak || 0) + 1;
-    saveUserData();
-    showToast('success', '🎉 Lição concluída!', `+50 pontos! Continue aprendendo.`);
-  }
-  overlay.remove();
-  renderEducation();
-}
-
-// ==========================================
+ // ==========================================
+// EDUCATION PAGE
+// ==========================================// ==========================================
 // REPORTS PAGE
 // ==========================================
 function renderReports() {
