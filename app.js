@@ -3013,7 +3013,7 @@ function triggerAlerts(alerts, intelligence) {
 
   DB.set(storageKey, seen);
 
-   // ==========================================
+  // ==========================================
 // FINTECH ALERT ENGINE — FINAL
 // ==========================================
 
@@ -3419,4 +3419,3 @@ function triggerAlerts(alerts, intelligence) {
 
   DB.set(storageKey, seen);
 }
-
