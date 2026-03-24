@@ -539,7 +539,7 @@ function renderDashboard() {
   renderRecentTransactions(txs);
   renderDashboardGoals();
   generateAIInsightBanner(txs, income, expense, savingsRate);
-
+analyzeAlertsSafe();
    
 }
 
@@ -2619,5 +2619,56 @@ document.addEventListener('DOMContentLoaded', () => {
   }, 1000);
 });
 
+// ==========================================
+// ALERT ENGINE (SAFE VERSION - FASE 1)
+// ==========================================
 
+function analyzeAlertsSafe() {
+  if (!state.user) return;
+
+  const txs = getFilteredTx('month');
+  const summary = calcSummary(txs);
+
+  // ALERTA 1 — saldo negativo
+  if (summary.balance < 0) {
+    showToast('error', 'Saldo negativo', 'Suas despesas estão maiores que sua receita.');
+    
+    addNotification(
+      'Alerta financeiro',
+      'Você está com saldo negativo este mês.',
+      'error'
+    );
+  }
+
+  // ALERTA 2 — baixa poupança
+  if (summary.savingsRate < 10) {
+    addNotification(
+      'Baixa poupança',
+      `Você está poupando apenas ${summary.savingsRate.toFixed(1)}%`,
+      'warning'
+    );
+  }
+
+  // ALERTA 3 — gasto alto categoria
+  const expenses = txs.filter(t => t.type === 'expense');
+  const byCategory = {};
+
+  expenses.forEach(t => {
+    byCategory[t.category] = (byCategory[t.category] || 0) + t.value;
+  });
+
+  const top = Object.entries(byCategory).sort((a, b) => b[1] - a[1])[0];
+
+  if (top && summary.income > 0) {
+    const percent = (top[1] / summary.income) * 100;
+
+    if (percent > 30) {
+      addNotification(
+        'Gasto elevado',
+        `${top[0]} está consumindo ${percent.toFixed(0)}% da sua renda`,
+        'warning'
+      );
+    }
+  }
+}
 
