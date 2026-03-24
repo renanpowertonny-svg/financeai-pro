@@ -2622,8 +2622,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 // ==========================================
-// FINTECH INTELLIGENCE ENGINE
-// Predictive alerts + behavior engine + automatic decisions
+// FINTECH ALERT ENGINE — FINAL
 // ==========================================
 
 function analyzeAdvancedAlerts() {
@@ -2727,7 +2726,9 @@ function buildFintechIntelligence() {
     reserveCoveragePct,
     topCategory,
     postSalary5dSpend,
-    projectedDaysToNegative
+    projectedDaysToNegative,
+    recommendedReserve,
+    reserveCurrent
   });
 
   return {
@@ -2770,7 +2771,7 @@ function computeRealtimeRisk(data) {
   } else if (data.projectedDaysToNegative !== null && data.projectedDaysToNegative <= 7) {
     score += 30;
     reasons.push('Risco preditivo de saldo negativo em até 7 dias');
-  } else if (data.balance <= data.income * 0.1) {
+  } else if (data.income > 0 && data.balance <= data.income * 0.1) {
     score += 18;
     reasons.push('Saldo muito apertado');
   }
@@ -2782,7 +2783,7 @@ function computeRealtimeRisk(data) {
     score -= 8;
   }
 
-  if (data.recurringMonthlyBase > data.income * 0.4) {
+  if (data.income > 0 && data.recurringMonthlyBase > data.income * 0.4) {
     score += 14;
     reasons.push('Gastos fixos elevados');
   }
@@ -2802,7 +2803,7 @@ function computeRealtimeRisk(data) {
     }
   }
 
-  if (data.postSalary5dSpend > data.income * 0.4) {
+  if (data.income > 0 && data.postSalary5dSpend > data.income * 0.4) {
     score += 10;
     reasons.push('Consumo forte logo após receber');
   }
@@ -2840,7 +2841,7 @@ function buildAutomaticActions(data) {
         priority: 90,
         title: `Ajustar ${catName}`,
         text: `${catName} está pressionando sua renda em ${pct.toFixed(0)}%.`,
-        action: `Reduza cerca de ${fmt(targetCut)} nessa categoria`
+        action: `Reduzir cerca de ${fmt(targetCut)} nessa categoria`
       });
     }
   }
@@ -2856,18 +2857,18 @@ function buildAutomaticActions(data) {
     });
   }
 
-  if (data.recurringMonthlyBase > data.income * 0.4) {
+  if (data.income > 0 && data.recurringMonthlyBase > data.income * 0.4) {
     const targetCut = Math.max(Math.round(data.recurringMonthlyBase * 0.1), 30);
     actions.push({
       key: 'audit-recurring',
       priority: 70,
       title: 'Auditar recorrências',
       text: `Seus gastos fixos estão em cerca de ${fmt(data.recurringMonthlyBase)}/mês.`,
-      action: `Tentar reduzir ${fmt(targetCut)} em assinaturas/recorrentes`
+      action: `Tentar reduzir ${fmt(targetCut)} em assinaturas e recorrentes`
     });
   }
 
-  if (data.reserveCoveragePct < 100) {
+  if (data.reserveCurrent < data.recommendedReserve) {
     const missing = Math.max(0, Math.round(data.recommendedReserve - data.reserveCurrent));
     const monthlyContribution = Math.max(Math.round(missing / 6), 100);
     actions.push({
@@ -2884,14 +2885,24 @@ function buildAutomaticActions(data) {
 
 function buildSmartAlerts(intelligence) {
   const alerts = [];
-  const { summary, topCategory, postSalary5dSpend, recurringMonthlyBase, reserveCoveragePct, recommendedReserve, projectedDaysToNegative, actions } = intelligence;
+  const {
+    summary,
+    topCategory,
+    postSalary5dSpend,
+    recurringMonthlyBase,
+    reserveCoveragePct,
+    recommendedReserve,
+    projectedDaysToNegative,
+    actions
+  } = intelligence;
+
   const primaryAction = actions[0];
 
   if (projectedDaysToNegative !== null && projectedDaysToNegative <= 7) {
     alerts.push({
       key: 'predictive-negative',
       type: projectedDaysToNegative <= 3 ? 'error' : 'warning',
-      title: 'Alerta Preditivo',
+      title: 'Alerta preditivo',
       msg: `🔮 Você pode entrar no negativo em ${projectedDaysToNegative} dia(s) se continuar assim.${primaryAction ? ' Ação: ' + primaryAction.action : ''}`
     });
   }
@@ -2905,12 +2916,12 @@ function buildSmartAlerts(intelligence) {
     });
   }
 
-  if (postSalary5dSpend > summary.income * 0.4) {
+  if (summary.income > 0 && postSalary5dSpend > summary.income * 0.4) {
     alerts.push({
       key: 'post-salary-burn',
       type: 'warning',
       title: 'Comportamento de risco',
-      msg: `⚠ Você concentrou ${fmt(postSalary5dSpend)} nos 5 dias após receber. Ação: segurar gastos impulsivos na janela pós-salário.`
+      msg: `⚠ Você concentrou ${fmt(postSalary5dSpend)} nos 5 dias após receber. Ação: segurar gastos impulsivos nessa janela.`
     });
   }
 
@@ -2926,7 +2937,7 @@ function buildSmartAlerts(intelligence) {
     }
   }
 
-  if (recurringMonthlyBase > summary.income * 0.4) {
+  if (summary.income > 0 && recurringMonthlyBase > summary.income * 0.4) {
     alerts.push({
       key: 'heavy-recurring',
       type: 'warning',
@@ -2998,12 +3009,15 @@ function triggerAlerts(alerts, intelligence) {
     if (seen[alert.key]) return;
 
     showToast(alert.type, alert.title, alert.msg);
-    addNotification(alert.type, alert.msg, alert.type);
+    addNotification(alert.title, alert.msg, alert.type, {
+      priority: alert.type === 'error' ? 'high' : alert.type === 'warning' ? 'medium' : 'normal',
+      category: 'intelligence',
+      source: 'fintech-engine'
+    });
 
     seen[alert.key] = true;
   });
 
-  // salva também o snapshot do risco atual para uso futuro
   DB.set(`riskSnapshot_${state.user.email}`, {
     score: intelligence.risk.score,
     level: intelligence.risk.level,
@@ -3012,4 +3026,4 @@ function triggerAlerts(alerts, intelligence) {
   });
 
   DB.set(storageKey, seen);
-
+}
