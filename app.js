@@ -1299,10 +1299,666 @@ function scrollChat() {
 // ==========================================
 // EDUCATION PAGE
 // ==========================================
-const EDUCATION_LESSONS = [
- // ==========================================
-// EDUCATION PAGE
-// ==========================================// ==========================================
+const EDUCATION_PROGRAMS = [
+  {
+    id: 'cash-bleeding',
+    tag: 'Correção Imediata',
+    title: 'Seu dinheiro está vazando sem você perceber',
+    emoji: '🩸',
+    difficulty: 'Prioridade Alta',
+    duration: '7 min',
+    problem: 'O usuário recebe, gasta no automático e termina o mês sem retenção.',
+    metricLabel: 'Vazamento principal',
+    getMetric: (ctx) => ctx.topExpenseCategory ? `${ctx.topExpenseCategory} · ${fmt(ctx.topExpenseValue)}` : 'Sem dados suficientes',
+    ctaLabel: 'Revisar transações',
+    ctaAction: 'review-transactions'
+  },
+  {
+    id: 'reserve-shield',
+    tag: 'Blindagem',
+    title: 'Você está a um imprevisto de entrar em pressão financeira',
+    emoji: '🛡️',
+    difficulty: 'Essencial',
+    duration: '8 min',
+    problem: 'Usuário sem colchão de segurança suficiente para absorver crise.',
+    metricLabel: 'Reserva ideal',
+    getMetric: (ctx) => fmt(ctx.emergencyTarget),
+    ctaLabel: 'Criar meta de reserva',
+    ctaAction: 'create-emergency-goal'
+  },
+  {
+    id: 'food-control',
+    tag: 'Comportamento',
+    title: 'Alimentação e delivery podem estar sabotando sua margem',
+    emoji: '🍔',
+    difficulty: 'Ação Prática',
+    duration: '6 min',
+    problem: 'Gastos frequentes e repetitivos em alimentação fora de casa drenam caixa.',
+    metricLabel: 'Gasto atual',
+    getMetric: (ctx) => fmt(ctx.foodExpense),
+    ctaLabel: 'Definir limite',
+    ctaAction: 'set-food-limit'
+  },
+  {
+    id: 'salary-evaporation',
+    tag: 'Diagnóstico',
+    title: 'Por que seu salário desaparece rápido demais',
+    emoji: '💸',
+    difficulty: 'Crítico',
+    duration: '9 min',
+    problem: 'Usuário não controla janela de maior gasto após entrada de renda.',
+    metricLabel: 'Retenção atual',
+    getMetric: (ctx) => `${ctx.savingsRate.toFixed(1)}%`,
+    ctaLabel: 'Ver padrão de gastos',
+    ctaAction: 'review-transactions'
+  },
+  {
+    id: 'goal-discipline',
+    tag: 'Execução',
+    title: 'Meta sem aporte recorrente é só intenção',
+    emoji: '🎯',
+    difficulty: 'Aplicação',
+    duration: '6 min',
+    problem: 'Usuário cria objetivo, mas não cria sistema de contribuição.',
+    metricLabel: 'Metas ativas',
+    getMetric: (ctx) => `${ctx.goalsCount}`,
+    ctaLabel: 'Ir para metas',
+    ctaAction: 'open-goals'
+  },
+  {
+    id: 'recurring-burden',
+    tag: 'Higiene Financeira',
+    title: 'Cobranças recorrentes silenciosas estão drenando seu caixa',
+    emoji: '🔁',
+    difficulty: 'Revisão',
+    duration: '5 min',
+    problem: 'Assinaturas e despesas recorrentes somem no hábito e viram peso fixo.',
+    metricLabel: 'Recorrentes',
+    getMetric: (ctx) => `${ctx.recurringCount} item(ns)`,
+    ctaLabel: 'Auditar recorrências',
+    ctaAction: 'review-transactions'
+  },
+  {
+    id: 'stability-before-investing',
+    tag: 'Estratégia',
+    title: 'Primeiro estabilizar. Depois crescer.',
+    emoji: '📈',
+    difficulty: 'Ordem Correta',
+    duration: '10 min',
+    problem: 'Usuário quer investir antes de organizar estrutura básica.',
+    metricLabel: 'Saúde do caixa',
+    getMetric: (ctx) => ctx.balance >= 0 ? `Saldo positivo ${fmt(ctx.balance)}` : `Saldo negativo ${fmt(Math.abs(ctx.balance))}`,
+    ctaLabel: 'Ver análise',
+    ctaAction: 'open-ai'
+  },
+  {
+    id: 'discipline-engine',
+    tag: 'Disciplina',
+    title: 'Disciplina financeira não depende de motivação',
+    emoji: '🧠',
+    difficulty: 'Mentalidade',
+    duration: '8 min',
+    problem: 'Usuário oscila entre semanas boas e recaídas de consumo.',
+    metricLabel: 'Consistência atual',
+    getMetric: (ctx) => `${ctx.disciplineScore}/100`,
+    ctaLabel: 'Aplicar missão',
+    ctaAction: 'complete-mission'
+  }
+];
+
+function ensureEducationState() {
+  if (!state.eduProgress || typeof state.eduProgress !== 'object') {
+    state.eduProgress = {};
+  }
+
+  if (!Array.isArray(state.eduProgress.completed)) {
+    state.eduProgress.completed = [];
+  }
+
+  if (typeof state.eduProgress.streak !== 'number') {
+    state.eduProgress.streak = 0;
+  }
+
+  if (typeof state.eduProgress.points !== 'number') {
+    state.eduProgress.points = 0;
+  }
+
+  if (!Array.isArray(state.eduProgress.missionsDone)) {
+    state.eduProgress.missionsDone = [];
+  }
+
+  if (!state.eduProgress.lastMissionDate) {
+    state.eduProgress.lastMissionDate = null;
+  }
+}
+
+function getEducationContext() {
+  const txs = getFilteredTx('month');
+  const summary = calcSummary(txs);
+  const expenseTxs = txs.filter(t => t.type === 'expense');
+  const incomeTxs = txs.filter(t => t.type === 'income');
+  const now = new Date();
+
+  const byCategory = {};
+  expenseTxs.forEach(tx => {
+    byCategory[tx.category] = (byCategory[tx.category] || 0) + tx.value;
+  });
+
+  const sortedCategories = Object.entries(byCategory).sort((a, b) => b[1] - a[1]);
+  const topExpenseCategory = sortedCategories[0]?.[0] || '';
+  const topExpenseValue = sortedCategories[0]?.[1] || 0;
+  const foodExpense = (byCategory['Alimentação'] || 0) + expenseTxs
+    .filter(t => /ifood|delivery|lanche|restaurante|mercado|supermercado/i.test(t.desc || ''))
+    .reduce((sum, t) => sum + t.value, 0);
+
+  const recurringCount = state.transactions.filter(t => t.recurrence && t.recurrence !== 'once').length;
+  const goalsCount = state.goals.length;
+  const emergencyGoal = state.goals.find(g => /reserva|emerg[eê]ncia/i.test(g.name || ''));
+  const avgMonthlyExpense = getLast6Months()
+    .map(m => getMonthTotal(m.year, m.month, 'expense'))
+    .filter(v => v > 0);
+
+  const expenseBase = avgMonthlyExpense.length
+    ? avgMonthlyExpense.reduce((a, b) => a + b, 0) / avgMonthlyExpense.length
+    : summary.expense;
+
+  const emergencyTarget = Math.max(expenseBase * 6, 3000);
+  const emergencyCurrent = emergencyGoal ? (emergencyGoal.current || 0) : 0;
+  const emergencyCoveragePct = emergencyTarget > 0 ? Math.min((emergencyCurrent / emergencyTarget) * 100, 100) : 0;
+
+  const latestIncomeDate = incomeTxs
+    .map(t => new Date(t.date))
+    .sort((a, b) => b - a)[0] || null;
+
+  let spendAfterIncome = 0;
+  if (latestIncomeDate) {
+    const start = new Date(latestIncomeDate);
+    const end = new Date(latestIncomeDate);
+    end.setDate(end.getDate() + 5);
+
+    spendAfterIncome = expenseTxs
+      .filter(t => {
+        const d = new Date(t.date);
+        return d >= start && d <= end;
+      })
+      .reduce((sum, t) => sum + t.value, 0);
+  }
+
+  const negativeMonths = getLast6Months().filter(m => {
+    const monthIncome = getMonthTotal(m.year, m.month, 'income');
+    const monthExpense = getMonthTotal(m.year, m.month, 'expense');
+    return monthIncome - monthExpense < 0;
+  }).length;
+
+  const concentrationPct = summary.income > 0 ? (topExpenseValue / summary.income) * 100 : 0;
+
+  let disciplineScore = 50;
+  if (summary.balance >= 0) disciplineScore += 15; else disciplineScore -= 20;
+  if (summary.savingsRate >= 20) disciplineScore += 20;
+  else if (summary.savingsRate >= 10) disciplineScore += 8;
+  else disciplineScore -= 10;
+  if (goalsCount > 0) disciplineScore += 8;
+  if (emergencyCoveragePct >= 50) disciplineScore += 10;
+  if (recurringCount <= 3) disciplineScore += 5;
+  if (negativeMonths >= 3) disciplineScore -= 10;
+  disciplineScore = Math.max(10, Math.min(100, Math.round(disciplineScore)));
+
+  return {
+    txs,
+    ...summary,
+    byCategory,
+    topExpenseCategory,
+    topExpenseValue,
+    foodExpense,
+    recurringCount,
+    goalsCount,
+    emergencyTarget,
+    emergencyCurrent,
+    emergencyCoveragePct,
+    spendAfterIncome,
+    concentrationPct,
+    negativeMonths,
+    disciplineScore
+  };
+}
+
+function getEducationDiagnosis(ctx) {
+  const priorities = [];
+
+  if (ctx.emergencyCoveragePct < 20) {
+    priorities.push({
+      level: 'Risco Alto',
+      title: 'Você está financeiramente exposto',
+      desc: `Sua proteção financeira está abaixo do mínimo. A reserva recomendada para sua realidade é ${fmt(ctx.emergencyTarget)} e hoje você tem ${fmt(ctx.emergencyCurrent)}.`,
+      gain: 'Blindar imprevistos e reduzir chance de dívida cara.',
+      lessonId: 'reserve-shield'
+    });
+  }
+
+  if (ctx.savingsRate < 10) {
+    priorities.push({
+      level: 'Urgente',
+      title: 'Você não está retendo dinheiro suficiente',
+      desc: `Sua taxa de retenção está em ${ctx.savingsRate.toFixed(1)}%. Isso indica baixa capacidade de acumular segurança e patrimônio.`,
+      gain: 'Aumentar folga financeira já no próximo ciclo.',
+      lessonId: 'salary-evaporation'
+    });
+  }
+
+  if (ctx.topExpenseCategory && ctx.concentrationPct >= 20) {
+    priorities.push({
+      level: 'Ação Rápida',
+      title: `${ctx.topExpenseCategory} está consumindo fatia relevante da sua renda`,
+      desc: `Seu maior centro de gasto no mês é ${ctx.topExpenseCategory}, somando ${fmt(ctx.topExpenseValue)}.`,
+      gain: 'Reduzir vazamento com ajuste simples de comportamento.',
+      lessonId: ctx.topExpenseCategory === 'Alimentação' ? 'food-control' : 'cash-bleeding'
+    });
+  }
+
+  if (ctx.recurringCount >= 4) {
+    priorities.push({
+      level: 'Revisão',
+      title: 'Você tem despesas recorrentes demais para ignorar',
+      desc: `Há ${ctx.recurringCount} cobranças recorrentes ativas no sistema. Custos silenciosos tendem a corroer margem mês após mês.`,
+      gain: 'Aliviar o peso fixo do orçamento.',
+      lessonId: 'recurring-burden'
+    });
+  }
+
+  if (!priorities.length) {
+    priorities.push({
+      level: 'Crescimento',
+      title: 'Sua base está relativamente estável',
+      desc: `Seu saldo do período está em ${fmt(ctx.balance)} e a taxa de retenção em ${ctx.savingsRate.toFixed(1)}%. Agora o foco passa a ser consistência e crescimento.`,
+      gain: 'Transformar controle em patrimônio.',
+      lessonId: 'stability-before-investing'
+    });
+  }
+
+  return priorities[0];
+}
+
+function getEducationMission(ctx) {
+  if (ctx.savingsRate < 10) {
+    return {
+      id: 'mission-cut-variable',
+      title: 'Missão de 7 dias: travar gastos variáveis',
+      desc: 'Passe os próximos 7 dias registrando tudo e evitando compras por impulso.',
+      reward: 80,
+      button: 'Marcar missão como aplicada'
+    };
+  }
+
+  if (ctx.emergencyCoveragePct < 20) {
+    return {
+      id: 'mission-create-reserve',
+      title: 'Missão: ativar sua blindagem mínima',
+      desc: 'Crie hoje uma meta de reserva de emergência e defina o primeiro aporte.',
+      reward: 100,
+      button: 'Concluir missão'
+    };
+  }
+
+  if (ctx.foodExpense > 0) {
+    return {
+      id: 'mission-food-cap',
+      title: 'Missão: reduzir alimentação fora em 15%',
+      desc: `Seu gasto atual em alimentação está em ${fmt(ctx.foodExpense)}. O alvo agora é reduzir pelo menos 15%.`,
+      reward: 70,
+      button: 'Aplicar redução'
+    };
+  }
+
+  return {
+    id: 'mission-structure',
+    title: 'Missão: reforçar sua disciplina financeira',
+    desc: 'Revise categorias, metas e uma prioridade do mês para manter consistência.',
+    reward: 60,
+    button: 'Marcar como feita'
+  };
+}
+
+function getPriorityProgramId(ctx) {
+  const diagnosis = getEducationDiagnosis(ctx);
+  return diagnosis.lessonId;
+}
+
+function renderEducationHero(ctx) {
+  const diagnosis = getEducationDiagnosis(ctx);
+  const mission = getEducationMission(ctx);
+  const completedCount = state.eduProgress.completed.length;
+  const progressPct = Math.min((completedCount / EDUCATION_PROGRAMS.length) * 100, 100).toFixed(0);
+
+  return `
+    <div class="edu-card" style="grid-column:1/-1;padding:24px;border:1px solid rgba(99,102,241,.28);background:linear-gradient(135deg, rgba(99,102,241,.14), rgba(15,23,42,.92));">
+      <div style="display:flex;flex-wrap:wrap;gap:18px;justify-content:space-between;align-items:flex-start;">
+        <div style="flex:1;min-width:280px;">
+          <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#818cf8;margin-bottom:10px;">Diagnóstico Inteligente</div>
+          <div style="font-size:28px;font-weight:800;line-height:1.2;color:var(--text-primary);margin-bottom:10px;">${diagnosis.title}</div>
+          <div style="font-size:15px;line-height:1.75;color:var(--text-secondary);margin-bottom:14px;">${diagnosis.desc}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+            <span style="padding:8px 12px;border-radius:999px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.25);font-size:12px;color:#fca5a5;">${diagnosis.level}</span>
+            <span style="padding:8px 12px;border-radius:999px;background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.25);font-size:12px;color:#86efac;">Ganho esperado: ${diagnosis.gain}</span>
+          </div>
+          <div style="font-size:13px;color:var(--text-muted);">Disciplina atual: <strong style="color:var(--text-primary);">${ctx.disciplineScore}/100</strong> · Retenção: <strong style="color:var(--text-primary);">${ctx.savingsRate.toFixed(1)}%</strong> · Maior gasto: <strong style="color:var(--text-primary);">${ctx.topExpenseCategory || 'N/D'}</strong></div>
+        </div>
+        <div style="width:290px;max-width:100%;padding:18px;border-radius:18px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);">
+          <div style="font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#818cf8;margin-bottom:10px;">Missão recomendada</div>
+          <div style="font-size:20px;font-weight:800;line-height:1.3;margin-bottom:8px;color:var(--text-primary);">${mission.title}</div>
+          <div style="font-size:14px;line-height:1.65;color:var(--text-secondary);margin-bottom:14px;">${mission.desc}</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+            <span style="font-size:13px;color:var(--text-muted);">Recompensa</span>
+            <strong style="font-size:14px;color:#86efac;">+${mission.reward} pontos</strong>
+          </div>
+          <button class="btn-primary" style="width:100%;" onclick="completeEducationMission('${mission.id}', ${mission.reward})">${mission.button}</button>
+        </div>
+      </div>
+
+      <div style="margin-top:18px;padding-top:18px;border-top:1px solid rgba(255,255,255,.06);display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
+        <div style="padding:14px;border-radius:14px;background:rgba(255,255,255,.03);">
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">Progresso educacional</div>
+          <div style="font-size:22px;font-weight:800;color:var(--text-primary);">${progressPct}%</div>
+        </div>
+        <div style="padding:14px;border-radius:14px;background:rgba(255,255,255,.03);">
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">Reserva coberta</div>
+          <div style="font-size:22px;font-weight:800;color:var(--text-primary);">${ctx.emergencyCoveragePct.toFixed(0)}%</div>
+        </div>
+        <div style="padding:14px;border-radius:14px;background:rgba(255,255,255,.03);">
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">Gasto nos 5 dias após renda</div>
+          <div style="font-size:22px;font-weight:800;color:var(--text-primary);">${fmt(ctx.spendAfterIncome)}</div>
+        </div>
+        <div style="padding:14px;border-radius:14px;background:rgba(255,255,255,.03);">
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">Despesas recorrentes</div>
+          <div style="font-size:22px;font-weight:800;color:var(--text-primary);">${ctx.recurringCount}</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderEducationTracks(ctx) {
+  const completed = state.eduProgress.completed || [];
+  const priorityId = getPriorityProgramId(ctx);
+
+  return EDUCATION_PROGRAMS.map(program => {
+    const done = completed.includes(program.id);
+    const priority = priorityId === program.id;
+
+    return `
+      <div class="edu-card ${done ? 'completed' : ''}" style="${priority ? 'border:1px solid rgba(99,102,241,.35);box-shadow:0 0 0 1px rgba(99,102,241,.08) inset;' : ''}" onclick="openLesson('${program.id}')">
+        <div class="edu-card-header">
+          <div class="edu-emoji">${program.emoji}</div>
+          <div class="edu-meta">
+            <div class="edu-tag">${priority ? 'PRIORIDADE · ' : ''}${program.tag}</div>
+            <div class="edu-title">${program.title}</div>
+          </div>
+        </div>
+
+        <div class="edu-desc" style="min-height:72px;">${program.problem}</div>
+
+        <div style="margin:14px 0;padding:12px;border-radius:14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.04);">
+          <div style="font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">${program.metricLabel}</div>
+          <div style="font-size:18px;font-weight:800;color:var(--text-primary);">${program.getMetric(ctx)}</div>
+        </div>
+
+        <div class="edu-footer" style="margin-bottom:10px;">
+          <span class="edu-duration">⏱ ${program.duration} · ${program.difficulty}</span>
+          <span class="edu-badge ${done ? 'completed' : (priority ? 'new' : 'new')}">${done ? '✓ Aplicado' : (priority ? 'Prioritário' : 'Disponível')}</span>
+        </div>
+
+        <button class="btn-ghost" style="width:100%;justify-content:center;" onclick="event.stopPropagation(); applyEducationAction('${program.ctaAction}')">${program.ctaLabel}</button>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderEducation() {
+  ensureEducationState();
+
+  const grid = document.getElementById('eduGrid');
+  if (!grid) return;
+
+  const ctx = getEducationContext();
+
+  document.getElementById('lessonsCompleted').textContent = state.eduProgress.completed.length;
+  document.getElementById('eduStreak').textContent = state.eduProgress.streak || 0;
+  document.getElementById('eduPoints').textContent = state.eduProgress.points || 0;
+
+  grid.innerHTML = `
+    ${renderEducationHero(ctx)}
+    ${renderEducationTracks(ctx)}
+  `;
+}
+
+function applyEducationAction(action) {
+  if (action === 'review-transactions') {
+    navigate('transactions');
+    return;
+  }
+
+  if (action === 'create-emergency-goal') {
+    navigate('goals');
+    setTimeout(() => {
+      if (typeof openGoalModal === 'function') openGoalModal();
+    }, 120);
+    return;
+  }
+
+  if (action === 'set-food-limit') {
+    navigate('settings');
+    setTimeout(() => {
+      const input = document.querySelector('.limit-input[data-cat="Alimentação"]');
+      if (input) {
+        input.focus();
+        input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 120);
+    return;
+  }
+
+  if (action === 'open-goals') {
+    navigate('goals');
+    return;
+  }
+
+  if (action === 'open-ai') {
+    navigate('ai');
+    return;
+  }
+
+  if (action === 'complete-mission') {
+    const mission = getEducationMission(getEducationContext());
+    completeEducationMission(mission.id, mission.reward);
+  }
+}
+
+function openLesson(id) {
+  const lesson = EDUCATION_PROGRAMS.find(item => item.id === id);
+  if (!lesson) return;
+
+  const ctx = getEducationContext();
+  const content = getLessonContent(id, ctx);
+
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.innerHTML = `
+    <div class="modal" style="max-width:760px;">
+      <div class="modal-header">
+        <h2>${lesson.emoji} ${lesson.title}</h2>
+        <button onclick="this.closest('.modal-overlay').remove()">✕</button>
+      </div>
+
+      <div class="modal-body" style="max-height:68vh;overflow-y:auto;">
+        <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+          <span style="padding:8px 12px;border-radius:999px;background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.25);font-size:12px;color:#a5b4fc;">${lesson.tag}</span>
+          <span style="padding:8px 12px;border-radius:999px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);font-size:12px;color:var(--text-secondary);">${lesson.duration} · ${lesson.difficulty}</span>
+        </div>
+
+        <div style="margin-bottom:16px;padding:14px;border-radius:16px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.05);">
+          <div style="font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">Diagnóstico conectado ao usuário</div>
+          <div style="font-size:15px;line-height:1.7;color:var(--text-secondary);">${lesson.problem}</div>
+        </div>
+
+        <div style="line-height:1.85;font-size:15px;color:var(--text-secondary);">${content}</div>
+      </div>
+
+      <div class="modal-footer" style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button class="btn-ghost" onclick="applyEducationAction('${lesson.ctaAction}')">${lesson.ctaLabel}</button>
+        <button class="btn-primary" onclick="completeLesson('${id}', this.closest('.modal-overlay'))">✓ Marcar como aplicada</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+}
+
+function getLessonContent(id, ctx) {
+  const content = {
+    'cash-bleeding': `
+      <p><strong>O problema real não é só gastar.</strong> É gastar sem perceber o padrão. Quando o usuário não enxerga para onde o dinheiro escapa, ele sente que “nunca sobra”, mesmo trabalhando e recebendo.</p>
+      <br>
+      <p><strong>No seu cenário atual:</strong> a categoria de maior pressão é <strong>${ctx.topExpenseCategory || 'não identificada'}</strong>, somando <strong>${fmt(ctx.topExpenseValue)}</strong> no período.</p>
+      <br>
+      <p><strong>Estratégia prática:</strong></p>
+      <p>1. Liste as 5 últimas despesas da categoria crítica.</p>
+      <p>2. Separe o que foi necessidade real do que foi conforto/impulso.</p>
+      <p>3. Defina um teto semanal, não apenas mensal.</p>
+      <p>4. Faça revisão de 3 minutos ao final do dia.</p>
+      <br>
+      <p><strong>Métrica de controle:</strong> o objetivo é reduzir de 10% a 20% esse centro de gasto sem gerar sensação de punição.</p>
+    `,
+    'reserve-shield': `
+      <p><strong>Reserva de emergência não é luxo. É blindagem.</strong> Sem ela, qualquer choque empurra o usuário para cartão, empréstimo ou atraso.</p>
+      <br>
+      <p><strong>No seu caso:</strong> o alvo de proteção estimado é <strong>${fmt(ctx.emergencyTarget)}</strong>. Hoje, sua cobertura está em <strong>${ctx.emergencyCoveragePct.toFixed(0)}%</strong>.</p>
+      <br>
+      <p><strong>Ordem correta:</strong></p>
+      <p>1. Definir a meta mínima.</p>
+      <p>2. Criar aporte recorrente, mesmo pequeno.</p>
+      <p>3. Não misturar reserva com meta de consumo.</p>
+      <p>4. Priorizar liquidez e segurança, não rentabilidade agressiva.</p>
+      <br>
+      <p><strong>Verdade prática:</strong> a reserva reduz ansiedade, dá poder de decisão e impede que um problema vire crise financeira.</p>
+    `,
+    'food-control': `
+      <p><strong>Alimentação fora de casa parece pequena no dia. No mês, vira erosão de margem.</strong></p>
+      <br>
+      <p><strong>Seu gasto atual ligado a alimentação está em torno de:</strong> <strong>${fmt(ctx.foodExpense)}</strong>.</p>
+      <br>
+      <p><strong>Como corrigir sem radicalismo:</strong></p>
+      <p>1. Defina um teto semanal para alimentação variável.</p>
+      <p>2. Identifique os 3 gatilhos mais frequentes: pressa, cansaço ou recompensa.</p>
+      <p>3. Crie duas alternativas de baixo atrito: compra planejada e refeição pronta em casa.</p>
+      <p>4. Monitore delivery separado de supermercado.</p>
+      <br>
+      <p><strong>Métrica de vitória:</strong> reduzir 15% a 20% já costuma abrir espaço para meta ou reserva.</p>
+    `,
+    'salary-evaporation': `
+      <p><strong>O salário não some por mágica. Ele some por falta de retenção.</strong></p>
+      <br>
+      <p><strong>Sua retenção atual:</strong> <strong>${ctx.savingsRate.toFixed(1)}%</strong>.</p>
+      <p><strong>Gasto nos 5 dias após a entrada de renda:</strong> <strong>${fmt(ctx.spendAfterIncome)}</strong>.</p>
+      <br>
+      <p><strong>O padrão clássico é:</strong> entra dinheiro → sensação de alívio → compra reprimida → mês volta a apertar.</p>
+      <br>
+      <p><strong>Estratégia profissional:</strong></p>
+      <p>1. No dia da entrada, separar primeiro o dinheiro da meta principal.</p>
+      <p>2. Definir teto claro para os 5 primeiros dias.</p>
+      <p>3. Evitar decisões emocionais nesse intervalo.</p>
+      <p>4. Revisar se a maior perda vem de conforto imediato ou de custo fixo mal calibrado.</p>
+    `,
+    'goal-discipline': `
+      <p><strong>Meta sem rotina de aporte vira intenção emocional, não construção real.</strong></p>
+      <br>
+      <p><strong>Hoje você tem ${ctx.goalsCount} meta(s) ativa(s).</strong></p>
+      <br>
+      <p><strong>Transformação real:</strong></p>
+      <p>1. Cada meta precisa de prazo.</p>
+      <p>2. Cada prazo precisa de aporte recorrente.</p>
+      <p>3. Cada aporte precisa caber no seu fluxo atual.</p>
+      <p>4. Se a meta não recebe dinheiro, ela não está ativa de verdade.</p>
+      <br>
+      <p><strong>Regra simples:</strong> metas grandes só saem do papel quando entram no calendário e no orçamento.</p>
+    `,
+    'recurring-burden': `
+      <p><strong>Despesas recorrentes viram invisíveis porque deixam de doer. Mas continuam drenando caixa.</strong></p>
+      <br>
+      <p><strong>Você possui ${ctx.recurringCount} item(ns) recorrente(s) registrado(s).</strong></p>
+      <br>
+      <p><strong>Auditoria prática:</strong></p>
+      <p>1. Liste tudo que repete mensalmente.</p>
+      <p>2. Marque: essencial, útil ou descartável.</p>
+      <p>3. Corte o que não entrega valor proporcional.</p>
+      <p>4. Renegocie o que é necessário, mas está caro.</p>
+      <br>
+      <p><strong>Objetivo:</strong> diminuir peso fixo para aumentar margem de decisão.</p>
+    `,
+    'stability-before-investing': `
+      <p><strong>Investir antes de estabilizar o básico é construir em terreno frágil.</strong></p>
+      <br>
+      <p><strong>Seu saldo atual:</strong> <strong>${fmt(ctx.balance)}</strong>.</p>
+      <p><strong>Meses negativos nos últimos 6 meses:</strong> <strong>${ctx.negativeMonths}</strong>.</p>
+      <br>
+      <p><strong>Ordem profissional:</strong></p>
+      <p>1. Eliminar desorganização.</p>
+      <p>2. Construir folga.</p>
+      <p>3. Formar reserva.</p>
+      <p>4. Só então acelerar crescimento.</p>
+      <br>
+      <p><strong>Verdade importante:</strong> investir com caixa instável aumenta ansiedade e probabilidade de resgate errado.</p>
+    `,
+    'discipline-engine': `
+      <p><strong>Disciplina financeira não depende de “estar motivado”. Depende de sistema.</strong></p>
+      <br>
+      <p><strong>Sua consistência estimada hoje:</strong> <strong>${ctx.disciplineScore}/100</strong>.</p>
+      <br>
+      <p><strong>Motor de disciplina:</strong></p>
+      <p>1. Um ritual fixo de revisão semanal.</p>
+      <p>2. Uma prioridade financeira por vez.</p>
+      <p>3. Um teto claro para categoria de risco.</p>
+      <p>4. Uma meta que receba aporte automático.</p>
+      <br>
+      <p><strong>Quanto mais simples o sistema, maior a chance de repetição.</strong> O usuário evolui quando reduz atrito, não quando depende de força de vontade heroica.</p>
+    `
+  };
+
+  return content[id] || `<p>Conteúdo em preparação.</p>`;
+}
+
+function completeLesson(id, overlay) {
+  ensureEducationState();
+
+  if (!state.eduProgress.completed.includes(id)) {
+    state.eduProgress.completed.push(id);
+    state.eduProgress.points = (state.eduProgress.points || 0) + 80;
+    state.eduProgress.streak = (state.eduProgress.streak || 0) + 1;
+    saveUserData();
+    showToast('success', 'Aplicado com sucesso!', 'Esse módulo entrou no seu progresso educacional.');
+  } else {
+    showToast('info', 'Módulo já concluído', 'Esse conteúdo já está marcado no seu progresso.');
+  }
+
+  if (overlay) overlay.remove();
+  renderEducation();
+}
+
+function completeEducationMission(missionId, reward) {
+  ensureEducationState();
+
+  if (!state.eduProgress.missionsDone.includes(missionId)) {
+    state.eduProgress.missionsDone.push(missionId);
+    state.eduProgress.points = (state.eduProgress.points || 0) + reward;
+    state.eduProgress.streak = (state.eduProgress.streak || 0) + 1;
+    state.eduProgress.lastMissionDate = new Date().toISOString();
+    saveUserData();
+    showToast('success', 'Missão concluída!', `+${reward} pontos adicionados.`);
+  } else {
+    showToast('info', 'Missão já registrada', 'Essa missão já foi marcada anteriormente.');
+  }
+
+  renderEducation();
+}
+// ==========================================
 // REPORTS PAGE
 // ==========================================
 function renderReports() {
