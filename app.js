@@ -811,7 +811,16 @@ function saveTransaction() {
     const tx = { id: genId(), type: selectedTxType, desc, value, date, category, payment, recurrence, notes, emoji: categoryEmoji[category] || '💸', createdAt: new Date().toISOString() };
     state.transactions.push(tx);
     showToast('success', selectedTxType === 'income' ? 'Receita registrada!' : 'Despesa registrada!', `${desc} · ${fmt(value)}`);
-    addNotification(selectedTxType, `${tx.type === 'income' ? '📈 Receita' : '📉 Despesa'} registrada: ${desc} (${fmt(value)})`, selectedTxType);
+   addNotification(
+  tx.type === 'income' ? 'Receita registrada' : 'Despesa registrada',
+  `${desc} (${fmt(value)})`,
+  tx.type === 'income' ? 'success' : 'error',
+  {
+    priority: tx.type === 'income' ? 'normal' : 'medium',
+    category: 'transaction',
+    source: 'transactions'
+  }
+);
     checkSpendingLimits(category, value);
   }
 
@@ -3003,4 +3012,411 @@ function triggerAlerts(alerts, intelligence) {
   });
 
   DB.set(storageKey, seen);
+
+   // ==========================================
+// FINTECH ALERT ENGINE — FINAL
+// ==========================================
+
+function analyzeAdvancedAlerts() {
+  if (!state.user) return;
+
+  const intelligence = buildFintechIntelligence();
+  const alerts = buildSmartAlerts(intelligence);
+
+  renderRealtimeRiskStatus(intelligence);
+  renderPrimaryActionBanner(intelligence);
+  triggerAlerts(alerts, intelligence);
 }
+
+function buildFintechIntelligence() {
+  const monthlyTxs = getFilteredTx('month');
+  const summary = calcSummary(monthlyTxs);
+  const now = new Date();
+
+  const expenses = monthlyTxs.filter(t => t.type === 'expense');
+  const incomes = monthlyTxs.filter(t => t.type === 'income');
+
+  const byCategory = {};
+  expenses.forEach(t => {
+    byCategory[t.category] = (byCategory[t.category] || 0) + t.value;
+  });
+
+  const topCategory = Object.entries(byCategory).sort((a, b) => b[1] - a[1])[0] || null;
+
+  const recurringExpenses = state.transactions.filter(
+    t => t.type === 'expense' && t.recurrence && t.recurrence !== 'once'
+  );
+  const recurringMonthlyBase = recurringExpenses.length
+    ? recurringExpenses.reduce((s, t) => s + t.value, 0) / 6
+    : 0;
+
+  const reserveGoal = state.goals.find(g => /reserva|emerg/i.test(g.name || ''));
+  const reserveCurrent = reserveGoal ? (reserveGoal.current || 0) : 0;
+  const recommendedReserve = Math.max(summary.expense * 3, 3000);
+  const reserveCoveragePct = recommendedReserve > 0
+    ? Math.min((reserveCurrent / recommendedReserve) * 100, 100)
+    : 0;
+
+  const last7DaysExpenses = expenses.filter(t => {
+    const d = new Date(t.date + 'T12:00:00');
+    const diffDays = (now - d) / (1000 * 60 * 60 * 24);
+    return diffDays >= 0 && diffDays <= 7;
+  });
+
+  const recent7dSpend = last7DaysExpenses.reduce((s, t) => s + t.value, 0);
+  const recentDailyBurn = recent7dSpend / 7;
+
+  const expenseDaysSet = new Set(
+    expenses.map(t => {
+      const d = new Date(t.date + 'T12:00:00');
+      return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+    })
+  );
+
+  const activeExpenseDays = Math.max(expenseDaysSet.size, 1);
+  const activeDayBurn = summary.expense / activeExpenseDays;
+
+  const latestIncome = incomes.sort((a, b) => new Date(b.date) - new Date(a.date))[0] || null;
+  let postSalary5dSpend = 0;
+
+  if (latestIncome) {
+    const salaryDate = new Date(latestIncome.date + 'T12:00:00');
+
+    postSalary5dSpend = expenses
+      .filter(t => {
+        const d = new Date(t.date + 'T12:00:00');
+        const diffDays = (d - salaryDate) / (1000 * 60 * 60 * 24);
+        return diffDays >= 0 && diffDays <= 5;
+      })
+      .reduce((s, t) => s + t.value, 0);
+  }
+
+  const projectedDaysToNegative = predictDaysToNegative({
+    balance: summary.balance,
+    recentDailyBurn,
+    activeDayBurn
+  });
+
+  const risk = computeRealtimeRisk({
+    income: summary.income,
+    expense: summary.expense,
+    balance: summary.balance,
+    savingsRate: summary.savingsRate,
+    recurringMonthlyBase,
+    reserveCoveragePct,
+    topCategory,
+    postSalary5dSpend,
+    projectedDaysToNegative
+  });
+
+  const actions = buildAutomaticActions({
+    income: summary.income,
+    expense: summary.expense,
+    balance: summary.balance,
+    savingsRate: summary.savingsRate,
+    recurringMonthlyBase,
+    reserveCoveragePct,
+    topCategory,
+    postSalary5dSpend,
+    projectedDaysToNegative,
+    recommendedReserve,
+    reserveCurrent
+  });
+
+  return {
+    now,
+    monthlyTxs,
+    summary,
+    byCategory,
+    topCategory,
+    recurringMonthlyBase,
+    reserveCurrent,
+    recommendedReserve,
+    reserveCoveragePct,
+    recent7dSpend,
+    recentDailyBurn,
+    activeDayBurn,
+    postSalary5dSpend,
+    projectedDaysToNegative,
+    risk,
+    actions
+  };
+}
+
+function predictDaysToNegative({ balance, recentDailyBurn, activeDayBurn }) {
+  const burn = Math.max(recentDailyBurn || 0, activeDayBurn || 0);
+
+  if (balance <= 0) return 0;
+  if (burn <= 0) return null;
+
+  const days = Math.floor(balance / burn);
+  return Number.isFinite(days) ? Math.max(days, 0) : null;
+}
+
+function computeRealtimeRisk(data) {
+  let score = 15;
+  const reasons = [];
+
+  if (data.balance < 0) {
+    score += 35;
+    reasons.push('Saldo já negativo');
+  } else if (data.projectedDaysToNegative !== null && data.projectedDaysToNegative <= 7) {
+    score += 30;
+    reasons.push('Risco preditivo de saldo negativo em até 7 dias');
+  } else if (data.income > 0 && data.balance <= data.income * 0.1) {
+    score += 18;
+    reasons.push('Saldo muito apertado');
+  }
+
+  if (data.savingsRate < 10) {
+    score += 15;
+    reasons.push('Taxa de poupança baixa');
+  } else if (data.savingsRate >= 20) {
+    score -= 8;
+  }
+
+  if (data.income > 0 && data.recurringMonthlyBase > data.income * 0.4) {
+    score += 14;
+    reasons.push('Gastos fixos elevados');
+  }
+
+  if (data.reserveCoveragePct < 25) {
+    score += 12;
+    reasons.push('Reserva de emergência fraca');
+  } else if (data.reserveCoveragePct >= 70) {
+    score -= 6;
+  }
+
+  if (data.topCategory && data.income > 0) {
+    const categoryPct = (data.topCategory[1] / data.income) * 100;
+    if (categoryPct > 35) {
+      score += 12;
+      reasons.push(`Alta concentração em ${data.topCategory[0]}`);
+    }
+  }
+
+  if (data.income > 0 && data.postSalary5dSpend > data.income * 0.4) {
+    score += 10;
+    reasons.push('Consumo forte logo após receber');
+  }
+
+  score = Math.max(0, Math.min(100, Math.round(score)));
+
+  let level = 'baixo';
+  if (score >= 70) level = 'alto';
+  else if (score >= 40) level = 'médio';
+
+  return { score, level, reasons };
+}
+
+function buildAutomaticActions(data) {
+  const actions = [];
+
+  if (data.projectedDaysToNegative !== null && data.projectedDaysToNegative <= 7) {
+    actions.push({
+      key: 'reduce-immediately',
+      priority: 100,
+      title: 'Redução imediata',
+      text: `Você pode entrar no negativo em ${data.projectedDaysToNegative} dia(s) se mantiver esse ritmo.`,
+      action: 'Cortar gastos variáveis pelos próximos 7 dias'
+    });
+  }
+
+  if (data.topCategory && data.income > 0) {
+    const [catName, catValue] = data.topCategory;
+    const pct = (catValue / data.income) * 100;
+
+    if (pct > 30) {
+      const targetCut = Math.max(Math.round(catValue * 0.15), 50);
+      actions.push({
+        key: 'cut-top-category',
+        priority: 90,
+        title: `Ajustar ${catName}`,
+        text: `${catName} está pressionando sua renda em ${pct.toFixed(0)}%.`,
+        action: `Reduzir cerca de ${fmt(targetCut)} nessa categoria`
+      });
+    }
+  }
+
+  if (data.savingsRate < 10 && data.income > 0) {
+    const needed = Math.max(0, Math.round((data.income * 0.2) - (data.income - data.expense)));
+    actions.push({
+      key: 'improve-savings',
+      priority: 80,
+      title: 'Recuperar taxa de poupança',
+      text: `Sua taxa atual está em ${data.savingsRate.toFixed(1)}%.`,
+      action: `Liberar pelo menos ${fmt(needed)} no mês para buscar 20%`
+    });
+  }
+
+  if (data.income > 0 && data.recurringMonthlyBase > data.income * 0.4) {
+    const targetCut = Math.max(Math.round(data.recurringMonthlyBase * 0.1), 30);
+    actions.push({
+      key: 'audit-recurring',
+      priority: 70,
+      title: 'Auditar recorrências',
+      text: `Seus gastos fixos estão em cerca de ${fmt(data.recurringMonthlyBase)}/mês.`,
+      action: `Tentar reduzir ${fmt(targetCut)} em assinaturas e recorrentes`
+    });
+  }
+
+  if (data.reserveCurrent < data.recommendedReserve) {
+    const missing = Math.max(0, Math.round(data.recommendedReserve - data.reserveCurrent));
+    const monthlyContribution = Math.max(Math.round(missing / 6), 100);
+    actions.push({
+      key: 'build-reserve',
+      priority: 60,
+      title: 'Blindar reserva',
+      text: `Sua reserva ainda está abaixo do ideal (${fmt(data.recommendedReserve)}).`,
+      action: `Aportar cerca de ${fmt(monthlyContribution)}/mês por 6 meses`
+    });
+  }
+
+  return actions.sort((a, b) => b.priority - a.priority);
+}
+
+function buildSmartAlerts(intelligence) {
+  const alerts = [];
+  const {
+    summary,
+    topCategory,
+    postSalary5dSpend,
+    recurringMonthlyBase,
+    reserveCoveragePct,
+    recommendedReserve,
+    projectedDaysToNegative,
+    actions
+  } = intelligence;
+
+  const primaryAction = actions[0];
+
+  if (projectedDaysToNegative !== null && projectedDaysToNegative <= 7) {
+    alerts.push({
+      key: 'predictive-negative',
+      type: projectedDaysToNegative <= 3 ? 'error' : 'warning',
+      title: 'Alerta preditivo',
+      msg: `🔮 Você pode entrar no negativo em ${projectedDaysToNegative} dia(s) se continuar assim.${primaryAction ? ' Ação: ' + primaryAction.action : ''}`
+    });
+  }
+
+  if (summary.savingsRate < 10) {
+    alerts.push({
+      key: 'low-savings-rate',
+      type: 'warning',
+      title: 'Ação recomendada',
+      msg: `📉 Sua taxa de poupança está baixa: ${summary.savingsRate.toFixed(1)}%.${primaryAction ? ' Ação: ' + primaryAction.action : ''}`
+    });
+  }
+
+  if (summary.income > 0 && postSalary5dSpend > summary.income * 0.4) {
+    alerts.push({
+      key: 'post-salary-burn',
+      type: 'warning',
+      title: 'Comportamento de risco',
+      msg: `⚠ Você concentrou ${fmt(postSalary5dSpend)} nos 5 dias após receber. Ação: segurar gastos impulsivos nessa janela.`
+    });
+  }
+
+  if (topCategory && summary.income > 0) {
+    const pct = (topCategory[1] / summary.income) * 100;
+    if (pct > 30) {
+      alerts.push({
+        key: 'category-concentration',
+        type: 'warning',
+        title: 'Concentração excessiva',
+        msg: `📊 ${topCategory[0]} está consumindo ${pct.toFixed(0)}% da sua renda. Ação: reduzir essa categoria primeiro.`
+      });
+    }
+  }
+
+  if (summary.income > 0 && recurringMonthlyBase > summary.income * 0.4) {
+    alerts.push({
+      key: 'heavy-recurring',
+      type: 'warning',
+      title: 'Estrutura pressionada',
+      msg: `🔁 Seus gastos recorrentes estão altos: ${fmt(recurringMonthlyBase)}/mês. Ação: revisar contratos e assinaturas.`
+    });
+  }
+
+  if (reserveCoveragePct < 100) {
+    alerts.push({
+      key: 'reserve-gap',
+      type: 'info',
+      title: 'Blindagem financeira',
+      msg: `🛡 Sua reserva ainda está abaixo do ideal. Meta recomendada: ${fmt(recommendedReserve)}.`
+    });
+  }
+
+  alerts.push({
+    key: 'realtime-risk-score',
+    type: intelligence.risk.level === 'alto' ? 'error' : intelligence.risk.level === 'médio' ? 'warning' : 'info',
+    title: 'Score de risco em tempo real',
+    msg: `🎯 Risco ${intelligence.risk.level.toUpperCase()} — score ${intelligence.risk.score}/100.`
+  });
+
+  return alerts;
+}
+
+function renderRealtimeRiskStatus(intelligence) {
+  const greeting = getEl('dashGreeting');
+  if (!greeting) return;
+
+  let badge = getEl('realtimeRiskBadge');
+
+  if (!badge) {
+    badge = document.createElement('div');
+    badge.id = 'realtimeRiskBadge';
+    badge.style.marginTop = '10px';
+    badge.style.fontSize = '13px';
+    badge.style.fontWeight = '600';
+    badge.style.opacity = '0.95';
+    greeting.insertAdjacentElement('afterend', badge);
+  }
+
+  const level = intelligence.risk.level;
+  const label = level === 'alto' ? 'ALTO' : level === 'médio' ? 'MÉDIO' : 'BAIXO';
+  const icon = level === 'alto' ? '🔴' : level === 'médio' ? '🟠' : '🟢';
+
+  badge.textContent = `${icon} Score de risco em tempo real: ${label} (${intelligence.risk.score}/100)`;
+}
+
+function renderPrimaryActionBanner(intelligence) {
+  const el = getEl('aiInsightText');
+  if (!el) return;
+
+  const topAction = intelligence.actions[0];
+  if (!topAction) return;
+
+  el.textContent = `Ação prioritária: ${topAction.title} — ${topAction.action}.`;
+}
+
+function triggerAlerts(alerts, intelligence) {
+  if (!state.user || !alerts.length) return;
+
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const storageKey = `advancedAlertsSeen_${state.user.email}_${todayKey}`;
+  const seen = DB.get(storageKey, {});
+
+  alerts.forEach(alert => {
+    if (seen[alert.key]) return;
+
+    showToast(alert.type, alert.title, alert.msg);
+    addNotification(alert.title, alert.msg, alert.type, {
+      priority: alert.type === 'error' ? 'high' : alert.type === 'warning' ? 'medium' : 'normal',
+      category: 'intelligence',
+      source: 'fintech-engine'
+    });
+
+    seen[alert.key] = true;
+  });
+
+  DB.set(`riskSnapshot_${state.user.email}`, {
+    score: intelligence.risk.score,
+    level: intelligence.risk.level,
+    reasons: intelligence.risk.reasons,
+    updatedAt: new Date().toISOString()
+  });
+
+  DB.set(storageKey, seen);
+}
+
