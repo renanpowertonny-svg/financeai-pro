@@ -341,7 +341,7 @@ function loadUserData() {
   state.transactions = DB.get(`transactions_${k}`, []);
   state.goals = DB.get(`goals_${k}`, []);
   state.settings = DB.get(`settings_${k}`, { salary: 0, limits: {}, darkMode: true, notif: true, autoReport: true });
-  state.notifications = DB.get(`notifications_${k}`, []);
+ state.notifications = normalizeNotifications(DB.get(`notifications_${k}`, []));
   state.eduProgress = DB.get(`eduProgress_${k}`, { completed: [], streak: 0, points: 0 });
 }
 
