@@ -41,65 +41,217 @@ let state = {
 // ==========================================
 // AUTH
 // ==========================================
-function handleLogin() {
-  const email = document.getElementById('loginEmail').value.trim();
-  const pwd = document.getElementById('loginPassword').value;
-  if (!email || !pwd) { showToast('error', 'Campos obrigatórios', 'Preencha email e senha.'); return; }
+function getEl(id) {
+  return document.getElementById(id);
+}
 
-  const users = DB.get('users', {});
-  if (!users[email] || users[email].password !== btoa(pwd)) {
-    showToast('error', 'Acesso negado', 'Email ou senha incorretos.');
+function clearAuthForms() {
+  const ids = ['loginEmail', 'loginPassword', 'regName', 'regEmail', 'regPassword', 'regConfirm'];
+  ids.forEach(id => {
+    const el = getEl(id);
+    if (el) el.value = '';
+  });
+}
+
+function getStoredUsers() {
+  return DB.get('users', {});
+}
+
+function saveStoredUsers(users) {
+  DB.set('users', users);
+}
+
+function normalizeEmail(email) {
+  return String(email || '').trim().toLowerCase();
+}
+
+function sanitizeUser(user) {
+  if (!user) return null;
+  return {
+    name: user.name || 'Usuário',
+    email: normalizeEmail(user.email),
+    createdAt: user.createdAt || new Date().toISOString()
+  };
+}
+
+function showAuthScreen(tab = 'login') {
+  const authScreen = getEl('authScreen');
+  const app = getEl('app');
+
+  destroyAllCharts();
+
+  if (app) {
+    app.classList.add('hidden');
+    app.style.display = 'none';
+  }
+
+  if (authScreen) {
+    authScreen.classList.add('active');
+    authScreen.classList.remove('hidden');
+    authScreen.style.display = 'flex';
+    authScreen.style.visibility = 'visible';
+    authScreen.style.opacity = '1';
+  }
+
+  switchAuthTab(tab);
+}
+
+function showAppScreen() {
+  const authScreen = getEl('authScreen');
+  const app = getEl('app');
+
+  if (authScreen) {
+    authScreen.classList.remove('active');
+    authScreen.classList.add('hidden');
+    authScreen.style.display = 'none';
+  }
+
+  if (app) {
+    app.classList.remove('hidden');
+    app.style.display = '';
+    app.style.visibility = 'visible';
+    app.style.opacity = '1';
+  }
+}
+
+function restoreSession() {
+  const currentUser = normalizeEmail(DB.get('currentUser', null));
+  const users = getStoredUsers();
+
+  if (currentUser && users[currentUser]) {
+    state.user = sanitizeUser({ ...users[currentUser], email: currentUser });
+    loadUserData();
+    initApp();
+    return true;
+  }
+
+  state.user = null;
+  showAuthScreen('login');
+  return false;
+}
+
+function handleLogin() {
+  const email = normalizeEmail(getEl('loginEmail')?.value);
+  const pwd = getEl('loginPassword')?.value || '';
+
+  if (!email || !pwd) {
+    showToast('error', 'Campos obrigatórios', 'Preencha email e senha.');
     return;
   }
 
-  state.user = { ...users[email], email };
+  const users = getStoredUsers();
+  const user = users[email];
+
+  if (!user) {
+    showToast('error', 'Acesso negado', 'Este email não foi encontrado.');
+    return;
+  }
+
+  if (user.password !== btoa(pwd)) {
+    showToast('error', 'Acesso negado', 'Senha incorreta.');
+    return;
+  }
+
+  state.user = sanitizeUser({ ...user, email });
   DB.set('currentUser', email);
   loadUserData();
   initApp();
+  showToast('success', 'Login realizado', `Bem-vindo de volta, ${state.user.name}!`);
 }
 
 function handleRegister() {
-  const name = document.getElementById('regName').value.trim();
-  const email = document.getElementById('regEmail').value.trim();
-  const pwd = document.getElementById('regPassword').value;
-  const confirm = document.getElementById('regConfirm').value;
+  const name = (getEl('regName')?.value || '').trim();
+  const email = normalizeEmail(getEl('regEmail')?.value);
+  const pwd = getEl('regPassword')?.value || '';
+  const confirm = getEl('regConfirm')?.value || '';
 
-  if (!name || !email || !pwd) { showToast('error', 'Campos obrigatórios', 'Preencha todos os campos.'); return; }
-  if (pwd.length < 8) { showToast('error', 'Senha fraca', 'A senha deve ter no mínimo 8 caracteres.'); return; }
-  if (pwd !== confirm) { showToast('error', 'Senhas diferentes', 'As senhas não coincidem.'); return; }
+  if (!name || !email || !pwd || !confirm) {
+    showToast('error', 'Campos obrigatórios', 'Preencha todos os campos.');
+    return;
+  }
 
-  const users = DB.get('users', {});
-  if (users[email]) { showToast('error', 'Email já cadastrado', 'Use outro email ou faça login.'); return; }
+  if (!email.includes('@') || !email.includes('.')) {
+    showToast('error', 'Email inválido', 'Digite um email válido.');
+    return;
+  }
 
-  users[email] = { name, password: btoa(pwd), createdAt: new Date().toISOString() };
-  DB.set('users', users);
+  if (pwd.length < 8) {
+    showToast('error', 'Senha fraca', 'A senha deve ter no mínimo 8 caracteres.');
+    return;
+  }
 
-  state.user = { name, email };
+  if (pwd !== confirm) {
+    showToast('error', 'Senhas diferentes', 'As senhas não coincidem.');
+    return;
+  }
+
+  const users = getStoredUsers();
+
+  if (users[email]) {
+    showToast('error', 'Email já cadastrado', 'Use outro email ou faça login.');
+    return;
+  }
+
+  users[email] = {
+    name,
+    password: btoa(pwd),
+    createdAt: new Date().toISOString()
+  };
+
+  saveStoredUsers(users);
+
+  state.user = sanitizeUser({ name, email, createdAt: users[email].createdAt });
   DB.set('currentUser', email);
+
   seedDemoData();
   loadUserData();
   initApp();
+  clearAuthForms();
+
   showToast('success', 'Conta criada!', `Bem-vindo(a), ${name}!`);
 }
 
-function handleLogout() {
+function resetAppStateAfterLogout() {
   state.user = null;
+  state.transactions = [];
+  state.goals = [];
+  state.notifications = [];
+  state.settings = {
+    salary: 0,
+    limits: {},
+    darkMode: true,
+    notif: true,
+    autoReport: true
+  };
+  state.currentPage = 'dashboard';
+  state.period = 'month';
+  state.aiInsights = [];
+  state.eduProgress = { completed: [], streak: 0, points: 0 };
+}
+
+function handleLogout() {
   DB.set('currentUser', null);
   destroyAllCharts();
-  document.getElementById('app').classList.add('hidden');
-  document.getElementById('authScreen').classList.add('active');
+  state.charts = {};
+  resetAppStateAfterLogout();
+  showAuthScreen('login');
+  clearAuthForms();
   showToast('info', 'Até logo!', 'Sessão encerrada com sucesso.');
 }
 
 function switchAuthTab(tab) {
   document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
-  document.querySelector(`.auth-tab[data-tab="${tab}"]`).classList.add('active');
-  document.getElementById(tab + 'Form').classList.add('active');
+
+  const targetTab = document.querySelector(`.auth-tab[data-tab="${tab}"]`);
+  const targetForm = getEl(tab + 'Form');
+
+  if (targetTab) targetTab.classList.add('active');
+  if (targetForm) targetForm.classList.add('active');
 }
 
 function showForgotPassword() {
-  showToast('info', 'Recuperação de senha', 'Em um app real, um email seria enviado. Para demo, use a senha cadastrada.');
+  showToast('info', 'Recuperação de senha', 'Nesta versão local, entre com a senha cadastrada ou crie uma nova conta.');
 }
 
 // ==========================================
@@ -206,40 +358,40 @@ function saveUserData() {
 // APP INITIALIZATION
 // ==========================================
 function initApp() {
-  document.getElementById('authScreen').classList.remove('active');
-  document.getElementById('authScreen').style.display = 'none';
-  document.getElementById('app').classList.remove('hidden');
+  if (!state.user || !state.user.email) {
+    showAuthScreen('login');
+    return;
+  }
 
-  // Theme
+  showAppScreen();
+
   const isDark = state.settings.darkMode !== false;
   document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
-  const dmToggle = document.getElementById('darkModeToggle');
+
+  const dmToggle = getEl('darkModeToggle');
   if (dmToggle) dmToggle.checked = isDark;
 
-  // User UI
   updateUserUI();
-
-  // Greet
   setGreeting();
 
-  // Load all pages
   navigate('dashboard');
   buildCategoryFilters();
   buildLimitsSettings();
   buildEducationCards();
   renderNotifications();
 
-  // Settings page
-  document.getElementById('settingName').value = state.user.name || '';
-  document.getElementById('settingEmail').value = state.user.email || '';
-  if (state.settings.salary) document.getElementById('settingSalary').value = state.settings.salary;
+  const settingName = getEl('settingName');
+  const settingEmail = getEl('settingEmail');
+  const settingSalary = getEl('settingSalary');
+  const txDate = getEl('txDate');
 
-  // Set today's date on transaction modal
-  document.getElementById('txDate').value = fmtDate(new Date());
+  if (settingName) settingName.value = state.user.name || '';
+  if (settingEmail) settingEmail.value = state.user.email || '';
+  if (settingSalary) settingSalary.value = state.settings.salary || '';
+  if (txDate) txDate.value = fmtDate(new Date());
 
-  // Init dark mode toggle
-  const dtoggle = document.getElementById('darkModeToggle');
-  if (dtoggle) dtoggle.checked = (document.documentElement.getAttribute('data-theme') === 'dark');
+  const dtoggle = getEl('darkModeToggle');
+  if (dtoggle) dtoggle.checked = document.documentElement.getAttribute('data-theme') === 'dark';
 }
 
 function updateUserUI() {
@@ -1812,36 +1964,30 @@ function destroyAllCharts() {
 // BOOTSTRAP
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
-  // Check for existing session
-  const currentUser = DB.get('currentUser');
-  if (currentUser) {
-    const users = DB.get('users', {});
-    if (users[currentUser]) {
-      state.user = { ...users[currentUser], email: currentUser };
-      loadUserData();
-      initApp();
-      return;
-    }
+  const users = getStoredUsers();
+
+  if (!users['demo@financeai.com']) {
+    users['demo@financeai.com'] = {
+      name: 'Demo User',
+      password: btoa('demo1234'),
+      createdAt: new Date().toISOString()
+    };
+    saveStoredUsers(users);
+
+    const prevUser = state.user;
+    state.user = { name: 'Demo User', email: 'demo@financeai.com' };
+    seedDemoData();
+    state.user = prevUser;
   }
 
-  // Show auth with demo hint
+  const restored = restoreSession();
+  if (restored) return;
+
   setTimeout(() => {
     const hint = document.createElement('div');
-    hint.style.cssText = `position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:12px 20px;font-size:13px;color:var(--text-secondary);z-index:999;box-shadow:var(--shadow-lg);text-align:center;`;
+    hint.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:12px 20px;font-size:13px;color:var(--text-secondary);z-index:999;box-shadow:var(--shadow-lg);text-align:center;';
     hint.innerHTML = '👋 Para demo rápido: crie uma conta ou use <strong style="color:var(--accent)">demo@financeai.com</strong> / <strong style="color:var(--accent)">demo1234</strong>';
     document.body.appendChild(hint);
     setTimeout(() => hint.remove(), 6000);
-
-    // Create demo account if not exists
-    const users = DB.get('users', {});
-    if (!users['demo@financeai.com']) {
-      users['demo@financeai.com'] = { name: 'Demo User', password: btoa('demo1234'), createdAt: new Date().toISOString() };
-      DB.set('users', users);
-      // Pre-seed demo
-      const prevUser = state.user;
-      state.user = { name: 'Demo User', email: 'demo@financeai.com' };
-      seedDemoData();
-      state.user = prevUser;
-    }
   }, 1000);
 });
