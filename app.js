@@ -2630,7 +2630,7 @@ function analyzeAlertsSafe() {
   const summary = calcSummary(txs);
 
   // ALERTA 1 — saldo negativo
-  if (summary.balance < 0) {
+ if (summary.balance < 0 && shouldTriggerAlert('saldo_negativo', 5)) {
     showToast('error', 'Saldo negativo', 'Suas despesas estão maiores que sua receita.');
     
     addNotification(
@@ -2641,7 +2641,7 @@ function analyzeAlertsSafe() {
   }
 
   // ALERTA 2 — baixa poupança
-  if (summary.savingsRate < 10) {
+  if (summary.savingsRate < 10 && shouldTriggerAlert('poupanca_baixa', 15)) {
     addNotification(
       'Baixa poupança',
       `Você está poupando apenas ${summary.savingsRate.toFixed(1)}%`,
@@ -2662,7 +2662,7 @@ function analyzeAlertsSafe() {
   if (top && summary.income > 0) {
     const percent = (top[1] / summary.income) * 100;
 
-    if (percent > 30) {
+    if (percent > 30 && shouldTriggerAlert('categoria_' + top[0], 20)) {
       addNotification(
         'Gasto elevado',
         `${top[0]} está consumindo ${percent.toFixed(0)}% da sua renda`,
@@ -2672,3 +2672,27 @@ function analyzeAlertsSafe() {
   }
 }
 
+// ==========================================
+// ALERT CONTROL SYSTEM (FASE 2)
+// ==========================================
+
+function shouldTriggerAlert(key, cooldownMinutes = 10) {
+  if (!state.user) return false;
+
+  const storageKey = `alert_control_${state.user.email}`;
+  const control = DB.get(storageKey, {});
+
+  const now = Date.now();
+
+  if (control[key]) {
+    const diff = (now - control[key]) / (1000 * 60);
+    if (diff < cooldownMinutes) {
+      return false;
+    }
+  }
+
+  control[key] = now;
+  DB.set(storageKey, control);
+
+  return true;
+}
