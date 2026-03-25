@@ -1537,6 +1537,8 @@ function getEducationContext() {
 }
 
 function getEducationDiagnosis(ctx) {
+  return [];
+}
   const priorities = [];
 
   if (ctx.emergencyCoveragePct < 20) {
@@ -2716,4 +2718,5 @@ function shouldTriggerAlert(key, cooldownMinutes = 10) {
   DB.set(storageKey, control);
 
   return true;
+}
 }
