@@ -1537,8 +1537,6 @@ function getEducationContext() {
 }
 
 function getEducationDiagnosis(ctx) {
-  return [];
-}
   const priorities = [];
 
   if (ctx.emergencyCoveragePct < 20) {
