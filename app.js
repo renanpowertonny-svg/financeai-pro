@@ -2262,24 +2262,24 @@ function clearAllData() {
 // NOTIFICATIONS
 // ==========================================
 function addNotification(title, text, type = 'info', options = {}) {
-  const notification = {
+  const notif = {
     id: genId(),
-    title,
-    text,
-    type,
-    time: Date.now(),
+    text: text,
+    style: type,
+    time: new Date().toISOString(),
     read: false,
     priority: options.priority || 'low'
   };
 
-  state.notifications.unshift(notification);
+  state.notifications.unshift(notif);
 
-  if (state.notifications.length > 50) {
-    state.notifications = state.notifications.slice(0, 50);
+  if (state.notifications.length > 30) {
+    state.notifications.pop();
   }
 
   saveUserData();
   renderNotifications();
+  updateNotifBadge();
 }
 
 function renderNotifications() {
