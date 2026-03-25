@@ -1565,7 +1565,7 @@ function getEducationDiagnosis(ctx) {
     priorities.push({
       level: 'Ação Rápida',
       title: `${ctx.topExpenseCategory} está consumindo fatia relevante da sua renda`,
-      desc: `Seu maior centro de gasto no mês é ${ctx.topExpenseCategory}, somando ${fmt(ctx.topExpenseValue)}.`,
+      desc: `Seu maior centro de gasto está consumindo uma parte relevante da sua renda.`,
       gain: 'Reduzir vazamento com ajuste simples de comportamento.',
       lessonId: ctx.topExpenseCategory === 'Alimentação' ? 'food-control' : 'cash-bleeding'
     });
