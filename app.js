@@ -2633,17 +2633,22 @@ function analyzeAlertsSafe() {
  if (summary.balance < 0 && shouldTriggerAlert('saldo_negativo', 5)) {
     showToast('error', 'Saldo negativo', 'Suas despesas estão maiores que sua receita.');
     
-    addNotification(
-      'Alerta financeiro',
-      'Você está com saldo negativo este mês.',
-      'error'
-    );
+   addNotification(
+  'Alerta financeiro',
+  'Você está com saldo negativo este mês.',
+  'error',
+  { priority: 'high' }
+);
   }
 
   // ALERTA 2 — baixa poupança
   if (summary.savingsRate < 10 && shouldTriggerAlert('poupanca_baixa', 15)) {
-    addNotification(
-      'Baixa poupança',
+addNotification(
+  'Baixa poupança',
+  `Você está poupando apenas ${summary.savingsRate.toFixed(1)}%`,
+  'warning',
+  { priority: 'medium' }
+);
       `Você está poupando apenas ${summary.savingsRate.toFixed(1)}%`,
       'warning'
     );
@@ -2663,8 +2668,12 @@ function analyzeAlertsSafe() {
     const percent = (top[1] / summary.income) * 100;
 
     if (percent > 30 && shouldTriggerAlert('categoria_' + top[0], 20)) {
-      addNotification(
-        'Gasto elevado',
+    addNotification(
+  'Gasto elevado',
+  `${top[0]} está consumindo ${percent.toFixed(0)}% da sua renda`,
+  'warning',
+  { priority: 'low' }
+);
         `${top[0]} está consumindo ${percent.toFixed(0)}% da sua renda`,
         'warning'
       );
