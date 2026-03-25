@@ -2641,32 +2641,35 @@ function analyzeAlertsSafe() {
   const txs = getFilteredTx('month');
   const summary = calcSummary(txs);
 
+ function analyzeAlertsSafe() {
+  if (!state.user) return;
+
+  const txs = getFilteredTx('month');
+  const summary = calcSummary(txs);
+
   // ALERTA 1 — saldo negativo
- if (summary.balance < 0 && shouldTriggerAlert('saldo_negativo', 5)) {
+  if (summary.balance < 0 && shouldTriggerAlert('saldo_negativo', 5)) {
     showToast('error', 'Saldo negativo', 'Suas despesas estão maiores que sua receita.');
-    
-   addNotification(
-  'Alerta financeiro',
-  'Você está com saldo negativo este mês.',
-  'error',
-  { priority: 'high' }
-);
+
+    addNotification(
+      'Alerta financeiro',
+      'Você está com saldo negativo este mês.',
+      'error',
+      { priority: 'high' }
+    );
   }
 
   // ALERTA 2 — baixa poupança
   if (summary.savingsRate < 10 && shouldTriggerAlert('poupanca_baixa', 15)) {
-addNotification(
-  'Baixa poupança',
-  `Você está poupando apenas ${summary.savingsRate.toFixed(1)}%`,
-  'warning',
-  { priority: 'medium' }
-);
+    addNotification(
+      'Baixa poupança',
       `Você está poupando apenas ${summary.savingsRate.toFixed(1)}%`,
-      'warning'
+      'warning',
+      { priority: 'medium' }
     );
   }
 
-  // ALERTA 3 — gasto alto categoria
+  // ALERTA 3 — gasto alto por categoria
   const expenses = txs.filter(t => t.type === 'expense');
   const byCategory = {};
 
@@ -2680,14 +2683,11 @@ addNotification(
     const percent = (top[1] / summary.income) * 100;
 
     if (percent > 30 && shouldTriggerAlert('categoria_' + top[0], 20)) {
-    addNotification(
-  'Gasto elevado',
-  `${top[0]} está consumindo ${percent.toFixed(0)}% da sua renda`,
-  'warning',
-  { priority: 'low' }
-);
+      addNotification(
+        'Gasto elevado',
         `${top[0]} está consumindo ${percent.toFixed(0)}% da sua renda`,
-        'warning'
+        'warning',
+        { priority: 'low' }
       );
     }
   }
