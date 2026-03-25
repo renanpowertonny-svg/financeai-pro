@@ -2261,13 +2261,25 @@ function clearAllData() {
 // ==========================================
 // NOTIFICATIONS
 // ==========================================
-function addNotification(type, text, style = 'info') {
-  const notif = { id: genId(), text, style, time: new Date().toISOString(), read: false };
-  state.notifications.unshift(notif);
-  if (state.notifications.length > 30) state.notifications.pop();
+function addNotification(title, text, type = 'info', options = {}) {
+  const notification = {
+    id: genId(),
+    title,
+    text,
+    type,
+    time: Date.now(),
+    read: false,
+    priority: options.priority || 'low'
+  };
+
+  state.notifications.unshift(notification);
+
+  if (state.notifications.length > 50) {
+    state.notifications = state.notifications.slice(0, 50);
+  }
+
   saveUserData();
   renderNotifications();
-  updateNotifBadge();
 }
 
 function renderNotifications() {
