@@ -534,9 +534,9 @@ function renderDashboard() {
   document.getElementById('savingsStatus').textContent = `Meta: 20% | Atual: ${savingsRate.toFixed(1)}%`;
   document.getElementById('savingsStatus').className = 'kpi-change ' + (savingsRate >= 20 ? 'positive' : savingsRate >= 10 ? '' : 'negative');
 
-  renderCashflowChart();
-  renderCategoryChart();
-  renderRecentTransactions(txs);
+renderCashflowChart();
+renderCategoryChart();
+renderRecentTransactions(txs);
 renderDashboardGoals();
 generateAIInsightBanner(txs, income, expense, savingsRate);
 analyzeAlertsSafe();
@@ -2265,16 +2265,30 @@ function clearAllData() {
 function addNotification(title, text, type = 'info', options = {}) {
   const notif = {
     id: genId(),
-    text: text,
+    title: title || 'Notificação',
+    text: text || '',
     style: type,
     time: new Date().toISOString(),
     read: false,
-    priority: options.priority || 'low'
+    priority: options.priority || 'low',
+    category: options.category || 'general',
+    source: options.source || 'system',
+    score: typeof options.score === 'number' ? options.score : null,
+    actionLabel: options.actionLabel || '',
+    actionPage: options.actionPage || ''
   };
+
+  const alreadyExists = state.notifications.some(n =>
+    n.title === notif.title &&
+    n.text === notif.text &&
+    (Date.now() - new Date(n.time).getTime()) < 1000 * 60 * 5
+  );
+
+  if (alreadyExists) return;
 
   state.notifications.unshift(notif);
 
-  if (state.notifications.length > 30) {
+  if (state.notifications.length > 50) {
     state.notifications.pop();
   }
 
@@ -2287,19 +2301,32 @@ function renderNotifications() {
   const list = document.getElementById('notifList');
   if (!list) return;
 
-  const unread = state.notifications.slice(0, 20);
+  const items = state.notifications.slice(0, 20);
 
-  if (!unread.length) {
+  if (!items.length) {
     list.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-muted);font-size:14px;">Sem notificações</div>';
     return;
   }
 
-  list.innerHTML = unread.map(n => `
-    <div class="notif-item">
+  const priorityLabel = {
+    low: 'Baixo',
+    medium: 'Médio',
+    high: 'Alto',
+    critical: 'Crítico'
+  };
+
+  list.innerHTML = items.map(n => `
+    <div class="notif-item" style="align-items:flex-start;">
       <div class="notif-dot ${n.style}"></div>
-      <div>
-        <div class="notif-text">${n.text}</div>
-        <div class="notif-time">${timeAgo(n.time)}</div>
+      <div style="flex:1;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
+          <div style="font-weight:700;font-size:13px;color:var(--text-primary);">${n.title || 'Notificação'}</div>
+          <div style="font-size:11px;color:var(--text-muted);">${priorityLabel[n.priority] || 'Baixo'}</div>
+        </div>
+        <div class="notif-text" style="margin-top:4px;">${n.text}</div>
+        <div class="notif-time" style="margin-top:6px;">
+          ${timeAgo(n.time)}${typeof n.score === 'number' ? ` · score ${n.score}/100` : ''}
+        </div>
       </div>
     </div>
   `).join('');
@@ -2636,188 +2663,298 @@ document.addEventListener('DOMContentLoaded', () => {
 // ALERT ENGINE (SAFE VERSION - FASE 1)
 // ==========================================
 
-function analyzeAlertsSafe() {
-  if (!state.user) return;
+function getRiskSnapshot() {
+  if (!state.user) return null;
 
   const txs = getFilteredTx('month');
-  const summary = calcSummary(txs);
-
- function analyzeAlertsSafe() {
-  if (!state.user) return;
-
-  const txs = getFilteredTx('month');
-  const summary = calcSummary(txs);
-
-  // ALERTA 1 — saldo negativo
-  if (summary.balance < 0 && shouldTriggerAlert('saldo_negativo', 5)) {
-    showToast('error', 'Saldo negativo', 'Suas despesas estão maiores que sua receita.');
-
-    addNotification(
-      'Alerta financeiro',
-      'Você está com saldo negativo este mês.',
-      'error',
-      { priority: 'high' }
-    );
-  }
-
-  // ALERTA 2 — baixa poupança
-  if (summary.savingsRate < 10 && shouldTriggerAlert('poupanca_baixa', 15)) {
-    addNotification(
-      'Baixa poupança',
-      `Você está poupando apenas ${summary.savingsRate.toFixed(1)}%`,
-      'warning',
-      { priority: 'medium' }
-    );
-  }
-
-  // ALERTA 3 — gasto alto por categoria
-  const expenses = txs.filter(t => t.type === 'expense');
-  const byCategory = {};
-
-  expenses.forEach(t => {
-    byCategory[t.category] = (byCategory[t.category] || 0) + t.value;
-  });
-
-  const top = Object.entries(byCategory).sort((a, b) => b[1] - a[1])[0];
-
-  if (top && summary.income > 0) {
-    const percent = (top[1] / summary.income) * 100;
-
-    if (percent > 30 && shouldTriggerAlert('categoria_' + top[0], 20)) {
-      addNotification(
-        'Gasto elevado',
-        `${top[0]} está consumindo ${percent.toFixed(0)}% da sua renda`,
-        'warning',
-        { priority: 'low' }
-      );
-    }
-  }
-}
-function analyzePredictiveAlerts() {
-  if (!state.user) return;
-
-  const txs = getFilteredTx('month');
-  if (!txs.length) return;
-
   const summary = calcSummary(txs);
   const now = new Date();
   const currentDay = now.getDate();
   const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  const daysRemaining = Math.max(1, lastDayOfMonth - currentDay);
   const daysElapsed = Math.max(1, currentDay);
+  const daysRemaining = Math.max(1, lastDayOfMonth - currentDay);
 
   const expenses = txs.filter(t => t.type === 'expense');
-  const incomeTxs = txs.filter(t => t.type === 'income');
+  const incomes = txs.filter(t => t.type === 'income');
+
+  const byCategory = {};
+  expenses.forEach(t => {
+    byCategory[t.category] = (byCategory[t.category] || 0) + t.value;
+  });
+
+  const topCategory = Object.entries(byCategory).sort((a, b) => b[1] - a[1])[0] || null;
+  const topCategoryName = topCategory ? topCategory[0] : '';
+  const topCategoryValue = topCategory ? topCategory[1] : 0;
 
   const spentSoFar = summary.expense;
   const dailyAvgExpense = spentSoFar / daysElapsed;
   const projectedExpense = spentSoFar + (dailyAvgExpense * daysRemaining);
   const projectedBalance = summary.income - projectedExpense;
 
-  // ALERTA PREDITIVO 1 — saldo projetado negativo
-  if (
-    summary.income > 0 &&
-    projectedBalance < 0 &&
-    shouldTriggerAlert('predict_negative_balance', 120)
-  ) {
-    const daysToNegative = Math.max(
-      1,
-      Math.ceil((summary.income - spentSoFar) / Math.max(dailyAvgExpense, 1))
-    );
+  let spendAfterIncome = 0;
+  let spendAfterIncomePct = 0;
 
-    addNotification(
-      'Alerta preditivo',
-      `Se continuar nesse ritmo, você pode entrar no negativo em aproximadamente ${daysToNegative} dia(s).`,
-      'error',
-      {
-        priority: 'high',
-        category: 'predictive',
-        source: 'predictive-engine'
-      }
-    );
-
-    showToast(
-      'error',
-      'Risco financeiro detectado',
-      `Mantido o ritmo atual, seu saldo pode ficar negativo em ${daysToNegative} dia(s).`
-    );
-  }
-
-  // ALERTA PREDITIVO 2 — limite por categoria antes do fim do mês
-  const limits = state.settings?.limits || {};
-  const byCategory = {};
-
-  expenses.forEach(t => {
-    byCategory[t.category] = (byCategory[t.category] || 0) + t.value;
-  });
-
-  Object.entries(limits).forEach(([category, limit]) => {
-    if (!limit || limit <= 0) return;
-
-    const currentSpent = byCategory[category] || 0;
-    if (currentSpent <= 0) return;
-
-    const categoryDailyAvg = currentSpent / daysElapsed;
-    const projectedCategory = currentSpent + (categoryDailyAvg * daysRemaining);
-
-    if (
-      projectedCategory > limit &&
-      shouldTriggerAlert(`predict_limit_${category}`, 180)
-    ) {
-      const remainingToLimit = Math.max(0, limit - currentSpent);
-      const daysToLimit = categoryDailyAvg > 0
-        ? Math.max(1, Math.ceil(remainingToLimit / categoryDailyAvg))
-        : daysRemaining;
-
-      addNotification(
-        'Limite em risco',
-        `${category} pode estourar o limite em cerca de ${daysToLimit} dia(s) se o ritmo atual continuar.`,
-        'warning',
-        {
-          priority: 'medium',
-          category: 'predictive',
-          source: 'predictive-engine'
-        }
-      );
-    }
-  });
-
-  // ALERTA PREDITIVO 3 — aceleração de gasto após recebimento
-  if (incomeTxs.length > 0) {
-    const latestIncome = [...incomeTxs]
-      .sort((a, b) => new Date(b.date) - new Date(a.date))[0];
-
+  if (incomes.length) {
+    const latestIncome = [...incomes].sort((a, b) => new Date(b.date) - new Date(a.date))[0];
     const incomeDate = new Date(latestIncome.date);
-    const endWindow = new Date(incomeDate);
+    const endWindow = new Date(latestIncome.date);
     endWindow.setDate(endWindow.getDate() + 5);
 
-    const spentAfterIncome = expenses
+    spendAfterIncome = expenses
       .filter(t => {
         const d = new Date(t.date);
         return d >= incomeDate && d <= endWindow;
       })
       .reduce((sum, t) => sum + t.value, 0);
 
-    const incomeValue = latestIncome.value || 0;
-    const spendAfterIncomePct = incomeValue > 0
-      ? (spentAfterIncome / incomeValue) * 100
+    spendAfterIncomePct = latestIncome.value > 0
+      ? (spendAfterIncome / latestIncome.value) * 100
       : 0;
+  }
 
-    if (
-      spendAfterIncomePct >= 60 &&
-      shouldTriggerAlert('predict_salary_burn', 240)
-    ) {
+  const limits = state.settings?.limits || {};
+  const categoryRisks = Object.entries(limits).map(([category, limit]) => {
+    const currentSpent = byCategory[category] || 0;
+    const avg = currentSpent / daysElapsed;
+    const projected = currentSpent + (avg * daysRemaining);
+    return {
+      category,
+      limit,
+      currentSpent,
+      projected,
+      pct: limit > 0 ? (currentSpent / limit) * 100 : 0
+    };
+  });
+
+  let score = 20;
+
+  if (summary.balance < 0) score += 35;
+  else if (projectedBalance < 0) score += 25;
+  else if (summary.balance <= summary.income * 0.1) score += 12;
+
+  if (summary.savingsRate < 5) score += 20;
+  else if (summary.savingsRate < 10) score += 12;
+  else if (summary.savingsRate < 20) score += 6;
+
+  if (spendAfterIncomePct >= 70) score += 18;
+  else if (spendAfterIncomePct >= 50) score += 10;
+
+  const criticalCategories = categoryRisks.filter(c => c.limit > 0 && c.projected > c.limit).length;
+  score += Math.min(criticalCategories * 8, 20);
+
+  score = Math.max(0, Math.min(100, Math.round(score)));
+
+  const riskLevel = score >= 75 ? 'Crítico' : score >= 50 ? 'Alto' : score >= 25 ? 'Médio' : 'Baixo';
+
+  return {
+    txs,
+    summary,
+    byCategory,
+    topCategoryName,
+    topCategoryValue,
+    dailyAvgExpense,
+    projectedExpense,
+    projectedBalance,
+    spendAfterIncome,
+    spendAfterIncomePct,
+    categoryRisks,
+    score,
+    riskLevel,
+    daysRemaining
+  };
+}
+
+function analyzeAlertsSafe() {
+  const snap = getRiskSnapshot();
+  if (!snap) return;
+
+  const { summary, topCategoryName, topCategoryValue, score, riskLevel } = snap;
+
+  if (summary.balance < 0 && shouldTriggerAlert('saldo_negativo', 30)) {
+    showToast('error', 'Saldo negativo', 'Suas despesas já superaram sua receita neste mês.');
+
+    addNotification(
+      'Saldo negativo',
+      `Seu mês já está negativo em ${fmt(Math.abs(summary.balance))}. Prioridade imediata: travar gastos não essenciais.`,
+      'error',
+      {
+        priority: 'critical',
+        category: 'cashflow',
+        source: 'safe-engine',
+        score,
+        actionLabel: 'Ver transações',
+        actionPage: 'transactions'
+      }
+    );
+  }
+
+  if (summary.savingsRate < 10 && shouldTriggerAlert('poupanca_baixa', 60)) {
+    addNotification(
+      'Baixa retenção',
+      `Sua taxa de retenção está em ${summary.savingsRate.toFixed(1)}%. Abaixo de 10%, o caixa perde estabilidade.`,
+      'warning',
+      {
+        priority: summary.savingsRate < 5 ? 'high' : 'medium',
+        category: 'savings',
+        source: 'safe-engine',
+        score,
+        actionLabel: 'Ver análise',
+        actionPage: 'ai'
+      }
+    );
+  }
+
+  if (topCategoryName && summary.income > 0) {
+    const pct = (topCategoryValue / summary.income) * 100;
+
+    if (pct >= 35 && shouldTriggerAlert(`categoria_top_${topCategoryName}`, 90)) {
       addNotification(
-        'Comportamento de risco',
-        `Você já comprometeu ${spendAfterIncomePct.toFixed(0)}% da última entrada de renda nos primeiros dias.`,
+        'Concentração de gasto',
+        `${topCategoryName} está consumindo ${pct.toFixed(0)}% da sua renda do mês. Isso reduz sua margem de segurança.`,
         'warning',
         {
-          priority: 'high',
-          category: 'behavior',
-          source: 'predictive-engine'
+          priority: pct >= 50 ? 'high' : 'medium',
+          category: 'category',
+          source: 'safe-engine',
+          score,
+          actionLabel: 'Revisar categoria',
+          actionPage: 'transactions'
         }
       );
     }
+  }
+
+  if (score >= 75 && shouldTriggerAlert('risk_score_critical', 120)) {
+    addNotification(
+      'Risco financeiro crítico',
+      `Seu score atual está em ${score}/100 (${riskLevel}). O sistema detectou fragilidade alta no seu caixa.`,
+      'error',
+      {
+        priority: 'critical',
+        category: 'risk',
+        source: 'safe-engine',
+        score,
+        actionLabel: 'Ver IA',
+        actionPage: 'ai'
+      }
+    );
+  }
+}
+
+function analyzePredictiveAlerts() {
+  const snap = getRiskSnapshot();
+  if (!snap) return;
+
+  const {
+    summary,
+    projectedBalance,
+    dailyAvgExpense,
+    spendAfterIncomePct,
+    categoryRisks,
+    score,
+    daysRemaining
+  } = snap;
+
+  if (
+    summary.income > 0 &&
+    projectedBalance < 0 &&
+    shouldTriggerAlert('predict_negative_balance', 180)
+  ) {
+    const daysToNegative = Math.max(
+      1,
+      Math.ceil((summary.income - summary.expense) / Math.max(dailyAvgExpense, 1))
+    );
+
+    addNotification(
+      'Risco de entrar no negativo',
+      `Se o ritmo atual continuar, seu caixa pode ficar negativo em cerca de ${daysToNegative} dia(s).`,
+      'error',
+      {
+        priority: 'critical',
+        category: 'predictive',
+        source: 'predictive-engine',
+        score,
+        actionLabel: 'Ajustar agora',
+        actionPage: 'transactions'
+      }
+    );
+
+    showToast(
+      'error',
+      'Projeção crítica',
+      `Mantido o ritmo atual, você pode entrar no negativo em ${daysToNegative} dia(s).`
+    );
+  }
+
+  categoryRisks.forEach(item => {
+    if (!item.limit || item.currentSpent <= 0) return;
+
+    if (
+      item.projected > item.limit &&
+      shouldTriggerAlert(`predict_limit_${item.category}`, 240)
+    ) {
+      const categoryDailyAvg = item.currentSpent / Math.max(1, new Date().getDate());
+      const remainingToLimit = Math.max(0, item.limit - item.currentSpent);
+      const daysToLimit = categoryDailyAvg > 0
+        ? Math.max(1, Math.ceil(remainingToLimit / categoryDailyAvg))
+        : daysRemaining;
+
+      addNotification(
+        'Estouro de limite previsto',
+        `${item.category} pode ultrapassar o limite em cerca de ${daysToLimit} dia(s). Projeção: ${fmt(item.projected)} para um limite de ${fmt(item.limit)}.`,
+        'warning',
+        {
+          priority: item.pct >= 90 ? 'high' : 'medium',
+          category: 'predictive-limit',
+          source: 'predictive-engine',
+          score,
+          actionLabel: 'Ver limites',
+          actionPage: 'settings'
+        }
+      );
+    }
+  });
+
+  if (
+    spendAfterIncomePct >= 60 &&
+    shouldTriggerAlert('predict_salary_burn', 240)
+  ) {
+    addNotification(
+      'Queima acelerada da renda',
+      `Você já comprometeu ${spendAfterIncomePct.toFixed(0)}% da última entrada de renda nos primeiros dias. Esse padrão aumenta risco de sufoco no fim do mês.`,
+      'warning',
+      {
+        priority: spendAfterIncomePct >= 75 ? 'critical' : 'high',
+        category: 'behavior',
+        source: 'predictive-engine',
+        score,
+        actionLabel: 'Rever padrão',
+        actionPage: 'transactions'
+      }
+    );
+  }
+
+  if (
+    dailyAvgExpense > 0 &&
+    summary.balance > 0 &&
+    (summary.balance / dailyAvgExpense) <= 7 &&
+    shouldTriggerAlert('predict_runway_short', 300)
+  ) {
+    const runwayDays = Math.max(1, Math.floor(summary.balance / dailyAvgExpense));
+
+    addNotification(
+      'Fôlego curto de caixa',
+      `No ritmo atual, seu saldo disponível cobre aproximadamente ${runwayDays} dia(s).`,
+      'warning',
+      {
+        priority: runwayDays <= 3 ? 'critical' : 'high',
+        category: 'runway',
+        source: 'predictive-engine',
+        score,
+        actionLabel: 'Ver dashboard',
+        actionPage: 'dashboard'
+      }
+    );
   }
 }
 // ==========================================
