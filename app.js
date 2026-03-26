@@ -506,6 +506,168 @@ function changePeriod(p, btn) {
   renderDashboard();
 }
 
+function getPremiumRiskActionPlan(snap) {
+  if (!snap) {
+    return {
+      title: 'Sem dados suficientes',
+      summary: 'Adicione transações para o FinanceAI montar sua leitura de risco.',
+      masterAlert: 'Ainda não há base suficiente para um alerta mestre.',
+      action: 'Registrar receitas e despesas do mês atual.',
+      objective: 'Criar consistência de dados para leitura inteligente.',
+      primaryLabel: 'Ir para transações',
+      primaryPage: 'transactions',
+      secondaryLabel: 'Abrir IA',
+      secondaryPage: 'ai'
+    };
+  }
+
+  const {
+    summary,
+    score,
+    riskLevel,
+    projectedBalance,
+    dailyAvgExpense,
+    spendAfterIncomePct,
+    topCategoryName,
+    topCategoryValue,
+    categoryRisks
+  } = snap;
+
+  const topProjectedRisk = (categoryRisks || [])
+    .filter(item => item.limit > 0 && item.projected > item.limit)
+    .sort((a, b) => (b.projected - b.limit) - (a.projected - a.limit))[0] || null;
+
+  if (score >= 75 && projectedBalance < 0) {
+    const deficit = Math.abs(projectedBalance);
+    const cutTarget = Math.max(50, Math.ceil(deficit / 10) * 10);
+
+    return {
+      title: 'Seu risco financeiro está crítico',
+      summary: `Seu score atual está em ${score}/100 (${riskLevel}) e o sistema projeta pressão severa no caixa se o ritmo atual continuar.`,
+      masterAlert: `Você pode entrar no negativo ainda neste mês. O foco agora é preservar caixa imediatamente.`,
+      action: `Reduza pelo menos ${fmt(cutTarget)} em gastos variáveis hoje, priorizando ${topCategoryName || 'categorias não essenciais'}.`,
+      objective: 'Ganhar fôlego de caixa e evitar ruptura até o fechamento do mês.',
+      primaryLabel: 'Cortar gastos agora',
+      primaryPage: 'transactions',
+      secondaryLabel: 'Ver IA',
+      secondaryPage: 'ai'
+    };
+  }
+
+  if (spendAfterIncomePct >= 60) {
+    const cutTarget = Math.max(40, Math.ceil((summary.income * 0.1) / 10) * 10);
+
+    return {
+      title: 'Sua renda está queimando rápido demais',
+      summary: `Você já comprometeu ${spendAfterIncomePct.toFixed(0)}% da última entrada de renda nos primeiros dias.`,
+      masterAlert: 'O padrão indica consumo acelerado logo após receber, o que aumenta risco de sufoco no fim do mês.',
+      action: `Trave novas despesas variáveis por 48 horas e reduza pelo menos ${fmt(cutTarget)} em compras impulsivas.`,
+      objective: 'Quebrar o padrão de aceleração pós-recebimento.',
+      primaryLabel: 'Revisar transações',
+      primaryPage: 'transactions',
+      secondaryLabel: 'Abrir IA',
+      secondaryPage: 'ai'
+    };
+  }
+
+  if (topProjectedRisk) {
+    const excess = Math.max(0, topProjectedRisk.projected - topProjectedRisk.limit);
+
+    return {
+      title: 'Um limite importante está em rota de estouro',
+      summary: `${topProjectedRisk.category} está projetada acima do limite definido para este mês.`,
+      masterAlert: `A projeção atual para ${topProjectedRisk.category} está acima do teto em cerca de ${fmt(excess)}.`,
+      action: `Ajuste imediatamente a categoria ${topProjectedRisk.category} ou reduza essa despesa antes que ela comprima sua margem.`,
+      objective: 'Evitar que uma única categoria desorganize o orçamento.',
+      primaryLabel: 'Ver limites',
+      primaryPage: 'settings',
+      secondaryLabel: 'Revisar transações',
+      secondaryPage: 'transactions'
+    };
+  }
+
+  if (summary.savingsRate < 10) {
+    const recovery = Math.max(30, Math.ceil((summary.income * 0.08) / 10) * 10);
+
+    return {
+      title: 'Sua retenção está abaixo do ideal',
+      summary: `A taxa de retenção atual é ${summary.savingsRate.toFixed(1)}%, abaixo da faixa mínima de estabilidade.`,
+      masterAlert: 'Sem retenção suficiente, qualquer imprevisto pressiona seu caixa e trava evolução patrimonial.',
+      action: `Preserve pelo menos ${fmt(recovery)} ainda neste ciclo e reduza despesas variáveis para recuperar margem.`,
+      objective: 'Subir a retenção e reconstruir controle financeiro.',
+      primaryLabel: 'Ver análise',
+      primaryPage: 'ai',
+      secondaryLabel: 'Ir para transações',
+      secondaryPage: 'transactions'
+    };
+  }
+
+  return {
+    title: 'Seu risco financeiro está sob controle',
+    summary: `Seu score atual está em ${score}/100 (${riskLevel}) e o sistema não detectou ruptura imediata de caixa.`,
+    masterAlert: 'No momento, o principal objetivo é manter consistência e evitar relaxamento operacional.',
+    action: 'Continue monitorando categorias dominantes e mantenha disciplina nas despesas variáveis.',
+    objective: 'Transformar estabilidade em crescimento previsível.',
+    primaryLabel: 'Abrir análise',
+    primaryPage: 'ai',
+    secondaryLabel: 'Ver metas',
+    secondaryPage: 'goals'
+  };
+}
+
+function renderPremiumRiskCard() {
+  const card = document.getElementById('premiumRiskCard');
+  if (!card) return;
+
+  const titleEl = document.getElementById('premiumRiskTitle');
+  const summaryEl = document.getElementById('premiumRiskSummary');
+  const scoreEl = document.getElementById('premiumRiskScore');
+  const levelEl = document.getElementById('premiumRiskLevel');
+  const masterAlertEl = document.getElementById('premiumRiskMasterAlert');
+  const actionEl = document.getElementById('premiumRiskAction');
+  const objectiveEl = document.getElementById('premiumRiskObjective');
+  const primaryBtn = document.getElementById('premiumRiskPrimaryBtn');
+  const secondaryBtn = document.getElementById('premiumRiskSecondaryBtn');
+
+  if (!titleEl || !summaryEl || !scoreEl || !levelEl || !masterAlertEl || !actionEl || !objectiveEl || !primaryBtn || !secondaryBtn) {
+    return;
+  }
+
+  const snap = getRiskSnapshot();
+  const plan = getPremiumRiskActionPlan(snap);
+
+  titleEl.textContent = plan.title;
+  summaryEl.textContent = plan.summary;
+  masterAlertEl.textContent = plan.masterAlert;
+  actionEl.textContent = plan.action;
+  objectiveEl.textContent = plan.objective;
+
+  if (snap) {
+    scoreEl.textContent = `${snap.score}/100`;
+    levelEl.textContent = `Risco ${snap.riskLevel}`;
+
+    const levelColor =
+      snap.score >= 75 ? '#ef4444' :
+      snap.score >= 50 ? '#f59e0b' :
+      snap.score >= 25 ? '#facc15' :
+      '#10b981';
+
+    levelEl.style.color = levelColor;
+    scoreEl.style.color = levelColor;
+  } else {
+    scoreEl.textContent = '--/100';
+    levelEl.textContent = 'Sem leitura';
+    levelEl.style.color = '#94a3b8';
+    scoreEl.style.color = 'var(--text-primary)';
+  }
+
+  primaryBtn.textContent = plan.primaryLabel;
+  secondaryBtn.textContent = plan.secondaryLabel;
+
+primaryBtn.onclick = () => navigate(plan.primaryPage || 'transactions');
+secondaryBtn.onclick = () => navigate(plan.secondaryPage || 'ai');
+}
+
 // ==========================================
 // DASHBOARD
 // ==========================================
@@ -539,6 +701,7 @@ renderCategoryChart();
 renderRecentTransactions(txs);
 renderDashboardGoals();
 generateAIInsightBanner(txs, income, expense, savingsRate);
+renderPremiumRiskCard();
 analyzeAlertsSafe();
 analyzePredictiveAlerts();
    
