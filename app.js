@@ -537,9 +537,10 @@ function renderDashboard() {
   renderCashflowChart();
   renderCategoryChart();
   renderRecentTransactions(txs);
-  renderDashboardGoals();
-  generateAIInsightBanner(txs, income, expense, savingsRate);
+renderDashboardGoals();
+generateAIInsightBanner(txs, income, expense, savingsRate);
 analyzeAlertsSafe();
+analyzePredictiveAlerts();
    
 }
 
@@ -2692,7 +2693,133 @@ function analyzeAlertsSafe() {
     }
   }
 }
+function analyzePredictiveAlerts() {
+  if (!state.user) return;
 
+  const txs = getFilteredTx('month');
+  if (!txs.length) return;
+
+  const summary = calcSummary(txs);
+  const now = new Date();
+  const currentDay = now.getDate();
+  const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const daysRemaining = Math.max(1, lastDayOfMonth - currentDay);
+  const daysElapsed = Math.max(1, currentDay);
+
+  const expenses = txs.filter(t => t.type === 'expense');
+  const incomeTxs = txs.filter(t => t.type === 'income');
+
+  const spentSoFar = summary.expense;
+  const dailyAvgExpense = spentSoFar / daysElapsed;
+  const projectedExpense = spentSoFar + (dailyAvgExpense * daysRemaining);
+  const projectedBalance = summary.income - projectedExpense;
+
+  // ALERTA PREDITIVO 1 — saldo projetado negativo
+  if (
+    summary.income > 0 &&
+    projectedBalance < 0 &&
+    shouldTriggerAlert('predict_negative_balance', 120)
+  ) {
+    const daysToNegative = Math.max(
+      1,
+      Math.ceil((summary.income - spentSoFar) / Math.max(dailyAvgExpense, 1))
+    );
+
+    addNotification(
+      'Alerta preditivo',
+      `Se continuar nesse ritmo, você pode entrar no negativo em aproximadamente ${daysToNegative} dia(s).`,
+      'error',
+      {
+        priority: 'high',
+        category: 'predictive',
+        source: 'predictive-engine'
+      }
+    );
+
+    showToast(
+      'error',
+      'Risco financeiro detectado',
+      `Mantido o ritmo atual, seu saldo pode ficar negativo em ${daysToNegative} dia(s).`
+    );
+  }
+
+  // ALERTA PREDITIVO 2 — limite por categoria antes do fim do mês
+  const limits = state.settings?.limits || {};
+  const byCategory = {};
+
+  expenses.forEach(t => {
+    byCategory[t.category] = (byCategory[t.category] || 0) + t.value;
+  });
+
+  Object.entries(limits).forEach(([category, limit]) => {
+    if (!limit || limit <= 0) return;
+
+    const currentSpent = byCategory[category] || 0;
+    if (currentSpent <= 0) return;
+
+    const categoryDailyAvg = currentSpent / daysElapsed;
+    const projectedCategory = currentSpent + (categoryDailyAvg * daysRemaining);
+
+    if (
+      projectedCategory > limit &&
+      shouldTriggerAlert(`predict_limit_${category}`, 180)
+    ) {
+      const remainingToLimit = Math.max(0, limit - currentSpent);
+      const daysToLimit = categoryDailyAvg > 0
+        ? Math.max(1, Math.ceil(remainingToLimit / categoryDailyAvg))
+        : daysRemaining;
+
+      addNotification(
+        'Limite em risco',
+        `${category} pode estourar o limite em cerca de ${daysToLimit} dia(s) se o ritmo atual continuar.`,
+        'warning',
+        {
+          priority: 'medium',
+          category: 'predictive',
+          source: 'predictive-engine'
+        }
+      );
+    }
+  });
+
+  // ALERTA PREDITIVO 3 — aceleração de gasto após recebimento
+  if (incomeTxs.length > 0) {
+    const latestIncome = [...incomeTxs]
+      .sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+
+    const incomeDate = new Date(latestIncome.date);
+    const endWindow = new Date(incomeDate);
+    endWindow.setDate(endWindow.getDate() + 5);
+
+    const spentAfterIncome = expenses
+      .filter(t => {
+        const d = new Date(t.date);
+        return d >= incomeDate && d <= endWindow;
+      })
+      .reduce((sum, t) => sum + t.value, 0);
+
+    const incomeValue = latestIncome.value || 0;
+    const spendAfterIncomePct = incomeValue > 0
+      ? (spentAfterIncome / incomeValue) * 100
+      : 0;
+
+    if (
+      spendAfterIncomePct >= 60 &&
+      shouldTriggerAlert('predict_salary_burn', 240)
+    ) {
+      addNotification(
+        'Comportamento de risco',
+        `Você já comprometeu ${spendAfterIncomePct.toFixed(0)}% da última entrada de renda nos primeiros dias.`,
+        'warning',
+        {
+          priority: 'high',
+          category: 'behavior',
+          source: 'predictive-engine'
+        }
+      );
+    }
+  }
+}
 // ==========================================
 // ALERT CONTROL SYSTEM (FASE 2)
 // ==========================================
