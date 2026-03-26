@@ -1034,7 +1034,18 @@ function checkSpendingLimits(category, value) {
 
   if (monthTotal > limit) {
     showToast('warning', '⚠ Limite ultrapassado!', `${category}: ${fmt(monthTotal)} (limite: ${fmt(limit)})`);
-    addNotification('warning', `⚠ Você ultrapassou o limite de ${category}: ${fmt(monthTotal)} / ${fmt(limit)}`, 'warning');
+addNotification(
+  'Limite ultrapassado',
+  `Você ultrapassou o limite de ${category}: ${fmt(monthTotal)} de ${fmt(limit)}.`,
+  'warning',
+  {
+    priority: 'high',
+    category: 'limit',
+    source: 'limit-engine',
+    actionLabel: 'Ver limites',
+    actionPage: 'settings'
+  }
+);
   } else if (monthTotal > limit * 0.8) {
     showToast('warning', 'Atenção!', `Você já usou ${((monthTotal / limit) * 100).toFixed(0)}% do limite de ${category}.`);
   }
