@@ -2958,7 +2958,7 @@ function analyzePredictiveAlerts() {
   }
 }
 // ==========================================
-// ALERT CONTROL SYSTEM (FASE 2)
+// ALERT CON2960TROL SYSTEM (FASE 2)
 // ==========================================
 
 function shouldTriggerAlert(key, cooldownMinutes = 10) {
@@ -2980,5 +2980,4 @@ function shouldTriggerAlert(key, cooldownMinutes = 10) {
   DB.set(storageKey, control);
 
   return true;
-}
 }
