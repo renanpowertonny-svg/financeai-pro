@@ -357,6 +357,14 @@ function loadUserData() {
   state.goals = DB.get(`goals_${k}`, []);
   state.settings = DB.get(`settings_${k}`, { salary: 0, limits: {}, darkMode: true, notif: true, autoReport: true });
 state.notifications = DB.get(`notifications_${k}`, []);
+   state.missionStatus = DB.get(`missionStatus_${k}`, {
+  date: null,
+  target: 0,
+  completed: false,
+  savedAmount: 0
+});
+
+state.missionHistory = DB.get(`missionHistory_${k}`, []);
   state.eduProgress = DB.get(`eduProgress_${k}`, { completed: [], streak: 0, points: 0 });
 }
 
