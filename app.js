@@ -667,6 +667,58 @@ function renderPremiumRiskCard() {
 primaryBtn.onclick = () => navigate(plan.primaryPage || 'transactions');
 secondaryBtn.onclick = () => navigate(plan.secondaryPage || 'ai');
 }
+function renderDailyMission() {
+  const textEl = document.getElementById('missionText');
+  const barEl = document.getElementById('missionProgressBar');
+  const progressEl = document.getElementById('missionProgressText');
+
+  if (!textEl || !barEl || !progressEl || !state.user) return;
+
+  const txs = getFilteredTx('month');
+  const summary = calcSummary(txs);
+  const snap = typeof getRiskSnapshot === 'function' ? getRiskSnapshot() : null;
+
+  let targetAmount = 0;
+  let missionText = '';
+  let progressPct = 0;
+
+  const today = fmtDate(new Date());
+  const todayExpenses = state.transactions
+    .filter(t => t.type === 'expense' && t.date === today)
+    .reduce((sum, t) => sum + t.value, 0);
+
+  if (snap && snap.score >= 75) {
+    targetAmount = Math.max(50, Math.ceil(Math.abs(snap.projectedBalance || 0) / 10) * 10);
+    missionText = `Missão crítica: reduzir pelo menos ${fmt(targetAmount)} em gastos variáveis hoje para proteger seu caixa.`;
+  } else if (summary.balance < 0) {
+    targetAmount = Math.max(40, Math.ceil(Math.abs(summary.balance) / 10) * 10);
+    missionText = `Missão de recuperação: evitar piora do saldo negativo e cortar pelo menos ${fmt(targetAmount)} hoje.`;
+  } else if (summary.savingsRate < 10) {
+    targetAmount = Math.max(30, Math.ceil((summary.income * 0.08) / 10) * 10);
+    missionText = `Missão de retenção: preservar ${fmt(targetAmount)} hoje para elevar sua taxa de poupança.`;
+  } else {
+    targetAmount = Math.max(20, Math.ceil((summary.income * 0.03) / 10) * 10);
+    missionText = `Missão de disciplina: manter controle e economizar ${fmt(targetAmount)} hoje para fortalecer consistência.`;
+  }
+
+  if (targetAmount <= 0) {
+    progressPct = 100;
+  } else {
+    progressPct = Math.max(0, Math.min(100, ((targetAmount - todayExpenses) / targetAmount) * 100));
+  }
+
+  textEl.textContent = missionText;
+  barEl.style.width = `${progressPct.toFixed(0)}%`;
+  progressEl.textContent = `${progressPct.toFixed(0)}% concluído hoje`;
+
+  if (progressPct >= 80) {
+    barEl.style.background = 'linear-gradient(90deg, #10b981, #34d399)';
+  } else if (progressPct >= 40) {
+    barEl.style.background = 'linear-gradient(90deg, #6366f1, #8b5cf6)';
+  } else {
+    barEl.style.background = 'linear-gradient(90deg, #f59e0b, #ef4444)';
+  }
+}
 
 // ==========================================
 // DASHBOARD
@@ -701,6 +753,7 @@ renderCategoryChart();
 renderRecentTransactions(txs);
 renderDashboardGoals();
 generateAIInsightBanner(txs, income, expense, savingsRate);
+renderDailyMission();
 renderPremiumRiskCard();
 analyzeAlertsSafe();
 analyzePredictiveAlerts();
