@@ -696,6 +696,9 @@ function renderDailyMission() {
   const textEl = document.getElementById('missionText');
   const barEl = document.getElementById('missionProgressBar');
   const progressEl = document.getElementById('missionProgressText');
+  const badgeEl = document.getElementById('missionStatusBadge');
+  const completeBtn = document.getElementById('missionCompleteBtn');
+  const skipBtn = document.getElementById('missionSkipBtn');
 
   if (!textEl || !barEl || !progressEl || !state.user) return;
 
@@ -708,6 +711,8 @@ function renderDailyMission() {
   let progressPct = 0;
 
   const today = fmtDate(new Date());
+  const todayISO = new Date().toISOString().slice(0, 10);
+
   const todayExpenses = state.transactions
     .filter(t => t.type === 'expense' && t.date === today)
     .reduce((sum, t) => sum + t.value, 0);
@@ -725,17 +730,27 @@ function renderDailyMission() {
     targetAmount = Math.max(20, Math.ceil((summary.income * 0.03) / 10) * 10);
     missionText = `Missão de disciplina: manter controle e economizar ${fmt(targetAmount)} hoje para fortalecer consistência.`;
   }
-const todayISO = new Date().toISOString().slice(0,10);
 
-if (state.missionStatus.date !== todayISO) {
-  state.missionStatus = {
-    date: todayISO,
-    target: targetAmount,
-    completed: false,
-    savedAmount: 0
-  };
-}
-  if (targetAmount <= 0) {
+  if (state.missionStatus.date !== todayISO) {
+    state.missionStatus = {
+      date: todayISO,
+      target: targetAmount,
+      completed: false,
+      savedAmount: 0
+    };
+  }
+
+  const missionResolvedToday =
+    state.missionStatus.date === todayISO && state.missionStatus.completed === true;
+
+  const missionSuccessToday = missionResolvedToday && (state.missionStatus.savedAmount || 0) > 0;
+  const missionSkippedToday = missionResolvedToday && (state.missionStatus.savedAmount || 0) === 0;
+
+  if (missionSuccessToday) {
+    progressPct = 100;
+  } else if (missionSkippedToday) {
+    progressPct = 12;
+  } else if (targetAmount <= 0) {
     progressPct = 100;
   } else {
     progressPct = Math.max(0, Math.min(100, ((targetAmount - todayExpenses) / targetAmount) * 100));
@@ -743,6 +758,61 @@ if (state.missionStatus.date !== todayISO) {
 
   textEl.textContent = missionText;
   barEl.style.width = `${progressPct.toFixed(0)}%`;
+
+  if (missionSuccessToday) {
+    progressEl.textContent = 'Missão concluída hoje com sucesso';
+    barEl.style.background = 'linear-gradient(90deg, #10b981, #34d399)';
+
+    if (badgeEl) {
+      badgeEl.textContent = '✅ Missão concluída hoje';
+      badgeEl.style.background = 'rgba(16,185,129,0.14)';
+      badgeEl.style.color = '#6ee7b7';
+    }
+
+    if (completeBtn) {
+      completeBtn.disabled = true;
+      completeBtn.textContent = '✅ Concluída';
+      completeBtn.style.opacity = '0.75';
+      completeBtn.style.cursor = 'not-allowed';
+    }
+
+    if (skipBtn) {
+      skipBtn.disabled = true;
+      skipBtn.textContent = 'Encerrada';
+      skipBtn.style.opacity = '0.45';
+      skipBtn.style.cursor = 'not-allowed';
+    }
+
+    return;
+  }
+
+  if (missionSkippedToday) {
+    progressEl.textContent = 'Missão encerrada sem conclusão hoje';
+    barEl.style.background = 'linear-gradient(90deg, #f59e0b, #ef4444)';
+
+    if (badgeEl) {
+      badgeEl.textContent = '⚠️ Missão ignorada hoje';
+      badgeEl.style.background = 'rgba(245,158,11,0.14)';
+      badgeEl.style.color = '#fbbf24';
+    }
+
+    if (completeBtn) {
+      completeBtn.disabled = true;
+      completeBtn.textContent = 'Encerrada hoje';
+      completeBtn.style.opacity = '0.45';
+      completeBtn.style.cursor = 'not-allowed';
+    }
+
+    if (skipBtn) {
+      skipBtn.disabled = true;
+      skipBtn.textContent = 'Ignorada';
+      skipBtn.style.opacity = '0.75';
+      skipBtn.style.cursor = 'not-allowed';
+    }
+
+    return;
+  }
+
   progressEl.textContent = `${progressPct.toFixed(0)}% concluído hoje`;
 
   if (progressPct >= 80) {
@@ -751,6 +821,26 @@ if (state.missionStatus.date !== todayISO) {
     barEl.style.background = 'linear-gradient(90deg, #6366f1, #8b5cf6)';
   } else {
     barEl.style.background = 'linear-gradient(90deg, #f59e0b, #ef4444)';
+  }
+
+  if (badgeEl) {
+    badgeEl.textContent = 'Missão em aberto';
+    badgeEl.style.background = 'rgba(99,102,241,0.12)';
+    badgeEl.style.color = '#a5b4fc';
+  }
+
+  if (completeBtn) {
+    completeBtn.disabled = false;
+    completeBtn.textContent = '✅ Concluir missão';
+    completeBtn.style.opacity = '1';
+    completeBtn.style.cursor = 'pointer';
+  }
+
+  if (skipBtn) {
+    skipBtn.disabled = false;
+    skipBtn.textContent = 'Ignorar hoje';
+    skipBtn.style.opacity = '1';
+    skipBtn.style.cursor = 'pointer';
   }
 }
 function completeMission() {
