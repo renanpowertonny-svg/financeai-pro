@@ -850,7 +850,7 @@ function completeMission() {
   if (!state.user || state.missionStatus.completed) return;
 
   state.missionStatus.completed = true;
-   state.missionStatus.status = 'completed';
+  state.missionStatus.status = 'completed';
   state.missionStatus.savedAmount = state.missionStatus.target || 0;
 
   state.missionHistory.unshift({
@@ -881,8 +881,8 @@ function skipMission() {
   if (!state.user || state.missionStatus.completed) return;
 
   state.missionStatus.completed = true;
+  state.missionStatus.status = 'skipped';
   state.missionStatus.savedAmount = 0;
-   state.missionStatus.status = 'skipped';
 
   state.missionHistory.unshift({
     date: state.missionStatus.date,
