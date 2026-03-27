@@ -267,6 +267,33 @@
         <div id="missionProgressBar" style="height: 8px; width: 0%; background: linear-gradient(90deg, #7c5cff, #00d4ff);"></div>
       </div>
       <div id="missionProgressText" style="font-size: 12px; margin-top: 4px;">0%</div>
+      <div style="margin-top: 14px; display: flex; gap: 8px;">
+  <button onclick="completeMission()" style="
+    flex:1;
+    padding:8px;
+    border:none;
+    border-radius:8px;
+    background: linear-gradient(90deg, #10b981, #34d399);
+    color:white;
+    font-weight:600;
+    cursor:pointer;
+  ">
+    ✅ Concluir
+  </button>
+
+  <button onclick="skipMission()" style="
+    flex:1;
+    padding:8px;
+    border:none;
+    border-radius:8px;
+    background: rgba(255,255,255,0.08);
+    color:white;
+    font-weight:600;
+    cursor:pointer;
+  ">
+    Ignorar
+  </button>
+</div>
     </div>
   </div>
 </div>
