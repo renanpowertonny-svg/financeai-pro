@@ -223,6 +223,14 @@ function resetAppStateAfterLogout() {
   state.transactions = [];
   state.goals = [];
   state.notifications = [];
+   state.missionStatus = {
+  date: null,
+  target: 0,
+  completed: false,
+  savedAmount: 0
+};
+
+state.missionHistory = [];
   state.settings = {
     salary: 0,
     limits: {},
@@ -358,6 +366,8 @@ function saveUserData() {
   DB.set(`goals_${k}`, state.goals);
   DB.set(`settings_${k}`, state.settings);
   DB.set(`notifications_${k}`, state.notifications);
+   DB.set(`missionStatus_${k}`, state.missionStatus);
+DB.set(`missionHistory_${k}`, state.missionHistory);
   DB.set(`eduProgress_${k}`, state.eduProgress);
 }
 
@@ -735,7 +745,78 @@ if (state.missionStatus.date !== todayISO) {
     barEl.style.background = 'linear-gradient(90deg, #f59e0b, #ef4444)';
   }
 }
+function completeMission() {
+  if (!state.user || state.missionStatus.completed) return;
 
+  state.missionStatus.completed = true;
+  state.missionStatus.savedAmount = state.missionStatus.target || 0;
+
+  state.missionHistory.unshift({
+    date: state.missionStatus.date,
+    success: true,
+    value: state.missionStatus.target || 0,
+    createdAt: new Date().toISOString()
+  });
+
+  if (state.missionHistory.length > 30) {
+    state.missionHistory = state.missionHistory.slice(0, 30);
+  }
+
+  updateRiskFromMission(true);
+
+  addNotification(
+    'Missão concluída',
+    `Você concluiu a missão do dia e preservou ${fmt(state.missionStatus.target || 0)}.`,
+    'success'
+  );
+
+  showToast('success', 'Missão concluída!', 'Excelente disciplina financeira hoje.');
+  saveUserData();
+  renderDashboard();
+}
+
+function skipMission() {
+  if (!state.user || state.missionStatus.completed) return;
+
+  state.missionStatus.completed = true;
+  state.missionStatus.savedAmount = 0;
+
+  state.missionHistory.unshift({
+    date: state.missionStatus.date,
+    success: false,
+    value: state.missionStatus.target || 0,
+    createdAt: new Date().toISOString()
+  });
+
+  if (state.missionHistory.length > 30) {
+    state.missionHistory = state.missionHistory.slice(0, 30);
+  }
+
+  updateRiskFromMission(false);
+
+  addNotification(
+    'Missão não concluída',
+    `A missão de ${fmt(state.missionStatus.target || 0)} não foi cumprida hoje.`,
+    'warning'
+  );
+   
+
+  showToast('warning', 'Missão não concluída', 'Amanhã o FinanceAI recalibra sua missão.');
+  saveUserData();
+  renderDashboard();
+}
+
+function updateRiskFromMission(success) {
+  const scoreEl = document.getElementById('scoreNum');
+  if (!scoreEl) return;
+
+  const current = parseInt(scoreEl.textContent || '50', 10);
+  const next = success
+    ? Math.min(100, current + 2)
+    : Math.max(10, current - 3);
+
+  scoreEl.textContent = next;
+}
 // ==========================================
 // DASHBOARD
 // ==========================================
