@@ -3408,3 +3408,6 @@ function shouldTriggerAlert(key, cooldownMinutes = 10) {
 
   return true;
 }
+function buildEducationCards() {
+  // função placeholder para evitar erro
+}
