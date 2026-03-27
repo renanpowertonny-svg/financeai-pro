@@ -267,24 +267,60 @@
         <div id="missionProgressBar" style="height: 8px; width: 0%; background: linear-gradient(90deg, #7c5cff, #00d4ff);"></div>
       </div>
       <div id="missionProgressText" style="font-size: 12px; margin-top: 4px;">0%</div>
-      <div style="margin-top: 14px; display: flex; gap: 8px;">
-  <button onclick="completeMission()" style="
-    flex:1;
-    padding:8px;
-    border:none;
-    border-radius:8px;
-    background: linear-gradient(90deg, #10b981, #34d399);
-    color:white;
-    font-weight:600;
-    cursor:pointer;
-  ">
-    ✅ Concluir
+    <div id="missionStatusBadge" style="
+  margin-top: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(99,102,241,0.12);
+  color: #a5b4fc;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+">
+  Missão em aberto
+</div>
+
+<div style="margin-top: 14px; display: flex; gap: 8px;">
+  <button
+    id="missionCompleteBtn"
+    onclick="completeMission()"
+    style="
+      flex:1;
+      padding:10px 12px;
+      border:none;
+      border-radius:10px;
+      background: linear-gradient(90deg, #10b981, #34d399);
+      color:white;
+      font-weight:700;
+      cursor:pointer;
+      transition: all .2s ease;
+      box-shadow: 0 10px 24px rgba(16,185,129,0.18);
+    "
+  >
+    ✅ Concluir missão
   </button>
 
-  <button onclick="skipMission()" style="
-    flex:1;
-    padding:8px;
-    border:none;
+  <button
+    id="missionSkipBtn"
+    onclick="skipMission()"
+    style="
+      flex:1;
+      padding:10px 12px;
+      border:none;
+      border-radius:10px;
+      background: rgba(255,255,255,0.08);
+      color:white;
+      font-weight:700;
+      cursor:pointer;
+      transition: all .2s ease;
+    "
+  >
+    Ignorar hoje
+  </button>
+</div>
     border-radius:8px;
     background: rgba(255,255,255,0.08);
     color:white;
