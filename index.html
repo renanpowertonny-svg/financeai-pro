@@ -252,6 +252,24 @@
           <p id="aiInsightText">Analisando seus dados financeiros...</p>
           <button class="btn-ghost" onclick="navigate('ai')">Ver análise completa →</button>
         </div>
+        <!-- MISSÃO DO DIA -->
+<div id="dailyMissionCard" class="card" style="margin-top: 16px;">
+  <div class="card-header">
+    <span style="font-weight: 600;">🎯 Missão de Hoje</span>
+  </div>
+
+  <div class="card-body">
+    <p id="missionText">Calculando sua missão...</p>
+
+    <div style="margin-top: 12px;">
+      <div style="font-size: 12px; opacity: 0.7;">Progresso</div>
+      <div style="background: rgba(255,255,255,0.08); border-radius: 8px; overflow: hidden;">
+        <div id="missionProgressBar" style="height: 8px; width: 0%; background: linear-gradient(90deg, #7c5cff, #00d4ff);"></div>
+      </div>
+      <div id="missionProgressText" style="font-size: 12px; margin-top: 4px;">0%</div>
+    </div>
+  </div>
+</div>
 <div id="premiumRiskCard" style="
   margin-top: 24px;
   padding: 24px;
