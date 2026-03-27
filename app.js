@@ -20,6 +20,13 @@ const DB = {
 };
 
 let state = {
+   missionStatus: {
+  date: null,
+  target: 0,
+  completed: false,
+  savedAmount: 0
+},
+missionHistory: [],
   user: null,
   transactions: [],
   goals: [],
@@ -700,7 +707,16 @@ function renderDailyMission() {
     targetAmount = Math.max(20, Math.ceil((summary.income * 0.03) / 10) * 10);
     missionText = `Missão de disciplina: manter controle e economizar ${fmt(targetAmount)} hoje para fortalecer consistência.`;
   }
+const todayISO = new Date().toISOString().slice(0,10);
 
+if (state.missionStatus.date !== todayISO) {
+  state.missionStatus = {
+    date: todayISO,
+    target: targetAmount,
+    completed: false,
+    savedAmount: 0
+  };
+}
   if (targetAmount <= 0) {
     progressPct = 100;
   } else {
