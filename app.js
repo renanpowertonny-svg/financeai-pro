@@ -732,19 +732,22 @@ function renderDailyMission() {
   }
 
   if (state.missionStatus.date !== todayISO) {
-    state.missionStatus = {
-      date: todayISO,
-      target: targetAmount,
-      completed: false,
-      savedAmount: 0
-    };
+ state.missionStatus = {
+  date: todayISO,
+  target: targetAmount,
+  completed: false,
+  savedAmount: 0,
+  status: 'pending'
+};
   }
 
   const missionResolvedToday =
     state.missionStatus.date === todayISO && state.missionStatus.completed === true;
 
-  const missionSuccessToday = missionResolvedToday && (state.missionStatus.savedAmount || 0) > 0;
-  const missionSkippedToday = missionResolvedToday && (state.missionStatus.savedAmount || 0) === 0;
+  const status = state.missionStatus.status || 'pending';
+
+const missionSuccessToday = status === 'completed';
+const missionSkippedToday = status === 'skipped';
 
   if (missionSuccessToday) {
     progressPct = 100;
@@ -847,6 +850,7 @@ function completeMission() {
   if (!state.user || state.missionStatus.completed) return;
 
   state.missionStatus.completed = true;
+   state.missionStatus.status = 'completed';
   state.missionStatus.savedAmount = state.missionStatus.target || 0;
 
   state.missionHistory.unshift({
@@ -878,6 +882,7 @@ function skipMission() {
 
   state.missionStatus.completed = true;
   state.missionStatus.savedAmount = 0;
+   state.missionStatus.status = 'skipped';
 
   state.missionHistory.unshift({
     date: state.missionStatus.date,
