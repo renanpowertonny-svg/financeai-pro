@@ -3411,3 +3411,8 @@ function shouldTriggerAlert(key, cooldownMinutes = 10) {
 function buildEducationCards() {
   // função placeholder para evitar erro
 }
+// ==========================================
+// GLOBAL EXPOSURE (CRÍTICO)
+// ==========================================
+window.completeMission = completeMission;
+window.skipMission = skipMission;
