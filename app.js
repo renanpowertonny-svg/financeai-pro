@@ -20,13 +20,32 @@ const DB = {
 };
 
 let state = {
-   missionStatus: {
-  date: null,
-  target: 0,
-  completed: false,
-  savedAmount: 0
-},
-missionHistory: [],
+  missionStatus: {
+    date: null,
+    type: 'discipline',
+    severity: 'stable',
+    diagnosis: 'controlled_growth',
+    title: '',
+    text: '',
+    actionLabel: 'Executar missão',
+    target: 0,
+    current: 0,
+    completed: false,
+    savedAmount: 0,
+    status: 'pending',
+    scoreDeltaSuccess: 2,
+    scoreDeltaFail: -3,
+    psychologicalTone: 'supportive'
+  },
+  missionHistory: [],
+  behaviorProfile: {
+    dominantPain: 'controlled_growth',
+    severity: 'stable',
+    failStreak: 0,
+    successStreak: 0,
+    recentFailureTypes: [],
+    recentSuccessTypes: []
+  },
   user: null,
   transactions: [],
   goals: [],
@@ -44,7 +63,6 @@ missionHistory: [],
   aiInsights: [],
   eduProgress: { completed: [], streak: 0, points: 0 }
 };
-
 // ==========================================
 // AUTH
 // ==========================================
@@ -223,14 +241,34 @@ function resetAppStateAfterLogout() {
   state.transactions = [];
   state.goals = [];
   state.notifications = [];
-   state.missionStatus = {
+  state.missionStatus = {
   date: null,
+  type: 'discipline',
+  severity: 'stable',
+  diagnosis: 'controlled_growth',
+  title: '',
+  text: '',
+  actionLabel: 'Executar missão',
   target: 0,
+  current: 0,
   completed: false,
-  savedAmount: 0
+  savedAmount: 0,
+  status: 'pending',
+  scoreDeltaSuccess: 2,
+  scoreDeltaFail: -3,
+  psychologicalTone: 'supportive'
 };
 
 state.missionHistory = [];
+
+state.behaviorProfile = {
+  dominantPain: 'controlled_growth',
+  severity: 'stable',
+  failStreak: 0,
+  successStreak: 0,
+  recentFailureTypes: [],
+  recentSuccessTypes: []
+};
   state.settings = {
     salary: 0,
     limits: {},
@@ -357,26 +395,49 @@ function loadUserData() {
   state.goals = DB.get(`goals_${k}`, []);
   state.settings = DB.get(`settings_${k}`, { salary: 0, limits: {}, darkMode: true, notif: true, autoReport: true });
 state.notifications = DB.get(`notifications_${k}`, []);
-   state.missionStatus = DB.get(`missionStatus_${k}`, {
+
+state.missionStatus = DB.get(`missionStatus_${k}`, {
   date: null,
+  type: 'discipline',
+  severity: 'stable',
+  diagnosis: 'controlled_growth',
+  title: '',
+  text: '',
+  actionLabel: 'Executar missão',
   target: 0,
+  current: 0,
   completed: false,
-  savedAmount: 0
+  savedAmount: 0,
+  status: 'pending',
+  scoreDeltaSuccess: 2,
+  scoreDeltaFail: -3,
+  psychologicalTone: 'supportive'
 });
 
 state.missionHistory = DB.get(`missionHistory_${k}`, []);
-  state.eduProgress = DB.get(`eduProgress_${k}`, { completed: [], streak: 0, points: 0 });
+
+state.behaviorProfile = DB.get(`behaviorProfile_${k}`, {
+  dominantPain: 'controlled_growth',
+  severity: 'stable',
+  failStreak: 0,
+  successStreak: 0,
+  recentFailureTypes: [],
+  recentSuccessTypes: []
+});
+
+state.eduProgress = DB.get(`eduProgress_${k}`, { completed: [], streak: 0, points: 0 });
 }
 
 function saveUserData() {
   const k = state.user.email;
-  DB.set(`transactions_${k}`, state.transactions);
-  DB.set(`goals_${k}`, state.goals);
-  DB.set(`settings_${k}`, state.settings);
-  DB.set(`notifications_${k}`, state.notifications);
-   DB.set(`missionStatus_${k}`, state.missionStatus);
+DB.set(`transactions_${k}`, state.transactions);
+DB.set(`goals_${k}`, state.goals);
+DB.set(`settings_${k}`, state.settings);
+DB.set(`notifications_${k}`, state.notifications);
+DB.set(`missionStatus_${k}`, state.missionStatus);
 DB.set(`missionHistory_${k}`, state.missionHistory);
-  DB.set(`eduProgress_${k}`, state.eduProgress);
+DB.set(`behaviorProfile_${k}`, state.behaviorProfile);
+DB.set(`eduProgress_${k}`, state.eduProgress);
 }
 
 // ==========================================
@@ -692,12 +753,232 @@ function renderPremiumRiskCard() {
 primaryBtn.onclick = () => navigate(plan.primaryPage || 'transactions');
 secondaryBtn.onclick = () => navigate(plan.secondaryPage || 'ai');
 }
+function getMissionSeverityFromSnapshot(snap) {
+  if (!snap) return 'stable';
+
+  const { score = 0, projectedBalance = 0, spendAfterIncomePct = 0, summary } = snap;
+  const savingsRate = summary?.savingsRate ?? 0;
+
+  if (score >= 85 || projectedBalance < 0) return 'critical';
+  if (score >= 70 || spendAfterIncomePct >= 75) return 'containment';
+  if (score >= 50 || savingsRate < 10) return 'pressure';
+  if (score >= 30 || spendAfterIncomePct >= 55) return 'attention';
+  return 'stable';
+}
+
+function getDominantFinancialPain(snap) {
+  if (!snap) {
+    return {
+      diagnosis: 'controlled_growth',
+      severity: 'stable',
+      title: 'Crescimento sob controle',
+      text: 'Seu sistema não detectou ruptura imediata. A prioridade é manter consistência e crescer com disciplina.',
+      target: 20,
+      type: 'discipline',
+      actionLabel: 'Manter disciplina',
+      scoreDeltaSuccess: 2,
+      scoreDeltaFail: -2,
+      psychologicalTone: 'supportive'
+    };
+  }
+
+  const {
+    summary,
+    projectedBalance,
+    spendAfterIncomePct,
+    topCategoryName,
+    categoryRisks,
+    score,
+    dailyAvgExpense
+  } = snap;
+
+  const severity = getMissionSeverityFromSnapshot(snap);
+
+  const topProjectedRisk = (categoryRisks || [])
+    .filter(item => item.limit > 0 && item.projected > item.limit)
+    .sort((a, b) => (b.projected - b.limit) - (a.projected - a.limit))[0] || null;
+
+  if (projectedBalance < 0) {
+    const target = Math.max(60, Math.ceil(Math.abs(projectedBalance) / 10) * 10);
+
+    return {
+      diagnosis: 'cash_runway_risk',
+      severity: 'critical',
+      title: 'Interrupção imediata de risco',
+      text: `Seu padrão atual leva o caixa à ruptura ainda neste ciclo. Hoje a missão não é crescer — é bloquear dano e preservar pelo menos ${fmt(target)}.`,
+      target,
+      type: 'containment',
+      actionLabel: 'Interromper dano',
+      scoreDeltaSuccess: 6,
+      scoreDeltaFail: -8,
+      psychologicalTone: 'hard'
+    };
+  }
+
+  if (spendAfterIncomePct >= 65) {
+    const target = Math.max(40, Math.ceil((summary.income * 0.1) / 10) * 10);
+
+    return {
+      diagnosis: 'post_income_burn',
+      severity,
+      title: 'Quebrar aceleração pós-recebimento',
+      text: `Você está queimando renda rápido demais logo após receber. Hoje sua missão é travar gasto variável e preservar ${fmt(target)} para impedir sufoco no fim do mês.`,
+      target,
+      type: 'retention',
+      actionLabel: 'Preservar caixa',
+      scoreDeltaSuccess: severity === 'containment' ? 5 : 4,
+      scoreDeltaFail: severity === 'containment' ? -7 : -5,
+      psychologicalTone: 'firm'
+    };
+  }
+
+  if (topProjectedRisk) {
+    const excess = Math.max(0, topProjectedRisk.projected - topProjectedRisk.limit);
+    const target = Math.max(30, Math.ceil(excess / 10) * 10);
+
+    return {
+      diagnosis: 'category_overload',
+      severity,
+      title: `Corrigir pressão em ${topProjectedRisk.category}`,
+      text: `${topProjectedRisk.category} é hoje a categoria que mais ameaça sua margem. A missão é comprimir pelo menos ${fmt(target)} dessa pressão antes que ela desorganize o mês.`,
+      target,
+      type: 'category_control',
+      actionLabel: 'Cortar categoria',
+      scoreDeltaSuccess: 4,
+      scoreDeltaFail: -5,
+      psychologicalTone: 'firm'
+    };
+  }
+
+  if ((summary?.savingsRate ?? 0) < 10) {
+    const target = Math.max(30, Math.ceil((summary.income * 0.08) / 10) * 10);
+
+    return {
+      diagnosis: 'low_retention',
+      severity,
+      title: 'Reconstruir retenção',
+      text: `Sua retenção caiu abaixo da faixa mínima de estabilidade. Hoje a missão é preservar ${fmt(target)} para reconstruir margem e evitar fragilidade futura.`,
+      target,
+      type: 'retention',
+      actionLabel: 'Recuperar retenção',
+      scoreDeltaSuccess: 4,
+      scoreDeltaFail: -4,
+      psychologicalTone: 'firm'
+    };
+  }
+
+  if ((dailyAvgExpense || 0) > 0 && (summary?.balance || 0) > 0 && score >= 35) {
+    const target = Math.max(20, Math.ceil((summary.income * 0.03) / 10) * 10);
+
+    return {
+      diagnosis: 'discipline_rebuild',
+      severity: 'attention',
+      title: 'Blindar disciplina do ciclo',
+      text: `Você ainda tem margem, mas o sistema detecta espaço para relaxamento operacional. A missão hoje é proteger ${fmt(target)} e fechar o dia sem ampliar dano desnecessário.`,
+      target,
+      type: 'discipline',
+      actionLabel: 'Blindar disciplina',
+      scoreDeltaSuccess: 3,
+      scoreDeltaFail: -3,
+      psychologicalTone: 'strategic'
+    };
+  }
+
+  return {
+    diagnosis: 'controlled_growth',
+    severity: 'stable',
+    title: 'Consolidar crescimento controlado',
+    text: 'Seu cenário está estável. A missão hoje é manter o padrão vencedor, proteger margem e evitar microdesvios que corroem consistência.',
+    target: 20,
+    type: 'growth',
+    actionLabel: 'Consolidar crescimento',
+    scoreDeltaSuccess: 2,
+    scoreDeltaFail: -2,
+    psychologicalTone: 'supportive'
+  };
+}
+
+function updateBehaviorProfileFromMissionHistory() {
+  const history = Array.isArray(state.missionHistory) ? state.missionHistory.slice(0, 7) : [];
+  const recentFails = history.filter(item => item && item.success === false);
+  const recentSuccess = history.filter(item => item && item.success === true);
+
+  state.behaviorProfile.failStreak = 0;
+  state.behaviorProfile.successStreak = 0;
+
+  for (const item of history) {
+    if (item?.success === false) state.behaviorProfile.failStreak += 1;
+    else break;
+  }
+
+  for (const item of history) {
+    if (item?.success === true) state.behaviorProfile.successStreak += 1;
+    else break;
+  }
+
+  state.behaviorProfile.recentFailureTypes = recentFails
+    .map(item => item.type)
+    .filter(Boolean)
+    .slice(0, 5);
+
+  state.behaviorProfile.recentSuccessTypes = recentSuccess
+    .map(item => item.type)
+    .filter(Boolean)
+    .slice(0, 5);
+}
+
+function ensureMissionV3State(snap) {
+  const todayISO = new Date().toISOString().slice(0, 10);
+  const prescription = getDominantFinancialPain(snap);
+
+  updateBehaviorProfileFromMissionHistory();
+
+  state.behaviorProfile.dominantPain = prescription.diagnosis;
+  state.behaviorProfile.severity = prescription.severity;
+
+  if (state.missionStatus.date !== todayISO) {
+    state.missionStatus = {
+      date: todayISO,
+      type: prescription.type,
+      severity: prescription.severity,
+      diagnosis: prescription.diagnosis,
+      title: prescription.title,
+      text: prescription.text,
+      actionLabel: prescription.actionLabel,
+      target: prescription.target,
+      current: 0,
+      completed: false,
+      savedAmount: 0,
+      status: 'pending',
+      scoreDeltaSuccess: prescription.scoreDeltaSuccess,
+      scoreDeltaFail: prescription.scoreDeltaFail,
+      psychologicalTone: prescription.psychologicalTone
+    };
+    return;
+  }
+
+  state.missionStatus = {
+    ...state.missionStatus,
+    type: state.missionStatus.type || prescription.type,
+    severity: state.missionStatus.severity || prescription.severity,
+    diagnosis: state.missionStatus.diagnosis || prescription.diagnosis,
+    title: state.missionStatus.title || prescription.title,
+    text: state.missionStatus.text || prescription.text,
+    actionLabel: state.missionStatus.actionLabel || prescription.actionLabel,
+    target: state.missionStatus.target || prescription.target,
+    current: state.missionStatus.current || 0,
+    scoreDeltaSuccess: state.missionStatus.scoreDeltaSuccess ?? prescription.scoreDeltaSuccess,
+    scoreDeltaFail: state.missionStatus.scoreDeltaFail ?? prescription.scoreDeltaFail,
+    psychologicalTone: state.missionStatus.psychologicalTone || prescription.psychologicalTone
+  };
+}
+
 function renderDailyMission() {
   const textEl = document.getElementById('missionText');
   const barEl = document.getElementById('missionProgressBar');
   const progressEl = document.getElementById('missionProgressText');
   const badgeEl = document.getElementById('missionStatusBadge');
-  const completeBtn = document.getElementById('missionCompleteBtn');
+  const completeBtn = document.getElementById('missionCom pleteBtn');
   const skipBtn = document.getElementById('missionSkipBtn');
 
   if (!textEl || !barEl || !progressEl || !state.user) return;
