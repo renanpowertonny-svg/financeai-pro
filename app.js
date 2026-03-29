@@ -719,7 +719,7 @@ function renderPremiumRiskCard() {
     return;
   }
 
-  const snap = getRiskSnapshot();
+  const snap = getBehaviorEngineSnapshot();
   const plan = getPremiumRiskActionPlan(snap);
 
   titleEl.textContent = plan.title;
@@ -972,7 +972,160 @@ function ensureMissionV3State(snap) {
     psychologicalTone: state.missionStatus.psychologicalTone || prescription.psychologicalTone
   };
 }
+function getBehaviorRiskLevel(score) {
+  if (score >= 85) return 'Crítico';
+  if (score >= 70) return 'Alto';
+  if (score >= 50) return 'Médio';
+  if (score >= 30) return 'Atenção';
+  return 'Baixo';
+}
 
+function clampScore(value) {
+  return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+function getBehaviorEngineSnapshot() {
+  const base = typeof getRiskSnapshot === 'function' ? getRiskSnapshot() : null;
+  if (!base) return null;
+
+  updateBehaviorProfileFromMissionHistory();
+
+  const txs = getFilteredTx('month');
+  const today = fmtDate(new Date());
+
+  const nonEssentialCategories = new Set([
+    'Lazer',
+    'Vestuário',
+    'Assinaturas',
+    'Outros'
+  ]);
+
+  const impulseCategories = new Set([
+    'Lazer',
+    'Vestuário',
+    'Assinaturas',
+    'Outros',
+    'Alimentação'
+  ]);
+
+  const todayExpenses = txs.filter(t => t.type === 'expense' && t.date === today);
+  const todayNonEssentialTotal = todayExpenses
+    .filter(t => nonEssentialCategories.has(t.category))
+    .reduce((sum, t) => sum + t.value, 0);
+
+  const impulseExpenseCount = txs
+    .filter(t => t.type === 'expense' && impulseCategories.has(t.category) && t.value <= 180)
+    .length;
+
+  const failStreak = Number(state.behaviorProfile.failStreak || 0);
+  const successStreak = Number(state.behaviorProfile.successStreak || 0);
+  const spendAfterIncomePct = Number(base.spendAfterIncomePct || 0);
+  const dailyAvgExpense = Number(base.dailyAvgExpense || 0);
+  const savingsRate = Number(base.summary?.savingsRate || 0);
+  const projectedBalance = Number(base.projectedBalance || 0);
+
+  let score = Number(base.score || 0);
+  let primaryDriver = 'stable_control';
+  let sabotagePattern = 'none';
+  let behavioralPressure = 0;
+
+  if (projectedBalance < 0) {
+    score += 8;
+    behavioralPressure += 8;
+    primaryDriver = 'cash_collapse_risk';
+  }
+
+  if (spendAfterIncomePct >= 80) {
+    score += 12;
+    behavioralPressure += 12;
+    primaryDriver = 'post_income_burn';
+    sabotagePattern = 'burn_after_income';
+  } else if (spendAfterIncomePct >= 65) {
+    score += 8;
+    behavioralPressure += 8;
+    primaryDriver = 'post_income_burn';
+    sabotagePattern = 'burn_after_income';
+  }
+
+  if (savingsRate < 5) {
+    score += 9;
+    behavioralPressure += 9;
+    if (primaryDriver === 'stable_control') primaryDriver = 'retention_failure';
+  } else if (savingsRate < 10) {
+    score += 5;
+    behavioralPressure += 5;
+    if (primaryDriver === 'stable_control') primaryDriver = 'retention_failure';
+  }
+
+  if (todayNonEssentialTotal >= 120) {
+    score += 6;
+    behavioralPressure += 6;
+    if (primaryDriver === 'stable_control') primaryDriver = 'non_essential_spike';
+  } else if (todayNonEssentialTotal >= 60) {
+    score += 3;
+    behavioralPressure += 3;
+    if (primaryDriver === 'stable_control') primaryDriver = 'non_essential_spike';
+  }
+
+  if (impulseExpenseCount >= 6) {
+    score += 6;
+    behavioralPressure += 6;
+    sabotagePattern = sabotagePattern === 'none' ? 'impulse_cluster' : sabotagePattern;
+    if (primaryDriver === 'stable_control') primaryDriver = 'impulse_cluster';
+  } else if (impulseExpenseCount >= 3) {
+    score += 3;
+    behavioralPressure += 3;
+    sabotagePattern = sabotagePattern === 'none' ? 'impulse_cluster' : sabotagePattern;
+  }
+
+  if (failStreak >= 3) {
+    score += 10;
+    behavioralPressure += 10;
+    sabotagePattern = 'mission_resistance';
+    primaryDriver = primaryDriver === 'stable_control' ? 'mission_resistance' : primaryDriver;
+  } else if (failStreak >= 2) {
+    score += 6;
+    behavioralPressure += 6;
+    sabotagePattern = sabotagePattern === 'none' ? 'mission_resistance' : sabotagePattern;
+  }
+
+  if (successStreak >= 3) {
+    score -= 8;
+    behavioralPressure -= 8;
+  } else if (successStreak >= 2) {
+    score -= 4;
+    behavioralPressure -= 4;
+  }
+
+if (state.behaviorProfile.lastMissionImpact) {
+  const impact = Number(state.behaviorProfile.lastMissionImpact || 0);
+  const outcome = state.behaviorProfile.lastMissionOutcome || null;
+
+  if (outcome === 'success') {
+    score -= impact;
+  } else if (outcome === 'fail') {
+    score += impact;
+  }
+}
+
+  score = clampScore(score);
+
+  return {
+    ...base,
+    score,
+    riskLevel: getBehaviorRiskLevel(score),
+    behavior: {
+      failStreak,
+      successStreak,
+      todayNonEssentialTotal,
+      impulseExpenseCount,
+      behavioralPressure,
+      primaryDriver,
+      sabotagePattern,
+      dailyAvgExpense
+    }
+  };
+}
 function renderDailyMission() {
   const textEl = document.getElementById('missionText');
   const barEl = document.getElementById('missionProgressBar');
@@ -1220,15 +1373,29 @@ state.missionHistory.unshift({
 }
 
 function updateRiskFromMission(success) {
-  const scoreEl = document.getElementById('scoreNum');
-  if (!scoreEl) return;
+  updateBehaviorProfileFromMissionHistory();
 
-  const current = parseInt(scoreEl.textContent || '50', 10);
-  const next = success
-    ? Math.min(100, current + 2)
-    : Math.max(10, current - 3);
+  state.behaviorProfile.lastMissionOutcome = success ? 'success' : 'fail';
+  state.behaviorProfile.lastMissionType = state.missionStatus.type || 'discipline';
+  state.behaviorProfile.lastMissionDiagnosis = state.missionStatus.diagnosis || 'controlled_growth';
+  state.behaviorProfile.lastMissionSeverity = state.missionStatus.severity || 'stable';
+  state.behaviorProfile.lastMissionImpact = success
+    ? Math.max(1, Number(state.missionStatus.scoreDeltaSuccess || 2))
+    : Math.abs(Math.min(-1, Number(state.missionStatus.scoreDeltaFail || -3)));
+  state.behaviorProfile.lastUpdatedAt = new Date().toISOString();
 
-  scoreEl.textContent = next;
+  updateBehaviorProfileFromMissionHistory();
+
+  const premiumScoreEl = document.getElementById('premiumRiskScore');
+  const premiumLevelEl = document.getElementById('premiumRiskLevel');
+  const legacyScoreEl = document.getElementById('scoreNum');
+
+  const snap = getBehaviorEngineSnapshot();
+  if (!snap) return;
+
+  if (premiumScoreEl) premiumScoreEl.textContent = `${snap.score}/100`;
+  if (premiumLevelEl) premiumLevelEl.textContent = `Risco ${snap.riskLevel}`;
+  if (legacyScoreEl) legacyScoreEl.textContent = String(snap.score);
 }
 // ==========================================
 // DASHBOARD
@@ -3502,7 +3669,7 @@ function getRiskSnapshot() {
 }
 
 function analyzeAlertsSafe() {
-  const snap = getRiskSnapshot();
+  const snap = getBehaviorEngineSnapshot();
   if (!snap) return;
 
   const { summary, topCategoryName, topCategoryValue, score, riskLevel } = snap;
@@ -3579,7 +3746,7 @@ function analyzeAlertsSafe() {
 }
 
 function analyzePredictiveAlerts() {
-  const snap = getRiskSnapshot();
+const snap = getBehaviorEngineSnapshot();
   if (!snap) return;
 
   const {
