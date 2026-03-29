@@ -1161,24 +1161,24 @@ if (state.behaviorProfile.lastMissionImpact) {
 
   score = clampScore(score);
 
- const sabotagePattern = detectFinancialSabotagePattern({
+const sabotageDiagnostic = detectFinancialSabotagePattern({
   spendAfterIncomePct,
   impulseExpenseCount,
   failStreak,
   dailyAvgExpense
 });
 
-const addictionPattern = detectFinancialAddictionPattern({
+const addictionDiagnostic = detectFinancialAddictionPattern({
   impulseExpenseCount,
   dailyAvgExpense,
   spendAfterIncomePct
 });
 
-const identity = buildUserFinancialIdentity({
+const financialIdentity = buildUserFinancialIdentity({
   score,
   failStreak,
   successStreak,
-  sabotagePattern
+  sabotagePattern: sabotageDiagnostic
 });
    return {
     ...base,
@@ -1191,9 +1191,9 @@ const identity = buildUserFinancialIdentity({
   impulseExpenseCount,
   behavioralPressure,
   primaryDriver,
-  sabotagePattern,
-  addictionPattern,
-  identity,
+ sabotageDiagnostic,
+addictionDiagnostic,
+financialIdentity,
   dailyAvgExpense
 }
     }
