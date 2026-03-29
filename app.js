@@ -978,7 +978,7 @@ function renderDailyMission() {
   const barEl = document.getElementById('missionProgressBar');
   const progressEl = document.getElementById('missionProgressText');
   const badgeEl = document.getElementById('missionStatusBadge');
-  const completeBtn = document.getElementById('missionCom pleteBtn');
+  const completeBtn = document.getElementById('missionCompleteBtn');
   const skipBtn = document.getElementById('missionSkipBtn');
 
   if (!textEl || !barEl || !progressEl || !state.user) return;
@@ -987,9 +987,7 @@ function renderDailyMission() {
   const summary = calcSummary(txs);
   const snap = typeof getRiskSnapshot === 'function' ? getRiskSnapshot() : null;
 
-  let targetAmount = 0;
-  let missionText = '';
-  let progressPct = 0;
+  ensureMissionV3State(snap);
 
   const today = fmtDate(new Date());
   const todayISO = new Date().toISOString().slice(0, 10);
@@ -998,53 +996,53 @@ function renderDailyMission() {
     .filter(t => t.type === 'expense' && t.date === today)
     .reduce((sum, t) => sum + t.value, 0);
 
-  if (snap && snap.score >= 75) {
-    targetAmount = Math.max(50, Math.ceil(Math.abs(snap.projectedBalance || 0) / 10) * 10);
-    missionText = `Missão crítica: reduzir pelo menos ${fmt(targetAmount)} em gastos variáveis hoje para proteger seu caixa.`;
-  } else if (summary.balance < 0) {
-    targetAmount = Math.max(40, Math.ceil(Math.abs(summary.balance) / 10) * 10);
-    missionText = `Missão de recuperação: evitar piora do saldo negativo e cortar pelo menos ${fmt(targetAmount)} hoje.`;
-  } else if (summary.savingsRate < 10) {
-    targetAmount = Math.max(30, Math.ceil((summary.income * 0.08) / 10) * 10);
-    missionText = `Missão de retenção: preservar ${fmt(targetAmount)} hoje para elevar sua taxa de poupança.`;
-  } else {
-    targetAmount = Math.max(20, Math.ceil((summary.income * 0.03) / 10) * 10);
-    missionText = `Missão de disciplina: manter controle e economizar ${fmt(targetAmount)} hoje para fortalecer consistência.`;
-  }
+  let progressPct = 0;
+  const missionType = state.missionStatus.type || 'discipline';
+  const target = Number(state.missionStatus.target || 0);
 
   if (state.missionStatus.date !== todayISO) {
- state.missionStatus = {
-  date: todayISO,
-  target: targetAmount,
-  completed: false,
-  savedAmount: 0,
-  status: 'pending'
-};
+    ensureMissionV3State(snap);
   }
 
-  const missionResolvedToday =
-    state.missionStatus.date === todayISO && state.missionStatus.completed === true;
-
-  const status = state.missionStatus.status || 'pending';
-
-const missionSuccessToday = status === 'completed';
-const missionSkippedToday = status === 'skipped';
-
-  if (missionSuccessToday) {
+  if (state.missionStatus.status === 'completed') {
     progressPct = 100;
-  } else if (missionSkippedToday) {
+  } else if (state.missionStatus.status === 'skipped') {
     progressPct = 12;
-  } else if (targetAmount <= 0) {
-    progressPct = 100;
   } else {
-    progressPct = Math.max(0, Math.min(100, ((targetAmount - todayExpenses) / targetAmount) * 100));
+    if (missionType === 'containment' || missionType === 'retention' || missionType === 'discipline' || missionType === 'growth') {
+      progressPct = target > 0
+        ? Math.max(0, Math.min(100, ((target - todayExpenses) / target) * 100))
+        : 100;
+    } else if (missionType === 'category_control') {
+      progressPct = target > 0
+        ? Math.max(0, Math.min(100, ((target - todayExpenses) / target) * 100))
+        : 100;
+    } else {
+      progressPct = 0;
+    }
   }
 
-  textEl.textContent = missionText;
+  state.missionStatus.current = Math.max(0, target - todayExpenses);
+
+  const missionTitle = state.missionStatus.title || 'Missão do dia';
+  const missionText = state.missionStatus.text || 'Hoje o FinanceAI está preparando sua missão.';
+  const severity = state.missionStatus.severity || 'stable';
+
+  textEl.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:6px;">
+      <div style="font-size:13px;font-weight:800;letter-spacing:0.02em;color:${severity === 'critical' ? '#fca5a5' : severity === 'containment' ? '#fcd34d' : '#a5b4fc'};text-transform:uppercase;">
+        ${missionTitle}
+      </div>
+      <div style="font-size:15px;line-height:1.6;color:var(--text-primary);">
+        ${missionText}
+      </div>
+    </div>
+  `;
+
   barEl.style.width = `${progressPct.toFixed(0)}%`;
 
-  if (missionSuccessToday) {
-    progressEl.textContent = 'Missão concluída hoje com sucesso';
+  if (state.missionStatus.status === 'completed') {
+    progressEl.textContent = 'Missão concluída hoje com execução validada';
     barEl.style.background = 'linear-gradient(90deg, #10b981, #34d399)';
 
     if (badgeEl) {
@@ -1070,8 +1068,8 @@ const missionSkippedToday = status === 'skipped';
     return;
   }
 
-  if (missionSkippedToday) {
-    progressEl.textContent = 'Missão encerrada sem conclusão hoje';
+  if (state.missionStatus.status === 'skipped') {
+    progressEl.textContent = 'Missão encerrada sem execução hoje';
     barEl.style.background = 'linear-gradient(90deg, #f59e0b, #ef4444)';
 
     if (badgeEl) {
@@ -1097,9 +1095,13 @@ const missionSkippedToday = status === 'skipped';
     return;
   }
 
-  progressEl.textContent = `${progressPct.toFixed(0)}% concluído hoje`;
+  progressEl.textContent = `${progressPct.toFixed(0)}% de execução da missão hoje`;
 
-  if (progressPct >= 80) {
+  if (severity === 'critical') {
+    barEl.style.background = 'linear-gradient(90deg, #ef4444, #f97316)';
+  } else if (severity === 'containment' || severity === 'pressure') {
+    barEl.style.background = 'linear-gradient(90deg, #f59e0b, #ef4444)';
+  } else if (progressPct >= 80) {
     barEl.style.background = 'linear-gradient(90deg, #10b981, #34d399)';
   } else if (progressPct >= 40) {
     barEl.style.background = 'linear-gradient(90deg, #6366f1, #8b5cf6)';
@@ -1108,9 +1110,26 @@ const missionSkippedToday = status === 'skipped';
   }
 
   if (badgeEl) {
-    badgeEl.textContent = 'Missão em aberto';
-    badgeEl.style.background = 'rgba(99,102,241,0.12)';
-    badgeEl.style.color = '#a5b4fc';
+    const severityMap = {
+      stable: 'Missão estratégica',
+      attention: 'Atenção ativa',
+      pressure: 'Pressão financeira',
+      containment: 'Contenção imediata',
+      critical: 'Risco crítico'
+    };
+
+    badgeEl.textContent = severityMap[severity] || 'Missão em aberto';
+
+    if (severity === 'critical') {
+      badgeEl.style.background = 'rgba(239,68,68,0.14)';
+      badgeEl.style.color = '#fca5a5';
+    } else if (severity === 'containment' || severity === 'pressure') {
+      badgeEl.style.background = 'rgba(245,158,11,0.14)';
+      badgeEl.style.color = '#fbbf24';
+    } else {
+      badgeEl.style.background = 'rgba(99,102,241,0.12)';
+      badgeEl.style.color = '#a5b4fc';
+    }
   }
 
   if (completeBtn) {
@@ -1127,6 +1146,8 @@ const missionSkippedToday = status === 'skipped';
     skipBtn.style.cursor = 'pointer';
   }
 }
+
+
 function completeMission() {
   if (!state.user || state.missionStatus.completed) return;
 
@@ -1134,12 +1155,16 @@ function completeMission() {
   state.missionStatus.status = 'completed';
   state.missionStatus.savedAmount = state.missionStatus.target || 0;
 
-  state.missionHistory.unshift({
-    date: state.missionStatus.date,
-    success: true,
-    value: state.missionStatus.target || 0,
-    createdAt: new Date().toISOString()
-  });
+state.missionHistory.unshift({
+  date: state.missionStatus.date,
+  success: true,
+  value: state.missionStatus.target || 0,
+  type: state.missionStatus.type || 'discipline',
+  diagnosis: state.missionStatus.diagnosis || 'controlled_growth',
+  severity: state.missionStatus.severity || 'stable',
+  title: state.missionStatus.title || '',
+  createdAt: new Date().toISOString()
+});
 
   if (state.missionHistory.length > 30) {
     state.missionHistory = state.missionHistory.slice(0, 30);
@@ -1165,12 +1190,16 @@ function skipMission() {
   state.missionStatus.status = 'skipped';
   state.missionStatus.savedAmount = 0;
 
-  state.missionHistory.unshift({
-    date: state.missionStatus.date,
-    success: false,
-    value: state.missionStatus.target || 0,
-    createdAt: new Date().toISOString()
-  });
+state.missionHistory.unshift({
+  date: state.missionStatus.date,
+  success: false,
+  value: state.missionStatus.target || 0,
+  type: state.missionStatus.type || 'discipline',
+  diagnosis: state.missionStatus.diagnosis || 'controlled_growth',
+  severity: state.missionStatus.severity || 'stable',
+  title: state.missionStatus.title || '',
+  createdAt: new Date().toISOString()
+});
 
   if (state.missionHistory.length > 30) {
     state.missionHistory = state.missionHistory.slice(0, 30);
