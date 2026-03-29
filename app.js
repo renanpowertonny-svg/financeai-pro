@@ -1195,10 +1195,10 @@ const financialIdentity = buildUserFinancialIdentity({
 addictionDiagnostic,
 financialIdentity,
   dailyAvgExpense
-}
+
     }
   };
-}
+
 function renderDailyMission() {
   const textEl = document.getElementById('missionText');
   const barEl = document.getElementById('missionProgressBar');
