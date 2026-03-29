@@ -983,6 +983,57 @@ function getBehaviorRiskLevel(score) {
 function clampScore(value) {
   return Math.max(0, Math.min(100, Math.round(value)));
 }
+// ==========================================
+// BLOCO 2B — ENGINE COMPORTAMENTAL BASE
+// ==========================================
+
+function detectFinancialSabotagePattern({ spendAfterIncomePct, impulseExpenseCount, failStreak, dailyAvgExpense }) {
+  if (spendAfterIncomePct >= 65) {
+    return { type: 'post_income_burn', label: 'Auto-sabotagem pós-recebimento', severity: 'high' };
+  }
+
+  if (impulseExpenseCount >= 3) {
+    return { type: 'impulse_spending', label: 'Gastos impulsivos recorrentes', severity: 'medium' };
+  }
+
+  if (failStreak >= 2) {
+    return { type: 'discipline_breakdown', label: 'Quebra de disciplina contínua', severity: 'high' };
+  }
+
+  if (dailyAvgExpense > 0 && dailyAvgExpense < 30) {
+    return { type: 'micro_leak', label: 'Vazamento financeiro silencioso', severity: 'low' };
+  }
+
+  return { type: 'none', label: 'Sem sabotagem relevante detectada', severity: 'stable' };
+}
+
+function detectFinancialAddictionPattern({ impulseExpenseCount, dailyAvgExpense, spendAfterIncomePct }) {
+  if (impulseExpenseCount >= 4 && dailyAvgExpense > 80) {
+    return { type: 'compulsive_spending', label: 'Comportamento compulsivo de consumo', severity: 'high' };
+  }
+
+  if (impulseExpenseCount >= 2 && spendAfterIncomePct >= 50) {
+    return { type: 'emotional_spending', label: 'Gasto emocional recorrente', severity: 'medium' };
+  }
+
+  return { type: 'none', label: 'Sem padrão de vício detectado', severity: 'stable' };
+}
+
+function buildUserFinancialIdentity({ score, failStreak, successStreak, sabotagePattern }) {
+  if (score >= 80 && failStreak >= 2) {
+    return { type: 'critical_user', label: 'Perfil em colapso financeiro', tone: 'hard' };
+  }
+
+  if (sabotagePattern.type !== 'none') {
+    return { type: 'unstable_user', label: 'Perfil instável com auto-sabotagem', tone: 'firm' };
+  }
+
+  if (successStreak >= 3) {
+    return { type: 'disciplined_user', label: 'Perfil disciplinado em evolução', tone: 'strategic' };
+  }
+
+  return { type: 'neutral_user', label: 'Perfil em adaptação', tone: 'supportive' };
+}
 
 function getBehaviorEngineSnapshot() {
   const base = typeof getRiskSnapshot === 'function' ? getRiskSnapshot() : null;
@@ -1110,19 +1161,41 @@ if (state.behaviorProfile.lastMissionImpact) {
 
   score = clampScore(score);
 
-  return {
+ const sabotagePattern = detectFinancialSabotagePattern({
+  spendAfterIncomePct,
+  impulseExpenseCount,
+  failStreak,
+  dailyAvgExpense
+});
+
+const addictionPattern = detectFinancialAddictionPattern({
+  impulseExpenseCount,
+  dailyAvgExpense,
+  spendAfterIncomePct
+});
+
+const identity = buildUserFinancialIdentity({
+  score,
+  failStreak,
+  successStreak,
+  sabotagePattern
+});
+   return {
     ...base,
     score,
     riskLevel: getBehaviorRiskLevel(score),
     behavior: {
-      failStreak,
-      successStreak,
-      todayNonEssentialTotal,
-      impulseExpenseCount,
-      behavioralPressure,
-      primaryDriver,
-      sabotagePattern,
-      dailyAvgExpense
+  failStreak,
+  successStreak,
+  todayNonEssentialTotal,
+  impulseExpenseCount,
+  behavioralPressure,
+  primaryDriver,
+  sabotagePattern,
+  addictionPattern,
+  identity,
+  dailyAvgExpense
+}
     }
   };
 }
