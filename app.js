@@ -1197,8 +1197,8 @@ return {
     addictionDiagnostic,
     financialIdentity,
     dailyAvgExpense
-   }
- };
+  }
+};
 }
 function renderDailyMission() {
   const textEl = document.getElementById('missionText');
