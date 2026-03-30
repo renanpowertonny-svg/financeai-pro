@@ -1159,7 +1159,7 @@ if (state.behaviorProfile.lastMissionImpact) {
   }
 }
 
-  score = clampScore(score);
+score = clampScore(score);
 
 const sabotageDiagnostic = detectFinancialSabotagePattern({
   spendAfterIncomePct,
@@ -1180,25 +1180,26 @@ const financialIdentity = buildUserFinancialIdentity({
   successStreak,
   sabotagePattern: sabotageDiagnostic
 });
-   return {
-    ...base,
-    score,
-    riskLevel: getBehaviorRiskLevel(score),
-    behavior: {
-  failStreak,
-  successStreak,
-  todayNonEssentialTotal,
-  impulseExpenseCount,
-  behavioralPressure,
-  primaryDriver,
- sabotageDiagnostic,
-addictionDiagnostic,
-financialIdentity,
-  dailyAvgExpense
 
-    }
-  };
-
+return {
+  ...base,
+  score,
+  riskLevel: getBehaviorRiskLevel(score),
+  behavior: {
+    failStreak,
+    successStreak,
+    todayNonEssentialTotal,
+    impulseExpenseCount,
+    behavioralPressure,
+    primaryDriver,
+    sabotagePattern,
+    sabotageDiagnostic,
+    addictionDiagnostic,
+    financialIdentity,
+    dailyAvgExpense
+   }
+ };
+}
 function renderDailyMission() {
   const textEl = document.getElementById('missionText');
   const barEl = document.getElementById('missionProgressBar');
