@@ -612,27 +612,29 @@ function getPremiumRiskActionPlan(snap) {
     score,
     riskLevel,
     projectedBalance,
-    dailyAvgExpense,
     spendAfterIncomePct,
     topCategoryName,
-    topCategoryValue,
-    categoryRisks
+    categoryRisks,
+    behavior = {}
   } = snap;
+
+  const impulseExpenseCount = behavior.impulseExpenseCount || 0;
+  const addictionDiagnostic = behavior.addictionDiagnostic || { type: 'none', severity: 'stable' };
 
   const topProjectedRisk = (categoryRisks || [])
     .filter(item => item.limit > 0 && item.projected > item.limit)
     .sort((a, b) => (b.projected - b.limit) - (a.projected - a.limit))[0] || null;
 
-  if (score >= 75 && projectedBalance < 0) {
-    const deficit = Math.abs(projectedBalance);
-    const cutTarget = Math.max(50, Math.ceil(deficit / 10) * 10);
+  // 🔴 CRÍTICO
+  if (score >= 75 || projectedBalance < 0 || summary.balance < 0) {
+    const deficit = Math.max(50, Math.ceil(Math.abs(projectedBalance || summary.balance || 0) / 10) * 10);
 
     return {
       title: 'Seu risco financeiro está crítico',
-      summary: `Seu score atual está em ${score}/100 (${riskLevel}) e o sistema projeta pressão severa no caixa se o ritmo atual continuar.`,
-      masterAlert: `Você pode entrar no negativo ainda neste mês. O foco agora é preservar caixa imediatamente.`,
-      action: `Reduza pelo menos ${fmt(cutTarget)} em gastos variáveis hoje, priorizando ${topCategoryName || 'categorias não essenciais'}.`,
-      objective: 'Ganhar fôlego de caixa e evitar ruptura até o fechamento do mês.',
+      summary: `Seu score atual está em ${score}/100 (${riskLevel}) e o sistema detectou deterioração ativa do seu caixa.`,
+      masterAlert: 'Seu comportamento financeiro já entrou em zona de dano real. A prioridade agora não é otimizar — é interromper a perda.',
+      action: `Reduza pelo menos ${fmt(deficit)} em gastos variáveis imediatamente e bloqueie novas decisões não essenciais hoje.`,
+      objective: 'Ganhar fôlego de caixa e impedir ruptura financeira.',
       primaryLabel: 'Cortar gastos agora',
       primaryPage: 'transactions',
       secondaryLabel: 'Ver IA',
@@ -640,15 +642,14 @@ function getPremiumRiskActionPlan(snap) {
     };
   }
 
-  if (spendAfterIncomePct >= 60) {
-    const cutTarget = Math.max(40, Math.ceil((summary.income * 0.1) / 10) * 10);
-
+  // 🟠 PRESSÃO / CONTENÇÃO
+  if (score >= 50 || spendAfterIncomePct >= 65) {
     return {
-      title: 'Sua renda está queimando rápido demais',
-      summary: `Você já comprometeu ${spendAfterIncomePct.toFixed(0)}% da última entrada de renda nos primeiros dias.`,
-      masterAlert: 'O padrão indica consumo acelerado logo após receber, o que aumenta risco de sufoco no fim do mês.',
-      action: `Trave novas despesas variáveis por 48 horas e reduza pelo menos ${fmt(cutTarget)} em compras impulsivas.`,
-      objective: 'Quebrar o padrão de aceleração pós-recebimento.',
+      title: 'Seu padrão financeiro entrou em pressão ativa',
+      summary: `Seu score atual está em ${score}/100 (${riskLevel}) e o sistema detectou aceleração perigosa no consumo.`,
+      masterAlert: 'Você ainda não colapsou, mas já começou a perder domínio sobre o ritmo financeiro do ciclo.',
+      action: 'Trave novas despesas variáveis nas próximas 24h e reduza exposição a compras por impulso.',
+      objective: 'Interromper a escalada antes que ela vire deterioração do caixa.',
       primaryLabel: 'Revisar transações',
       primaryPage: 'transactions',
       secondaryLabel: 'Abrir IA',
@@ -656,43 +657,56 @@ function getPremiumRiskActionPlan(snap) {
     };
   }
 
-  if (topProjectedRisk) {
-    const excess = Math.max(0, topProjectedRisk.projected - topProjectedRisk.limit);
+  // 🟡 ATENÇÃO — DIFERENCIAL PREMIUM
+  if (
+    score >= 30 ||
+    impulseExpenseCount >= 3 ||
+    addictionDiagnostic.type === 'emotional_spending' ||
+    addictionDiagnostic.type === 'compulsive_spending' ||
+    addictionDiagnostic.type === 'impulse_drift' ||
+    spendAfterIncomePct >= 25
+  ) {
+    let masterAlert = 'Seu comportamento financeiro começou a perder consistência. Isso ainda não é colapso, mas já é o início de perda silenciosa de controle.';
+    let action = 'Suspenda novas compras variáveis nas próximas horas e reduza estímulos de consumo impulsivo.';
+    let objective = 'Recuperar domínio comportamental antes que esse padrão vire hábito automático.';
+
+    if (addictionDiagnostic.type === 'compulsive_spending') {
+      masterAlert = 'O sistema detectou sequência de decisões de consumo com traço compulsivo. O risco aqui não é o valor isolado — é a repetição automática.';
+      action = 'Trave novas compras não essenciais hoje e interrompa a cadeia de impulsos antes do próximo gasto.';
+      objective = 'Quebrar o ciclo compulsivo antes que ele escale.';
+    } else if (addictionDiagnostic.type === 'emotional_spending') {
+      masterAlert = 'O sistema detectou padrão de gasto emocional recorrente. O problema agora é comportamental, não apenas matemático.';
+      action = 'Pause novas despesas variáveis hoje e adie decisões de consumo que sirvam para alívio imediato.';
+      objective = 'Retomar controle emocional sobre o consumo antes que isso comprima sua margem.';
+    } else if (impulseExpenseCount >= 3) {
+      masterAlert = 'Você entrou em sequência de microdecisões impulsivas. Separadas parecem pequenas; juntas, começam a desmontar sua disciplina.';
+      action = 'Interrompa a próxima compra por impulso e preserve caixa nas próximas horas.';
+      objective = 'Bloquear a fragmentação do consumo antes que ela vire padrão.';
+    } else if (topProjectedRisk) {
+      masterAlert = `${topProjectedRisk.category} já começou a puxar seu comportamento para uma zona de atenção.`;
+      action = `Reduza a exposição à categoria ${topProjectedRisk.category} antes que ela se torne o centro do descontrole do ciclo.`;
+      objective = 'Retomar comando sobre a categoria dominante do período.';
+    }
 
     return {
-      title: 'Um limite importante está em rota de estouro',
-      summary: `${topProjectedRisk.category} está projetada acima do limite definido para este mês.`,
-      masterAlert: `A projeção atual para ${topProjectedRisk.category} está acima do teto em cerca de ${fmt(excess)}.`,
-      action: `Ajuste imediatamente a categoria ${topProjectedRisk.category} ou reduza essa despesa antes que ela comprima sua margem.`,
-      objective: 'Evitar que uma única categoria desorganize o orçamento.',
-      primaryLabel: 'Ver limites',
-      primaryPage: 'settings',
-      secondaryLabel: 'Revisar transações',
-      secondaryPage: 'transactions'
+      title: 'Seu comportamento financeiro entrou em atenção',
+      summary: `Seu score atual está em ${score}/100 (${riskLevel}) e o FinanceAI detectou sinais iniciais de fragmentação do seu controle financeiro.`,
+      masterAlert,
+      action,
+      objective,
+      primaryLabel: 'Bloquear impulsos',
+      primaryPage: 'transactions',
+      secondaryLabel: 'Abrir IA',
+      secondaryPage: 'ai'
     };
   }
 
-  if (summary.savingsRate < 10) {
-    const recovery = Math.max(30, Math.ceil((summary.income * 0.08) / 10) * 10);
-
-    return {
-      title: 'Sua retenção está abaixo do ideal',
-      summary: `A taxa de retenção atual é ${summary.savingsRate.toFixed(1)}%, abaixo da faixa mínima de estabilidade.`,
-      masterAlert: 'Sem retenção suficiente, qualquer imprevisto pressiona seu caixa e trava evolução patrimonial.',
-      action: `Preserve pelo menos ${fmt(recovery)} ainda neste ciclo e reduza despesas variáveis para recuperar margem.`,
-      objective: 'Subir a retenção e reconstruir controle financeiro.',
-      primaryLabel: 'Ver análise',
-      primaryPage: 'ai',
-      secondaryLabel: 'Ir para transações',
-      secondaryPage: 'transactions'
-    };
-  }
-
+  // 🟢 CONTROLE REAL
   return {
     title: 'Seu risco financeiro está sob controle',
     summary: `Seu score atual está em ${score}/100 (${riskLevel}) e o sistema não detectou ruptura imediata de caixa.`,
-    masterAlert: 'No momento, o principal objetivo é manter consistência e evitar relaxamento operacional.',
-    action: 'Continue monitorando categorias dominantes e mantenha disciplina nas despesas variáveis.',
+    masterAlert: 'Seu sistema financeiro está estável — mas estabilidade só vira evolução quando você mantém disciplina sem relaxamento.',
+    action: 'Continue monitorando categorias dominantes e mantenha constância nas despesas variáveis.',
     objective: 'Transformar estabilidade em crescimento previsível.',
     primaryLabel: 'Abrir análise',
     primaryPage: 'ai',
@@ -934,18 +948,36 @@ function ensureMissionV3State(snap) {
   const summary = calcSummary(txs);
 
   const income = summary.income || 0;
-  const expenses = summary.expenses || 0;
+  const expenses = summary.expense || 0;
   const balance = summary.balance || 0;
 
   const score = snap?.score || 0;
-  const commitment = income > 0 ? (expenses / income) : 0;
+  const spendAfterIncomePct = snap?.spendAfterIncomePct || 0;
+  const behavior = snap?.behavior || {};
+  const impulseExpenseCount = behavior.impulseExpenseCount || 0;
+  const addictionDiagnostic = behavior.addictionDiagnostic || { type: 'none', severity: 'stable' };
+
+  const todayISO = new Date().toISOString().slice(0, 10);
+
+  // Preserva missão já concluída/ignorada no mesmo dia
+  if (
+    state.missionStatus.date === todayISO &&
+    (state.missionStatus.status === 'completed' || state.missionStatus.status === 'skipped')
+  ) {
+    return;
+  }
 
   let mission = {
-    type: 'discipline',
+    type: 'growth',
     severity: 'stable',
-    title: 'Controle financeiro ativo',
-    text: 'Mantenha disciplina e evite excessos.',
-    target: 100
+    diagnosis: 'controlled_growth',
+    title: 'Consolidação de Controle',
+    text: 'Você está estável. Sua missão hoje é manter consistência sem relaxar disciplina.',
+    actionLabel: 'Manter padrão',
+    target: 50,
+    scoreDeltaSuccess: 2,
+    scoreDeltaFail: -2,
+    psychologicalTone: 'supportive'
   };
 
   // 🔴 CRÍTICO
@@ -953,65 +985,102 @@ function ensureMissionV3State(snap) {
     mission = {
       type: 'containment',
       severity: 'critical',
-      title: 'INTERRUPÇÃO IMEDIATA DE RISCO',
-      text: 'Seu caixa entrou em zona de colapso. Interrompa gastos imediatamente.',
-      target: Math.abs(balance) + 100
+      diagnosis: 'cash_runway_risk',
+      title: 'Modo Emergencial',
+      text: 'Seu comportamento financeiro entrou em zona crítica. Sua missão hoje é interromper imediatamente novas saídas e conter dano.',
+      actionLabel: 'Parar gastos agora',
+      target: Math.max(100, Math.ceil(Math.abs(balance) / 10) * 10),
+      scoreDeltaSuccess: 6,
+      scoreDeltaFail: -8,
+      psychologicalTone: 'hard'
     };
   }
 
-  // 🟠 ALTO
-  else if (score >= 60 || commitment >= 0.9) {
+  // 🟠 PRESSÃO ALTA
+  else if (score >= 50 || spendAfterIncomePct >= 65) {
     mission = {
       type: 'containment',
-      severity: 'containment',
-      title: 'CONTENÇÃO URGENTE',
-      text: 'Seu padrão atual está pressionando seu caixa.',
-      target: Math.round(income * 0.2)
+      severity: 'pressure',
+      diagnosis: 'active_financial_pressure',
+      title: 'Interrupção de Ciclo Financeiro',
+      text: 'Seu padrão atual já está gerando risco real. Sua missão hoje é travar gastos variáveis e impedir que a pressão avance.',
+      actionLabel: 'Modo contenção',
+      target: Math.max(80, Math.ceil((income * 0.08) / 10) * 10),
+      scoreDeltaSuccess: 5,
+      scoreDeltaFail: -6,
+      psychologicalTone: 'firm'
     };
   }
 
-  // 🟡 MÉDIO (TESTE B)
-  else if (score >= 40 || commitment >= 0.7) {
+  // 🟡 ATENÇÃO — DIFERENCIAL PREMIUM
+  else if (
+    score >= 30 ||
+    impulseExpenseCount >= 3 ||
+    addictionDiagnostic.type === 'emotional_spending' ||
+    addictionDiagnostic.type === 'compulsive_spending' ||
+    addictionDiagnostic.type === 'impulse_drift' ||
+    spendAfterIncomePct >= 25
+  ) {
+    let text = 'Seu comportamento começou a perder consistência. Sua missão hoje é bloquear a fragmentação do consumo antes que ela vire hábito.';
+    let title = 'Contenção de Impulso';
+    let actionLabel = 'Bloquear impulsos hoje';
+
+    if (addictionDiagnostic.type === 'compulsive_spending') {
+      title = 'Quebra de Ciclo Compulsivo';
+      text = 'O FinanceAI detectou sequência de consumo com traço compulsivo. Sua missão hoje é interromper a cadeia de impulsos antes da próxima compra.';
+      actionLabel = 'Quebrar ciclo hoje';
+    } else if (addictionDiagnostic.type === 'emotional_spending') {
+      title = 'Contenção de Consumo Emocional';
+      text = 'O sistema detectou gasto emocional recorrente. Sua missão hoje é adiar decisões de consumo por alívio imediato e retomar domínio emocional.';
+      actionLabel = 'Retomar domínio';
+    } else if (impulseExpenseCount >= 3) {
+      title = 'Contenção de Microdecisões';
+      text = 'Você entrou em sequência de microcompras que começam a corroer sua disciplina. Sua missão hoje é interromper a próxima decisão impulsiva.';
+      actionLabel = 'Interromper sequência';
+    } else if (spendAfterIncomePct >= 25) {
+      title = 'Controle de Aceleração';
+      text = 'Seu ritmo de consumo começou a acelerar cedo demais no ciclo. Sua missão hoje é reduzir velocidade antes que isso comprima sua margem.';
+      actionLabel = 'Reduzir aceleração';
+    }
+
     mission = {
       type: 'discipline',
-      severity: 'pressure',
-      title: 'CONTROLE DE ACELERAÇÃO',
-      text: 'Você está consumindo sua renda rápido demais após receber.',
-      target: 100
+      severity: 'attention',
+      diagnosis: 'behavioral_attention',
+      title,
+      text,
+      actionLabel,
+      target: Math.max(60, Math.ceil((income * 0.05) / 10) * 10),
+      scoreDeltaSuccess: 4,
+      scoreDeltaFail: -4,
+      psychologicalTone: 'strategic'
     };
   }
 
-  // 🟢 BAIXO
-  else if (score >= 20) {
-    mission = {
-      type: 'growth',
-      severity: 'stable',
-      title: 'ESTABILIDADE FINANCEIRA',
-      text: 'Continue mantendo controle e consistência.',
-      target: 50
-    };
-  }
-
-  // 🟢 IDEAL
+  // 🟢 CONTROLE
   else {
     mission = {
       type: 'growth',
       severity: 'stable',
-      title: 'EXPANSÃO CONTROLADA',
-      text: 'Seu financeiro está saudável. Foque em crescer.',
-      target: 0
+      diagnosis: 'controlled_growth',
+      title: 'Consolidação de Controle',
+      text: 'Você está estável. Sua missão hoje é manter consistência sem relaxar disciplina.',
+      actionLabel: 'Manter padrão',
+      target: 50,
+      scoreDeltaSuccess: 2,
+      scoreDeltaFail: -2,
+      psychologicalTone: 'supportive'
     };
   }
-
-  const todayISO = new Date().toISOString().slice(0, 10);
 
   state.missionStatus = {
     ...state.missionStatus,
     ...mission,
     date: todayISO,
-    status: 'active',
     current: mission.target,
-    completed: false
+    completed: false,
+    savedAmount: 0,
+    status: 'pending'
   };
 }
 function getBehaviorRiskLevel(score) {
