@@ -928,48 +928,90 @@ function updateBehaviorProfileFromMissionHistory() {
 }
 
 function ensureMissionV3State(snap) {
-  const todayISO = new Date().toISOString().slice(0, 10);
-  const prescription = getDominantFinancialPain(snap);
+  if (!state.user) return;
 
-  updateBehaviorProfileFromMissionHistory();
+  const txs = getFilteredTx('month');
+  const summary = calcSummary(txs);
 
-  state.behaviorProfile.dominantPain = prescription.diagnosis;
-  state.behaviorProfile.severity = prescription.severity;
+  const income = summary.income || 0;
+  const expenses = summary.expenses || 0;
+  const balance = summary.balance || 0;
 
-  if (state.missionStatus.date !== todayISO) {
-    state.missionStatus = {
-      date: todayISO,
-      type: prescription.type,
-      severity: prescription.severity,
-      diagnosis: prescription.diagnosis,
-      title: prescription.title,
-      text: prescription.text,
-      actionLabel: prescription.actionLabel,
-      target: prescription.target,
-      current: 0,
-      completed: false,
-      savedAmount: 0,
-      status: 'pending',
-      scoreDeltaSuccess: prescription.scoreDeltaSuccess,
-      scoreDeltaFail: prescription.scoreDeltaFail,
-      psychologicalTone: prescription.psychologicalTone
+  const score = snap?.score || 0;
+  const commitment = income > 0 ? (expenses / income) : 0;
+
+  let mission = {
+    type: 'discipline',
+    severity: 'stable',
+    title: 'Controle financeiro ativo',
+    text: 'Mantenha disciplina e evite excessos.',
+    target: 100
+  };
+
+  // 🔴 CRÍTICO
+  if (balance < 0 || score >= 80) {
+    mission = {
+      type: 'containment',
+      severity: 'critical',
+      title: 'INTERRUPÇÃO IMEDIATA DE RISCO',
+      text: 'Seu caixa entrou em zona de colapso. Interrompa gastos imediatamente.',
+      target: Math.abs(balance) + 100
     };
-    return;
   }
+
+  // 🟠 ALTO
+  else if (score >= 60 || commitment >= 0.9) {
+    mission = {
+      type: 'containment',
+      severity: 'containment',
+      title: 'CONTENÇÃO URGENTE',
+      text: 'Seu padrão atual está pressionando seu caixa.',
+      target: Math.round(income * 0.2)
+    };
+  }
+
+  // 🟡 MÉDIO (TESTE B)
+  else if (score >= 40 || commitment >= 0.7) {
+    mission = {
+      type: 'discipline',
+      severity: 'pressure',
+      title: 'CONTROLE DE ACELERAÇÃO',
+      text: 'Você está consumindo sua renda rápido demais após receber.',
+      target: 100
+    };
+  }
+
+  // 🟢 BAIXO
+  else if (score >= 20) {
+    mission = {
+      type: 'growth',
+      severity: 'stable',
+      title: 'ESTABILIDADE FINANCEIRA',
+      text: 'Continue mantendo controle e consistência.',
+      target: 50
+    };
+  }
+
+  // 🟢 IDEAL
+  else {
+    mission = {
+      type: 'growth',
+      severity: 'stable',
+      title: 'EXPANSÃO CONTROLADA',
+      text: 'Seu financeiro está saudável. Foque em crescer.',
+      target: 0
+    };
+  }
+
+  const todayISO = new Date().toISOString().slice(0, 10);
 
   state.missionStatus = {
     ...state.missionStatus,
-    type: state.missionStatus.type || prescription.type,
-    severity: state.missionStatus.severity || prescription.severity,
-    diagnosis: state.missionStatus.diagnosis || prescription.diagnosis,
-    title: state.missionStatus.title || prescription.title,
-    text: state.missionStatus.text || prescription.text,
-    actionLabel: state.missionStatus.actionLabel || prescription.actionLabel,
-    target: state.missionStatus.target || prescription.target,
-    current: state.missionStatus.current || 0,
-    scoreDeltaSuccess: state.missionStatus.scoreDeltaSuccess ?? prescription.scoreDeltaSuccess,
-    scoreDeltaFail: state.missionStatus.scoreDeltaFail ?? prescription.scoreDeltaFail,
-    psychologicalTone: state.missionStatus.psychologicalTone || prescription.psychologicalTone
+    ...mission,
+    date: todayISO,
+    status: 'active',
+    current: mission.target,
+    completed: false
   };
 }
 function getBehaviorRiskLevel(score) {
