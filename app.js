@@ -1049,18 +1049,48 @@ function detectFinancialSabotagePattern({ spendAfterIncomePct, impulseExpenseCou
   return { type: 'none', label: 'Sem sabotagem relevante detectada', severity: 'stable' };
 }
 
-function detectFinancialAddictionPattern({ impulseExpenseCount, dailyAvgExpense, spendAfterIncomePct }) {
-  if (impulseExpenseCount >= 4 && dailyAvgExpense > 80) {
-    return { type: 'compulsive_spending', label: 'Comportamento compulsivo de consumo', severity: 'high' };
+function detectFinancialAddictionPattern({
+  impulseExpenseCount,
+  dailyAvgExpense,
+  spendAfterIncomePct,
+  todayNonEssentialTotal = 0
+}) {
+  if (
+    impulseExpenseCount >= 4 &&
+    (todayNonEssentialTotal >= 220 || spendAfterIncomePct >= 30)
+  ) {
+    return {
+      type: 'compulsive_spending',
+      label: 'Comportamento compulsivo de consumo',
+      severity: 'high'
+    };
   }
 
-  if (impulseExpenseCount >= 2 && spendAfterIncomePct >= 50) {
-    return { type: 'emotional_spending', label: 'Gasto emocional recorrente', severity: 'medium' };
+  if (
+    impulseExpenseCount >= 3 &&
+    (todayNonEssentialTotal >= 120 || spendAfterIncomePct >= 20)
+  ) {
+    return {
+      type: 'emotional_spending',
+      label: 'Gasto emocional recorrente',
+      severity: 'medium'
+    };
   }
 
-  return { type: 'none', label: 'Sem padrão de vício detectado', severity: 'stable' };
+  if (impulseExpenseCount >= 2 && dailyAvgExpense > 50) {
+    return {
+      type: 'impulse_drift',
+      label: 'Deriva de consumo impulsivo',
+      severity: 'low'
+    };
+  }
+
+  return {
+    type: 'none',
+    label: 'Sem padrão de vício detectado',
+    severity: 'stable'
+  };
 }
-
 function buildUserFinancialIdentity({ score, failStreak, successStreak, sabotagePattern }) {
   if (score >= 80 && failStreak >= 2) {
     return { type: 'critical_user', label: 'Perfil em colapso financeiro', tone: 'hard' };
@@ -1201,8 +1231,6 @@ if (state.behaviorProfile.lastMissionImpact) {
   }
 }
 
-score = clampScore(score);
-
 const sabotageDiagnostic = detectFinancialSabotagePattern({
   spendAfterIncomePct,
   impulseExpenseCount,
@@ -1213,8 +1241,27 @@ const sabotageDiagnostic = detectFinancialSabotagePattern({
 const addictionDiagnostic = detectFinancialAddictionPattern({
   impulseExpenseCount,
   dailyAvgExpense,
-  spendAfterIncomePct
+  spendAfterIncomePct,
+  todayNonEssentialTotal
 });
+
+if (addictionDiagnostic.type === 'compulsive_spending') {
+  score += 18;
+  behavioralPressure += 14;
+  if (primaryDriver === 'stable_control') primaryDriver = 'compulsive_spending';
+  sabotagePattern = sabotagePattern === 'none' ? 'compulsive_spending' : sabotagePattern;
+} else if (addictionDiagnostic.type === 'emotional_spending') {
+  score += 10;
+  behavioralPressure += 8;
+  if (primaryDriver === 'stable_control') primaryDriver = 'emotional_spending';
+  sabotagePattern = sabotagePattern === 'none' ? 'emotional_spending' : sabotagePattern;
+} else if (addictionDiagnostic.type === 'impulse_drift') {
+  score += 4;
+  behavioralPressure += 3;
+  if (primaryDriver === 'stable_control') primaryDriver = 'impulse_drift';
+}
+
+score = clampScore(score);
 
 const financialIdentity = buildUserFinancialIdentity({
   score,
