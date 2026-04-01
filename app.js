@@ -754,7 +754,7 @@ function getPremiumRiskActionPlan(snap) {
       objective = 'Retomar comando sobre a categoria dominante do período.';
     }
 
-    return {
+        return {
       title: 'Seu comportamento financeiro entrou em atenção',
       summary: `Seu score atual está em ${score}/100 (${riskLevel}) e o FinanceAI detectou sinais iniciais de fragmentação do seu controle financeiro.`,
       masterAlert,
@@ -766,6 +766,9 @@ function getPremiumRiskActionPlan(snap) {
       secondaryPage: 'ai'
     };
   }
+}
+
+function renderPremiumRiskCard() {
 
 
 function renderPremiumRiskCard() {
@@ -4023,8 +4026,8 @@ function analyzeAlertsSafe() {
         category: 'risk',
         source: 'safe-engine',
         score,
-       actionLabel: 'Ver IA',
-       actionPage: 'ai'
+        actionLabel: 'Ver IA',
+        actionPage: 'ai'
       }
     );
   }  
