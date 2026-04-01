@@ -4023,7 +4023,7 @@ function analyzeAlertsSafe() {
         category: 'risk',
         source: 'safe-engine',
         score,
-       actionLabel: 'Ver IA'
+       actionLabel: 'Ver IA',
        actionPage: 'ai'
       }
     );
