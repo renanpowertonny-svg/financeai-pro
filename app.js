@@ -4029,7 +4029,6 @@ function analyzeAlertsSafe() {
     );
   }  
 }
-
 function analyzePredictiveAlerts() {
 const snap = getBehaviorEngineSnapshot();
   if (!snap) return;
