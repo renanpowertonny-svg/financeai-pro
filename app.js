@@ -591,7 +591,76 @@ function changePeriod(p, btn) {
   btn.classList.add('active');
   renderDashboard();
 }
+function buildPredictiveSignals(snap) {
+  if (!snap) {
+    return {
+      predictiveHeadline: 'Sem dados suficientes para previsão.',
+      predictiveBody: 'Adicione mais transações para ativar o motor preditivo.'
+    };
+  }
 
+  const {
+    summary,
+    projectedBalance = 0,
+    spendAfterIncomePct = 0,
+    score = 0,
+    behavior = {}
+  } = snap;
+
+  const impulseExpenseCount = behavior.impulseExpenseCount || 0;
+  const addictionType = behavior.addictionDiagnostic?.type || 'none';
+
+  // 🔴 CENÁRIO CRÍTICO (queda real)
+  if (projectedBalance < 0) {
+    const days = Math.max(2, Math.round(Math.abs(projectedBalance) / 50));
+
+    return {
+      predictiveHeadline: `Em ${days} dias seu saldo pode entrar no negativo.`,
+      predictiveBody: 'Seu padrão atual indica que você está consumindo acima da sua capacidade real. Se mantido, isso gera ruptura financeira no curto prazo.'
+    };
+  }
+
+  // 🟠 PRESSÃO DE CONSUMO
+  if (spendAfterIncomePct >= 65) {
+    return {
+      predictiveHeadline: 'Seu dinheiro está sendo consumido rápido demais após entrar.',
+      predictiveBody: 'Esse padrão reduz sua margem de segurança e aumenta risco de sufoco financeiro antes do fim do ciclo.'
+    };
+  }
+
+  // 🟡 COMPORTAMENTO COMPULSIVO
+  if (
+    addictionType === 'compulsive_spending' ||
+    addictionType === 'emotional_spending'
+  ) {
+    return {
+      predictiveHeadline: 'Seu padrão de decisão está sendo influenciado por impulso/emocional.',
+      predictiveBody: 'Se não for interrompido, esse comportamento tende a escalar e comprometer sua estabilidade financeira nas próximas semanas.'
+    };
+  }
+
+  // 🟡 MICRO-IMPULSOS
+  if (impulseExpenseCount >= 3) {
+    return {
+      predictiveHeadline: 'Você entrou em sequência de decisões pequenas que acumulam impacto.',
+      predictiveBody: 'Esse tipo de comportamento fragmentado costuma passar despercebido, mas corrói sua margem ao longo do tempo.'
+    };
+  }
+
+  // 🟢 ESTÁVEL COM ALERTA OCULTO
+  if (score >= 30 && score < 50) {
+    return {
+      predictiveHeadline: 'Seu sistema ainda está estável, mas há sinais iniciais de descontrole.',
+      predictiveBody: 'Pequenos desvios agora podem se transformar em problemas maiores se não forem ajustados cedo.'
+    };
+  }
+
+  // 🟢 CONTROLE
+  return {
+    predictiveHeadline: 'Seu padrão financeiro está sob controle.',
+    predictiveBody: 'Mantenha consistência. O risco não está no agora — está em relaxar o padrão.'
+  };
+}
 function getPremiumRiskActionPlan(snap) {
   if (!snap) {
     return {
