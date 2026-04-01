@@ -613,26 +613,25 @@ function getPremiumRiskActionPlan(snap) {
     riskLevel,
     projectedBalance,
     spendAfterIncomePct,
-    topCategoryName,
     categoryRisks,
     behavior = {}
   } = snap;
 
   const impulseExpenseCount = behavior.impulseExpenseCount || 0;
   const addictionDiagnostic = behavior.addictionDiagnostic || { type: 'none', severity: 'stable' };
+  const predictive = buildPredictiveSignals(snap);
 
   const topProjectedRisk = (categoryRisks || [])
     .filter(item => item.limit > 0 && item.projected > item.limit)
     .sort((a, b) => (b.projected - b.limit) - (a.projected - a.limit))[0] || null;
 
-  // 🔴 CRÍTICO
   if (score >= 75 || projectedBalance < 0 || summary.balance < 0) {
     const deficit = Math.max(50, Math.ceil(Math.abs(projectedBalance || summary.balance || 0) / 10) * 10);
 
     return {
       title: 'Seu risco financeiro está crítico',
       summary: `Seu score atual está em ${score}/100 (${riskLevel}) e o sistema detectou deterioração ativa do seu caixa.`,
-      masterAlert: 'Seu comportamento financeiro já entrou em zona de dano real. A prioridade agora não é otimizar — é interromper a perda.',
+      masterAlert: `${predictive.predictiveHeadline} ${predictive.predictiveBody}`,
       action: `Reduza pelo menos ${fmt(deficit)} em gastos variáveis imediatamente e bloqueie novas decisões não essenciais hoje.`,
       objective: 'Ganhar fôlego de caixa e impedir ruptura financeira.',
       primaryLabel: 'Cortar gastos agora',
@@ -642,12 +641,11 @@ function getPremiumRiskActionPlan(snap) {
     };
   }
 
-  // 🟠 PRESSÃO / CONTENÇÃO
   if (score >= 50 || spendAfterIncomePct >= 65) {
     return {
       title: 'Seu padrão financeiro entrou em pressão ativa',
       summary: `Seu score atual está em ${score}/100 (${riskLevel}) e o sistema detectou aceleração perigosa no consumo.`,
-      masterAlert: 'Você ainda não colapsou, mas já começou a perder domínio sobre o ritmo financeiro do ciclo.',
+      masterAlert: `${predictive.predictiveHeadline} ${predictive.predictiveBody}`,
       action: 'Trave novas despesas variáveis nas próximas 24h e reduza exposição a compras por impulso.',
       objective: 'Interromper a escalada antes que ela vire deterioração do caixa.',
       primaryLabel: 'Revisar transações',
@@ -657,7 +655,6 @@ function getPremiumRiskActionPlan(snap) {
     };
   }
 
-  // 🟡 ATENÇÃO — DIFERENCIAL PREMIUM
   if (
     score >= 30 ||
     impulseExpenseCount >= 3 ||
@@ -666,7 +663,7 @@ function getPremiumRiskActionPlan(snap) {
     addictionDiagnostic.type === 'impulse_drift' ||
     spendAfterIncomePct >= 25
   ) {
-    let masterAlert = 'Seu comportamento financeiro começou a perder consistência. Isso ainda não é colapso, mas já é o início de perda silenciosa de controle.';
+    let masterAlert = `${predictive.predictiveHeadline} ${predictive.predictiveBody}`;
     let action = 'Suspenda novas compras variáveis nas próximas horas e reduza estímulos de consumo impulsivo.';
     let objective = 'Recuperar domínio comportamental antes que esse padrão vire hábito automático.';
 
@@ -701,7 +698,6 @@ function getPremiumRiskActionPlan(snap) {
     };
   }
 
-  // 🟢 CONTROLE REAL
   return {
     title: 'Seu risco financeiro está sob controle',
     summary: `Seu score atual está em ${score}/100 (${riskLevel}) e o sistema não detectou ruptura imediata de caixa.`,
@@ -714,7 +710,6 @@ function getPremiumRiskActionPlan(snap) {
     secondaryPage: 'goals'
   };
 }
-
 function renderPremiumRiskCard() {
   const card = document.getElementById('premiumRiskCard');
   if (!card) return;
