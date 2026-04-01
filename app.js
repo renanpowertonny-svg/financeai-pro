@@ -767,18 +767,7 @@ function getPremiumRiskActionPlan(snap) {
     };
   }
 
-  return {
-    title: 'Seu risco financeiro está sob controle',
-    summary: `Seu score atual está em ${score}/100 (${riskLevel}) e o sistema não detectou ruptura imediata de caixa.`,
-    masterAlert: 'Seu sistema financeiro está estável — mas estabilidade só vira evolução quando você mantém disciplina sem relaxamento.',
-    action: 'Continue monitorando categorias dominantes e mantenha constância nas despesas variáveis.',
-    objective: 'Transformar estabilidade em crescimento previsível.',
-    primaryLabel: 'Abrir análise',
-    primaryPage: 'ai',
-    secondaryLabel: 'Ver metas',
-    secondaryPage: 'goals'
-  };
-}
+
 function renderPremiumRiskCard() {
   const card = document.getElementById('premiumRiskCard');
   if (!card) return;
@@ -4034,11 +4023,11 @@ function analyzeAlertsSafe() {
         category: 'risk',
         source: 'safe-engine',
         score,
-        actionLabel: 'Ver IA',
-        actionPage: 'ai'
+        actionLabel: 'Ver IA'
+       actionPage: 'ai
       }
     );
-  }
+  }  
 }
 
 function analyzePredictiveAlerts() {
