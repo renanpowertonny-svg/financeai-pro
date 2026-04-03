@@ -959,8 +959,7 @@ function getBehaviorEngineSnapshot() {
     languagePack,
     historicalOverlay
   };
-}
-function getPremiumRiskActionPlan(snap) {
+   function getPremiumRiskActionPlan(snap) {
   if (!snap) {
     return {
       title: 'Sem leitura suficiente',
@@ -1041,6 +1040,7 @@ function getPremiumRiskActionPlan(snap) {
     secondaryLabel: 'Abrir IA',
     secondaryPage: 'ai'
   };
+}
 }
 function renderPremiumRiskCard() {
   const card = document.getElementById('premiumRiskCard');
