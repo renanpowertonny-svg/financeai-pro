@@ -1186,7 +1186,106 @@ function updateBehaviorProfileFromMissionHistory() {
     .filter(Boolean)
     .slice(0, 5);
 }
+function buildHistoricalMissionDirective(snap) {
+  const overlay = snap?.historicalOverlay || {};
+  const metrics = snap?.metrics || {};
+  const behaviorState = snap?.behaviorState || {};
+  const score = Number(snap?.score || 0);
 
+  const fallback = {
+    mode: 'default',
+    severityBoost: 0,
+    targetMultiplier: 1,
+    scoreDeltaSuccessBoost: 0,
+    scoreDeltaFailBoost: 0,
+    diagnosisSuffix: '',
+    titlePrefix: '',
+    textPrefix: '',
+    actionPrefix: '',
+    psychologicalTone: null
+  };
+
+  if (!overlay || !overlay.hasEnoughHistory) {
+    return fallback;
+  }
+
+  if (overlay.recurringSabotage) {
+    return {
+      mode: 'recurring_sabotage',
+      severityBoost: 2,
+      targetMultiplier: 0.75,
+      scoreDeltaSuccessBoost: 2,
+      scoreDeltaFailBoost: -2,
+      diagnosisSuffix: '_historical_sabotage',
+      titlePrefix: 'Correção de Sabotagem Recorrente',
+      textPrefix: 'O FinanceAI detectou que este não é um desvio isolado. Seu histórico mostra sabotagem recorrente e exige interrupção estrutural do padrão. ',
+      actionPrefix: 'Quebrar sabotagem recorrente',
+      psychologicalTone: 'urgent_control'
+    };
+  }
+
+  if (overlay.recurringRelapse) {
+    return {
+      mode: 'recurring_relapse',
+      severityBoost: 1,
+      targetMultiplier: 0.85,
+      scoreDeltaSuccessBoost: 1,
+      scoreDeltaFailBoost: -2,
+      diagnosisSuffix: '_relapse_cycle',
+      titlePrefix: 'Blindagem Contra Recaída',
+      textPrefix: 'O sistema detectou que sua melhora recente tende a ceder. A missão de hoje não é só disciplina: é impedir retorno ao padrão anterior. ',
+      actionPrefix: 'Blindar recaída',
+      psychologicalTone: 'strategic'
+    };
+  }
+
+  if (overlay.fragileRecoveryRecurring || behaviorState.state === 'recovery_fragile') {
+    return {
+      mode: 'fragile_recovery',
+      severityBoost: 1,
+      targetMultiplier: 0.9,
+      scoreDeltaSuccessBoost: 1,
+      scoreDeltaFailBoost: -1,
+      diagnosisSuffix: '_fragile_recovery',
+      titlePrefix: 'Consolidação de Recuperação',
+      textPrefix: 'O FinanceAI identificou melhora frágil. Sua missão hoje é transformar alívio momentâneo em consistência real. ',
+      actionPrefix: 'Consolidar recuperação',
+      psychologicalTone: 'strategic'
+    };
+  }
+
+  if (overlay.dominantHistoricalSignature === 'persistent_high_risk' || score >= 60 || metrics.silentRiskLoad >= 60) {
+    return {
+      mode: 'high_historical_pressure',
+      severityBoost: 1,
+      targetMultiplier: 0.8,
+      scoreDeltaSuccessBoost: 1,
+      scoreDeltaFailBoost: -1,
+      diagnosisSuffix: '_historical_pressure',
+      titlePrefix: 'Contenção de Pressão Histórica',
+      textPrefix: 'Seu histórico mostra repetição de pressão financeira. A missão precisa conter o padrão antes de nova escalada. ',
+      actionPrefix: 'Conter pressão',
+      psychologicalTone: 'strategic'
+    };
+  }
+
+  if (overlay.dominantHistoricalSignature === 'disciplined_recovery') {
+    return {
+      mode: 'disciplined_recovery',
+      severityBoost: -1,
+      targetMultiplier: 1.05,
+      scoreDeltaSuccessBoost: 0,
+      scoreDeltaFailBoost: 0,
+      diagnosisSuffix: '_disciplined_recovery',
+      titlePrefix: 'Expansão de Consistência',
+      textPrefix: 'Seu histórico mostra disciplina em consolidação. A missão agora é preservar o padrão vencedor sem relaxamento. ',
+      actionPrefix: 'Expandir consistência',
+      psychologicalTone: 'supportive'
+    };
+  }
+
+  return fallback;
+}
 function ensureMissionV3State(snap) {
   if (!state.user) return;
 
@@ -1865,7 +1964,7 @@ function renderDailyMission() {
 
   const txs = getFilteredTx('month');
   const summary = calcSummary(txs);
-  const snap = typeof getRiskSnapshot === 'function' ? getRiskSnapshot() : null;
+  const snap = typeof getBehaviorEngineSnapshot === 'function' ? getBehaviorEngineSnapshot() : null;
 
   ensureMissionV3State(snap);
 
