@@ -4079,6 +4079,93 @@ function addNotification(title, text, type = 'info', options = {}) {
   renderNotifications();
   updateNotifBadge();
 }
+function buildHistoricalAlertContext(snap) {
+  const overlay = snap?.historicalOverlay || {};
+  const behaviorState = snap?.behaviorState || {};
+  const metrics = snap?.metrics || {};
+  const patterns = snap?.patterns || {};
+
+  const fallback = {
+    hasHistoricalContext: false,
+    severityBoost: 0,
+    priority: null,
+    relapseCopy: '',
+    sabotageCopy: '',
+    recoveryCopy: '',
+    signatureCopy: '',
+    predictivePrefix: '',
+    recurrenceLabel: '',
+    sourceSuffix: 'behavior-engine'
+  };
+
+  if (overlay.hasEnoughHistory !== true) {
+    return fallback;
+  }
+
+  let severityBoost = 0;
+  let priority = null;
+  let relapseCopy = '';
+  let sabotageCopy = '';
+  let recoveryCopy = '';
+  let signatureCopy = '';
+  let predictivePrefix = '';
+  let recurrenceLabel = '';
+
+  if (overlay.recurringSabotage) {
+    severityBoost += 2;
+    priority = 'critical';
+    sabotageCopy = ' O sistema detecta sabotagem recorrente no seu histórico, não um evento isolado.';
+    predictivePrefix = 'Seu risco projetado está sendo ampliado por sabotagem recorrente.';
+    recurrenceLabel = 'sabotagem_recorrente';
+  }
+
+  if (overlay.recurringRelapse) {
+    severityBoost += 1;
+    if (!priority) priority = 'high';
+    relapseCopy = ' Seu histórico mostra melhora seguida de recaída. O problema atual tem padrão de repetição.';
+    if (!predictivePrefix) {
+      predictivePrefix = 'Sua projeção atual está mais sensível porque você costuma recair após sinais de melhora.';
+    }
+    if (!recurrenceLabel) recurrenceLabel = 'recaida_recorrente';
+  }
+
+  if (overlay.fragileRecoveryRecurring) {
+    severityBoost += 1;
+    if (!priority) priority = 'high';
+    recoveryCopy = ' Sua recuperação recente ainda não pode ser tratada como estabilidade real.';
+    if (!predictivePrefix) {
+      predictivePrefix = 'Seu cenário projetado exige cuidado porque sua melhora histórica costuma ser frágil.';
+    }
+    if (!recurrenceLabel) recurrenceLabel = 'recuperacao_fragil_recorrente';
+  }
+
+  if (overlay.dominantHistoricalSignature && overlay.dominantHistoricalSignature !== 'insufficient_history') {
+    signatureCopy = ` Assinatura histórica dominante: ${overlay.dominantHistoricalSignature.replaceAll('_', ' ')}.`;
+  }
+
+  if (
+    !predictivePrefix &&
+    ((overlay.historicalPressure || 0) >= 8 || (metrics.instabilityIndex || 0) >= 55 || behaviorState.trend === 'worsening')
+  ) {
+    predictivePrefix = 'O risco projetado está sendo reforçado por instabilidade histórica acumulada.';
+  }
+
+  return {
+    hasHistoricalContext: true,
+    severityBoost,
+    priority,
+    relapseCopy,
+    sabotageCopy,
+    recoveryCopy,
+    signatureCopy,
+    predictivePrefix,
+    recurrenceLabel,
+    sourceSuffix: recurrenceLabel ? `historical-${recurrenceLabel}` : 'historical-overlay',
+    dominantState: overlay.dominantState || 'unknown',
+    dominantPattern: overlay.dominantPattern || patterns?.dominant || 'unknown',
+    recurrenceConfidence: Number(overlay.recurrenceConfidence || 0)
+  };
+}
 
 function renderNotifications() {
   const list = document.getElementById('notifList');
