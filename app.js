@@ -1041,7 +1041,6 @@ function getBehaviorEngineSnapshot() {
     secondaryPage: 'ai'
   };
 }
-}
 function renderPremiumRiskCard() {
   const card = document.getElementById('premiumRiskCard');
   if (!card) return;
