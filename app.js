@@ -429,7 +429,6 @@ state.behaviorProfile = DB.get(`behaviorProfile_${k}`, {
 state.eduProgress = DB.get(`eduProgress_${k}`, { completed: [], streak: 0, points: 0 });
 state.behaviorMemory = DB.get(`behaviorMemory_${k}`, []);
 }
-}
 
 function saveUserData() {
   const k = state.user.email;
