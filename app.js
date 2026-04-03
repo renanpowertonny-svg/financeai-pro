@@ -663,118 +663,301 @@ function buildPredictiveSignals(snap) {
     predictiveBody: 'O sistema não detectou ruptura ativa, mas continua monitorando consistência e fragilidade.'
   };
 }
-function getPremiumRiskActionPlan(snap) {
-  if (!snap) {
-    return {
-      title: 'Sem dados suficientes',
-      summary: 'Adicione transações para o FinanceAI montar sua leitura comportamental.',
-      masterAlert: 'Ainda não há base suficiente para um alerta mestre.',
-      action: 'Registrar receitas e despesas do mês atual.',
-      objective: 'Criar consistência de dados para leitura inteligente.',
-      primaryLabel: 'Ir para transações',
-      primaryPage: 'transactions',
-      secondaryLabel: 'Abrir IA',
-      secondaryPage: 'ai'
-    };
+function getBehaviorEngineSnapshot() {
+  const base = typeof getRiskSnapshot === 'function' ? getRiskSnapshot() : null;
+  if (!base) return null;
+
+  updateBehaviorProfileFromMissionHistory();
+
+  const txs = getFilteredTx('month');
+  const today = fmtDate(new Date());
+
+  const nonEssentialCategories = new Set([
+    'Lazer',
+    'Vestuário',
+    'Assinaturas',
+    'Outros'
+  ]);
+
+  const impulseCategories = new Set([
+    'Lazer',
+    'Vestuário',
+    'Assinaturas',
+    'Outros',
+    'Alimentação'
+  ]);
+
+  const todayExpenses = txs.filter(t => t.type === 'expense' && t.date === today);
+  const todayNonEssentialTotal = todayExpenses
+    .filter(t => nonEssentialCategories.has(t.category))
+    .reduce((sum, t) => sum + t.value, 0);
+
+  const impulseExpenseCount = txs
+    .filter(t => t.type === 'expense' && impulseCategories.has(t.category) && t.value <= 180)
+    .length;
+
+  const failStreak = Number(state.behaviorProfile.failStreak || 0);
+  const successStreak = Number(state.behaviorProfile.successStreak || 0);
+  const spendAfterIncomePct = Number(base.spendAfterIncomePct || 0);
+  const dailyAvgExpense = Number(base.dailyAvgExpense || 0);
+  const savingsRate = Number(base.summary?.savingsRate || 0);
+  const projectedBalance = Number(base.projectedBalance || 0);
+
+  let score = Number(base.score || 0);
+  let primaryDriver = 'stable_control';
+  let sabotagePattern = 'none';
+  let behavioralPressure = 0;
+
+  if (projectedBalance < 0) {
+    score += 8;
+    behavioralPressure += 8;
+    primaryDriver = 'cash_collapse_risk';
   }
 
-  const {
-    summary,
-    score,
-    riskLevel,
-    projectedBalance,
+  if (spendAfterIncomePct >= 80) {
+    score += 12;
+    behavioralPressure += 12;
+    primaryDriver = 'post_income_burn';
+    sabotagePattern = 'burn_after_income';
+  } else if (spendAfterIncomePct >= 65) {
+    score += 8;
+    behavioralPressure += 8;
+    primaryDriver = 'post_income_burn';
+    sabotagePattern = 'burn_after_income';
+  }
+
+  if (savingsRate < 5) {
+    score += 9;
+    behavioralPressure += 9;
+    if (primaryDriver === 'stable_control') primaryDriver = 'retention_failure';
+  } else if (savingsRate < 10) {
+    score += 5;
+    behavioralPressure += 5;
+    if (primaryDriver === 'stable_control') primaryDriver = 'retention_failure';
+  }
+
+  if (todayNonEssentialTotal >= 120) {
+    score += 6;
+    behavioralPressure += 6;
+    if (primaryDriver === 'stable_control') primaryDriver = 'non_essential_spike';
+  } else if (todayNonEssentialTotal >= 60) {
+    score += 3;
+    behavioralPressure += 3;
+    if (primaryDriver === 'stable_control') primaryDriver = 'non_essential_spike';
+  }
+
+  if (impulseExpenseCount >= 6) {
+    score += 6;
+    behavioralPressure += 6;
+    sabotagePattern = sabotagePattern === 'none' ? 'impulse_cluster' : sabotagePattern;
+    if (primaryDriver === 'stable_control') primaryDriver = 'impulse_cluster';
+  } else if (impulseExpenseCount >= 3) {
+    score += 3;
+    behavioralPressure += 3;
+    sabotagePattern = sabotagePattern === 'none' ? 'impulse_cluster' : sabotagePattern;
+  }
+
+  if (failStreak >= 3) {
+    score += 10;
+    behavioralPressure += 10;
+    sabotagePattern = 'mission_resistance';
+    primaryDriver = primaryDriver === 'stable_control' ? 'mission_resistance' : primaryDriver;
+  } else if (failStreak >= 2) {
+    score += 6;
+    behavioralPressure += 6;
+    sabotagePattern = sabotagePattern === 'none' ? 'mission_resistance' : sabotagePattern;
+  }
+
+  if (successStreak >= 3) {
+    score -= 8;
+    behavioralPressure -= 8;
+  } else if (successStreak >= 2) {
+    score -= 4;
+    behavioralPressure -= 4;
+  }
+
+  if (state.behaviorProfile.lastMissionImpact) {
+    const impact = Number(state.behaviorProfile.lastMissionImpact || 0);
+    const outcome = state.behaviorProfile.lastMissionOutcome || null;
+
+    if (outcome === 'success') {
+      score -= impact;
+    } else if (outcome === 'fail') {
+      score += impact;
+    }
+  }
+
+  score = clampScore(score);
+
+  const sabotageDiagnostic = detectFinancialSabotagePattern({
     spendAfterIncomePct,
-    behavior = {},
-    metrics = {},
-    behaviorState = {},
-    patterns = {},
-    languagePack = {}
-  } = snap;
+    impulseExpenseCount,
+    failStreak,
+    dailyAvgExpense
+  });
 
-  const predictive = buildPredictiveSignals(snap);
+  const addictionDiagnostic = detectFinancialAddictionPattern({
+    impulseExpenseCount,
+    dailyAvgExpense,
+    spendAfterIncomePct,
+    todayNonEssentialTotal
+  });
 
-  if (behaviorState.state === 'pre_collapse' || projectedBalance < 0 || summary.balance < 0) {
-    const deficit = Math.max(50, Math.ceil(Math.abs(projectedBalance || summary.balance || 0) / 10) * 10);
+  const financialIdentity = buildUserFinancialIdentity({
+    score,
+    failStreak,
+    successStreak,
+    sabotagePattern: sabotageDiagnostic
+  });
 
-    return {
-      title: 'Seu risco comportamental está crítico',
-      summary: `Seu score atual está em ${score}/100 (${riskLevel}) e o sistema detectou formação de ruptura.`,
-      masterAlert: `${predictive.predictiveHeadline} ${predictive.predictiveBody}`,
-      action: `Reduza pelo menos ${fmt(deficit)} em gasto variável agora e interrompa novas decisões não essenciais hoje.`,
-      objective: 'Conter dano imediato e recuperar comando do caixa.',
-      primaryLabel: 'Cortar gastos agora',
-      primaryPage: 'transactions',
-      secondaryLabel: 'Ver IA',
-      secondaryPage: 'ai'
-    };
-  }
+  const behavior = {
+    failStreak,
+    successStreak,
+    todayNonEssentialTotal,
+    impulseExpenseCount,
+    behavioralPressure,
+    primaryDriver,
+    sabotagePattern,
+    sabotageDiagnostic,
+    addictionDiagnostic,
+    financialIdentity,
+    dailyAvgExpense
+  };
 
-  if (behaviorState.state === 'sabotage_active' || metrics.sabotageIndex >= 60) {
-    return {
-      title: 'O sistema detectou sabotagem financeira ativa',
-      summary: `Seu score atual está em ${score}/100 (${riskLevel}) e seu padrão dominante já está abrindo deterioração.`,
-      masterAlert: `${languagePack.headline} ${languagePack.body}`,
-      action: 'Trave novas compras variáveis nas próximas horas e interrompa a próxima decisão impulsiva.',
-      objective: 'Quebrar a cadeia de auto-sabotagem antes que ela escale.',
-      primaryLabel: 'Bloquear impulsos',
-      primaryPage: 'transactions',
-      secondaryLabel: 'Abrir IA',
-      secondaryPage: 'ai'
-    };
-  }
+  const patterns = typeof detectBehaviorPatterns === 'function'
+    ? detectBehaviorPatterns({
+        score,
+        failStreak,
+        successStreak,
+        spendAfterIncomePct,
+        projectedBalance,
+        savingsRate,
+        todayNonEssentialTotal,
+        impulseExpenseCount,
+        sabotagePattern,
+        behavioralPressure,
+        dailyAvgExpense
+      })
+    : {
+        dominant: primaryDriver,
+        secondary: sabotagePattern !== 'none' ? sabotagePattern : 'stable_support'
+      };
 
-  if (behaviorState.state === 'pressure_escalation' || spendAfterIncomePct >= 60) {
-    return {
-      title: 'Seu padrão entrou em pressão crescente',
-      summary: `Seu score atual está em ${score}/100 (${riskLevel}) e a retenção de caixa começou a enfraquecer.`,
-      masterAlert: `${predictive.predictiveHeadline} ${predictive.predictiveBody}`,
-      action: 'Trave despesas variáveis nas próximas 24h e preserve caixa antes que a pressão vire ruptura.',
-      objective: 'Interromper aceleração antes do dano estrutural.',
-      primaryLabel: 'Revisar transações',
-      primaryPage: 'transactions',
-      secondaryLabel: 'Abrir IA',
-      secondaryPage: 'ai'
-    };
-  }
+  const metrics = typeof buildBehaviorMetrics === 'function'
+    ? buildBehaviorMetrics({
+        score,
+        failStreak,
+        successStreak,
+        spendAfterIncomePct,
+        projectedBalance,
+        savingsRate,
+        todayNonEssentialTotal,
+        impulseExpenseCount,
+        behavioralPressure,
+        dailyAvgExpense,
+        sabotageDiagnostic,
+        addictionDiagnostic
+      })
+    : {
+        sabotageIndex: sabotageDiagnostic.severity === 'high' ? 75 : sabotageDiagnostic.severity === 'medium' ? 55 : 20,
+        consistencyIntegrity: successStreak >= 3 ? 80 : successStreak >= 2 ? 68 : 45,
+        recoveryFragility: successStreak >= 2 && failStreak >= 1 ? 65 : 35,
+        postIncomeVulnerability: Math.round(spendAfterIncomePct),
+        silentRiskLoad: Math.max(10, Math.round((behavioralPressure + score) / 2))
+      };
 
-  if (behaviorState.state === 'recovery_fragile') {
-    return {
-      title: 'Sua recuperação ainda está frágil',
-      summary: `Seu score atual está em ${score}/100 (${riskLevel}) e o sistema ainda vê risco de recaída.`,
-      masterAlert: `${predictive.predictiveHeadline} ${predictive.predictiveBody}`,
-      action: 'Proteja a disciplina nas próximas horas e evite interpretar alívio momentâneo como controle definitivo.',
-      objective: 'Transformar melhora pontual em recuperação real.',
-      primaryLabel: 'Proteger consistência',
-      primaryPage: 'dashboard',
-      secondaryLabel: 'Abrir IA',
-      secondaryPage: 'ai'
-    };
-  }
+  const behaviorState = typeof classifyBehaviorState === 'function'
+    ? classifyBehaviorState({
+        score,
+        projectedBalance,
+        failStreak,
+        successStreak,
+        spendAfterIncomePct,
+        sabotageIndex: metrics.sabotageIndex,
+        recoveryFragility: metrics.recoveryFragility,
+        silentRiskLoad: metrics.silentRiskLoad
+      })
+    : {
+        state: score >= 80
+          ? 'pre_collapse'
+          : metrics.sabotageIndex >= 60
+          ? 'sabotage_active'
+          : metrics.recoveryFragility >= 60
+          ? 'recovery_fragile'
+          : score <= 30
+          ? 'stable_disciplined'
+          : 'attention',
+        severity: score >= 80 ? 'critical' : score >= 55 ? 'high' : score >= 30 ? 'medium' : 'stable',
+        trend: behavioralPressure >= 18 ? 'deteriorating' : successStreak >= 2 ? 'improving' : 'neutral'
+      };
 
-  if (behaviorState.state === 'behavior_attention' || metrics.silentRiskLoad >= 55) {
-    return {
-      title: 'Seu comportamento financeiro entrou em atenção',
-      summary: `Seu score atual está em ${score}/100 (${riskLevel}) e o FinanceAI detectou sinais iniciais de erosão de consistência.`,
-      masterAlert: `${predictive.predictiveHeadline} ${predictive.predictiveBody}`,
-      action: 'Corrija o padrão agora, antes que o problema fique visível no saldo.',
-      objective: 'Impedir que fragilidade silenciosa vire pressão ativa.',
-      primaryLabel: 'Rever padrão',
-      primaryPage: 'transactions',
-      secondaryLabel: 'Abrir IA',
-      secondaryPage: 'ai'
-    };
-  }
+  const preHistoricalSnapshot = {
+    ...base,
+    score,
+    riskLevel: getBehaviorRiskLevel(score),
+    behavior,
+    patterns,
+    metrics,
+    behaviorState
+  };
+
+  const historicalOverlay = buildHistoricalBehaviorOverlay(
+    preHistoricalSnapshot,
+    Array.isArray(state.behaviorMemory) ? state.behaviorMemory : []
+  );
+
+  const finalScore = clampScore(score + Number(historicalOverlay.historicalRiskDelta || 0));
+
+  const finalBehaviorState = {
+    ...behaviorState,
+    trend: historicalOverlay.recentTrend && historicalOverlay.recentTrend !== 'neutral'
+      ? historicalOverlay.recentTrend
+      : behaviorState.trend
+  };
+
+  const finalPatterns = {
+    ...patterns,
+    historicalDominantSignature: historicalOverlay.dominantHistoricalSignature,
+    historicalRadarEnrichment: historicalOverlay.radarEnrichment
+  };
+
+  const finalMetrics = {
+    ...metrics,
+    historicalPressure: Number(historicalOverlay.historicalPressure || 0),
+    recurrenceConfidence: Number(historicalOverlay.recurrenceConfidence || 0),
+    instabilityIndex: Number(historicalOverlay.patternSummary?.instabilityIndex || 0)
+  };
+
+  const languagePack = typeof buildBehaviorLanguagePack === 'function'
+    ? buildBehaviorLanguagePack({
+        score: finalScore,
+        behaviorState: finalBehaviorState,
+        behavior,
+        patterns: finalPatterns,
+        metrics: finalMetrics,
+        historicalOverlay
+      })
+    : {
+        headline: historicalOverlay.recurringSabotage
+          ? 'Seu histórico mostra sabotagem recorrente.'
+          : historicalOverlay.recurringRelapse
+          ? 'Sua melhora recente ainda não é confiável.'
+          : finalScore >= 60
+          ? 'Seu comportamento entrou em zona de atenção.'
+          : 'Seu padrão está relativamente sob controle.',
+        body: historicalOverlay.summaryLabel || 'O FinanceAI segue monitorando seu comportamento financeiro.'
+      };
 
   return {
-    title: 'Seu sistema financeiro está sob controle',
-    summary: `Seu score atual está em ${score}/100 (${riskLevel}) e o padrão recente segue estável.`,
-    masterAlert: `${predictive.predictiveHeadline} ${predictive.predictiveBody}`,
-    action: 'Manter disciplina, retenção e leitura preventiva do comportamento.',
-    objective: 'Preservar estabilidade sustentável.',
-    primaryLabel: 'Ver dashboard',
-    primaryPage: 'dashboard',
-    secondaryLabel: 'Abrir IA',
-    secondaryPage: 'ai'
+    ...base,
+    score: finalScore,
+    riskLevel: getBehaviorRiskLevel(finalScore),
+    behavior,
+    patterns: finalPatterns,
+    metrics: finalMetrics,
+    behaviorState: finalBehaviorState,
+    languagePack,
+    historicalOverlay
   };
 }
 
