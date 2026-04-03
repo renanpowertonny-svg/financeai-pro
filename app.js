@@ -1392,7 +1392,7 @@ const financialIdentity = buildUserFinancialIdentity({
   sabotagePattern: sabotageDiagnostic
 });
 
-return {
+const enrichedBase = {
   ...base,
   score,
   riskLevel: getBehaviorRiskLevel(score),
@@ -1410,6 +1410,186 @@ return {
     dailyAvgExpense
   }
 };
+
+const metrics = calculateBehavioralMetrics(enrichedBase);
+const patterns = detectBehaviorPatternsV2(enrichedBase, metrics);
+const behaviorState = classifyBehaviorStateV2(enrichedBase, metrics, patterns);
+const languagePack = buildBehaviorLanguagePack({
+  ...enrichedBase,
+  metrics,
+  patterns,
+  behaviorState
+});
+
+return {
+  ...enrichedBase,
+  metrics,
+  patterns,
+  behaviorState,
+  languagePack
+};
+}
+
+function clampPercent(v) {
+  return Math.max(0, Math.min(100, Number(v || 0)));
+}
+
+function calculateBehavioralMetrics(snap) {
+  const behavior = snap?.behavior || {};
+  const summary = snap?.summary || {};
+
+  const sabotageIndex = clampPercent(
+    (Number(snap?.spendAfterIncomePct || 0) * 0.45) +
+    (Number(behavior.impulseExpenseCount || 0) * 8) +
+    (Number(behavior.failStreak || 0) * 9) +
+    (Number(behavior.todayNonEssentialTotal || 0) >= 120 ? 12 : Number(behavior.todayNonEssentialTotal || 0) >= 60 ? 6 : 0)
+  );
+
+  const consistencyIntegrity = clampPercent(
+    100
+    - (Number(behavior.behavioralPressure || 0) * 0.7)
+    - (Number(behavior.impulseExpenseCount || 0) * 6)
+    - (Number(behavior.failStreak || 0) * 8)
+    + (Number(behavior.successStreak || 0) * 7)
+  );
+
+  const recoveryFragility = clampPercent(
+    (Number(behavior.successStreak || 0) >= 2 ? 35 : 10)
+    + (Number(behavior.behavioralPressure || 0) * 0.55)
+    + (Number(behavior.impulseExpenseCount || 0) * 5)
+    - (Number(behavior.failStreak || 0) === 0 ? 10 : 0)
+  );
+
+  const postIncomeVulnerability = clampPercent(
+    Number(snap?.spendAfterIncomePct || 0)
+  );
+
+  const silentRiskLoad = clampPercent(
+    (Number(behavior.behavioralPressure || 0) * 0.6)
+    + (Number(behavior.impulseExpenseCount || 0) * 5)
+    + ((summary.balance > 0 && Number(snap?.score || 0) < 50) ? 12 : 0)
+  );
+
+  return {
+    sabotageIndex,
+    consistencyIntegrity,
+    recoveryFragility,
+    postIncomeVulnerability,
+    silentRiskLoad
+  };
+}
+
+function detectBehaviorPatternsV2(snap, metrics) {
+  const behavior = snap?.behavior || {};
+  const patterns = [];
+
+  if (metrics.postIncomeVulnerability >= 55) {
+    patterns.push('post_income_sabotage');
+  }
+
+  if (Number(behavior.impulseExpenseCount || 0) >= 4) {
+    patterns.push('impulse_cluster');
+  }
+
+  if (metrics.silentRiskLoad >= 55 && Number(snap?.score || 0) < 50) {
+    patterns.push('silent_deterioration');
+  }
+
+  if (
+    Number(behavior.successStreak || 0) >= 2 &&
+    (Number(behavior.impulseExpenseCount || 0) >= 3 || Number(behavior.behavioralPressure || 0) >= 55)
+  ) {
+    patterns.push('fragile_recovery');
+  }
+
+  if (metrics.sabotageIndex >= 80 || Number(snap?.projectedBalance || 0) < 0) {
+    patterns.push('pre_collapse_formation');
+  }
+
+  return {
+    dominant: patterns[0] || 'stable_control',
+    all: patterns
+  };
+}
+
+function classifyBehaviorStateV2(snap, metrics, patterns) {
+  if (!snap) {
+    return {
+      state: 'stable_disciplined',
+      severity: 'stable',
+      trend: 'neutral'
+    };
+  }
+
+  if (Number(snap.projectedBalance || 0) < 0 || metrics.sabotageIndex >= 80) {
+    return { state: 'pre_collapse', severity: 'critical', trend: 'worsening' };
+  }
+
+  if (patterns.all.includes('post_income_sabotage') || metrics.sabotageIndex >= 60) {
+    return { state: 'sabotage_active', severity: 'containment', trend: 'worsening' };
+  }
+
+  if (Number(snap.score || 0) >= 50 || Number(snap.spendAfterIncomePct || 0) >= 60) {
+    return { state: 'pressure_escalation', severity: 'pressure', trend: 'worsening' };
+  }
+
+  if (patterns.all.includes('fragile_recovery') || metrics.recoveryFragility >= 60) {
+    return { state: 'recovery_fragile', severity: 'attention', trend: 'unstable' };
+  }
+
+  if (metrics.silentRiskLoad >= 55 || metrics.consistencyIntegrity <= 45) {
+    return { state: 'behavior_attention', severity: 'attention', trend: 'emerging' };
+  }
+
+  if (metrics.consistencyIntegrity >= 70 && Number(snap.score || 0) < 30) {
+    return { state: 'stable_disciplined', severity: 'stable', trend: 'controlled' };
+  }
+
+  return { state: 'stable_vulnerable', severity: 'stable', trend: 'watch' };
+}
+
+function buildBehaviorLanguagePack(snap) {
+  const metrics = snap?.metrics || {};
+  const state = snap?.behaviorState || {};
+  const dominantPattern = snap?.patterns?.dominant || 'stable_control';
+
+  if (state.state === 'pre_collapse') {
+    return {
+      headline: 'Seu padrão atual já está empurrando seu sistema para ruptura.',
+      body: 'O risco aqui não é um gasto isolado. É a continuidade do padrão que está desmontando sua margem.',
+      tone: 'hard'
+    };
+  }
+
+  if (state.state === 'sabotage_active') {
+    return {
+      headline: 'O sistema detectou sabotagem financeira ativa.',
+      body: 'Seu comportamento está abrindo dano mais rápido do que sua percepção consegue corrigir.',
+      tone: 'firm'
+    };
+  }
+
+  if (state.state === 'recovery_fragile') {
+    return {
+      headline: 'Sua melhora existe, mas ainda não é estrutural.',
+      body: 'Se você relaxar agora, a tendência é repetir o ciclo que trouxe pressão antes.',
+      tone: 'cautious'
+    };
+  }
+
+  if (dominantPattern === 'silent_deterioration' || metrics.silentRiskLoad >= 55) {
+    return {
+      headline: 'Seu risco principal é silencioso, não visível no valor isolado.',
+      body: 'O padrão está perdendo consistência antes de parecer grave. Esse é o melhor momento para intervenção.',
+      tone: 'strategic'
+    };
+  }
+
+  return {
+    headline: 'Seu comportamento ainda está controlado, mas o sistema continua monitorando fragilidade.',
+    body: 'O risco real não é o agora. É a velocidade com que pequenos desvios voltam a ganhar espaço.',
+    tone: 'supportive'
+  };
 }
 function renderDailyMission() {
   const textEl = document.getElementById('missionText');
