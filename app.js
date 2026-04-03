@@ -3697,12 +3697,13 @@ function saveSettings() {
 function clearAllData() {
   if (!confirm('⚠️ ATENÇÃO: Todos os dados serão apagados. Esta ação é IRREVERSÍVEL!\n\nDigite "CONFIRMAR" para prosseguir.')) return;
   const k = state.user.email;
-  ['transactions', 'goals', 'settings', 'notifications', 'eduProgress'].forEach(key => localStorage.removeItem(`financeai_${key}_${k}`));
-  state.transactions = [];
-  state.goals = [];
-  state.settings = { salary: 0, limits: {} };
-  state.notifications = [];
-  state.eduProgress = { completed: [], streak: 0, points: 0 };
+ ['transactions', 'goals', 'settings', 'notifications', 'eduProgress', 'behaviorMemory'].forEach(key => localStorage.removeItem(`financeai_${key}_${k}`));
+state.transactions = [];
+state.goals = [];
+state.settings = { salary: 0, limits: {} };
+state.notifications = [];
+state.eduProgress = { completed: [], streak: 0, points: 0 };
+state.behaviorMemory = [];
   navigate('dashboard');
   showToast('success', 'Dados apagados', 'Todos os dados foram removidos.');
 }
