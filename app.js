@@ -960,6 +960,88 @@ function getBehaviorEngineSnapshot() {
     historicalOverlay
   };
 }
+function getPremiumRiskActionPlan(snap) {
+  if (!snap) {
+    return {
+      title: 'Sem leitura suficiente',
+      summary: 'Ainda não há dados suficientes para análise comportamental.',
+      masterAlert: 'Adicione movimentações para ativar o sistema.',
+      action: 'Registrar receitas e despesas.',
+      objective: 'Criar base de dados.',
+      primaryLabel: 'Ir para transações',
+      primaryPage: 'transactions',
+      secondaryLabel: 'Abrir IA',
+      secondaryPage: 'ai'
+    };
+  }
+
+  const {
+    score = 0,
+    riskLevel = 'Baixo',
+    summary = {},
+    behaviorState = {},
+    metrics = {},
+    historicalOverlay = {}
+  } = snap;
+
+  // 🔴 NÍVEL CRÍTICO
+  if (score >= 80 || behaviorState.state === 'pre_collapse') {
+    return {
+      title: 'Seu risco financeiro está crítico',
+      summary: `Seu score está em ${score}/100 e o sistema detecta deterioração acelerada do seu caixa.`,
+      masterAlert: 'Se continuar assim, a ruptura do seu caixa é questão de tempo.',
+      action: 'Interrompa imediatamente gastos não essenciais.',
+      objective: 'Evitar colapso financeiro.',
+      primaryLabel: 'Ver transações',
+      primaryPage: 'transactions',
+      secondaryLabel: 'Abrir IA',
+      secondaryPage: 'ai'
+    };
+  }
+
+  // 🟠 SABOTAGEM
+  if (metrics.sabotageIndex >= 60) {
+    return {
+      title: 'Sabotagem financeira detectada',
+      summary: `Seu score está em ${score}/100 e seu comportamento está comprometendo sua estabilidade.`,
+      masterAlert: 'Você está repetindo um padrão que destrói seu progresso.',
+      action: 'Bloqueie decisões impulsivas agora.',
+      objective: 'Recuperar controle.',
+      primaryLabel: 'Corrigir agora',
+      primaryPage: 'transactions',
+      secondaryLabel: 'Abrir IA',
+      secondaryPage: 'ai'
+    };
+  }
+
+  // 🟡 ATENÇÃO
+  if (score >= 40) {
+    return {
+      title: 'Seu comportamento entrou em atenção',
+      summary: `Seu score está em ${score}/100 e sinais de risco começaram a aparecer.`,
+      masterAlert: 'Se não corrigir agora, o problema vai escalar.',
+      action: 'Reduza gastos variáveis.',
+      objective: 'Evitar piora.',
+      primaryLabel: 'Ajustar agora',
+      primaryPage: 'transactions',
+      secondaryLabel: 'Abrir IA',
+      secondaryPage: 'ai'
+    };
+  }
+
+  // 🟢 ESTÁVEL
+  return {
+    title: 'Seu sistema está sob controle',
+    summary: `Seu score está em ${score}/100 e seu comportamento está estável.`,
+    masterAlert: 'Nenhum risco relevante detectado no momento.',
+    action: 'Manter consistência.',
+    objective: 'Preservar estabilidade.',
+    primaryLabel: 'Ver dashboard',
+    primaryPage: 'dashboard',
+    secondaryLabel: 'Abrir IA',
+    secondaryPage: 'ai'
+  };
+}
 
 function renderPremiumRiskCard() {
   const card = document.getElementById('premiumRiskCard');
@@ -990,16 +1072,7 @@ function renderPremiumRiskCard() {
   }
 
   const snap = getBehaviorEngineSnapshot();
-  const plan = {
-  title: 'Radar FinanceAI ativo',
-  summary: 'Leitura comportamental em execução.',
-  masterAlert: 'Sistema analisando seu padrão financeiro.',
-  action: 'Continue registrando movimentações para melhorar a precisão.',
-  objective: 'Gerar base comportamental consistente.',
-  primaryLabel: 'Ver transações',
-  secondaryLabel: 'Abrir IA',
-  primaryPage: 'transactions',
-  secondaryPage: 'ai'
+const plan = getPremiumRiskActionPlan(snap);
 };
 
   if (!snap) {
