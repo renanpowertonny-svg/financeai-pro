@@ -1091,7 +1091,7 @@ else if (metrics.silentRiskLoad >= 55) {
 }
   let mission = {
     type: 'growth',
-    severity: 'stable',
+    severity: dynamicMissionConfig?.severity || 'stable',
     diagnosis: 'controlled_growth',
     title: 'Consolidação de Controle',
     text: 'Você está estável. Sua missão hoje é manter consistência sem relaxar disciplina.',
@@ -1191,10 +1191,13 @@ else if (metrics.silentRiskLoad >= 55) {
       title: 'Consolidação de Controle',
       text: 'Você está estável. Sua missão hoje é manter consistência sem relaxar disciplina.',
       actionLabel: 'Manter padrão',
-      target: 50,
+      target: Math.max(
+  20,
+  Math.round((snap.dailyAvgExpense || 100) * (dynamicMissionConfig?.adjustment || 1))
+),
       scoreDeltaSuccess: 2,
       scoreDeltaFail: -2,
-      psychologicalTone: 'supportive'
+     psychologicalTone: dynamicMissionConfig?.psychologicalTone || 'supportive'
     };
   }
 
