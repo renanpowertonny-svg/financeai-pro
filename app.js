@@ -4803,7 +4803,7 @@ function analyzeAlertsSafe() {
   }
 }
 function analyzePredictiveAlerts() {
-const snap = getBehaviorEngineSnapshot();
+  const snap = getBehaviorEngineSnapshot();
   if (!snap) return;
 
   const {
@@ -4813,8 +4813,19 @@ const snap = getBehaviorEngineSnapshot();
     spendAfterIncomePct,
     categoryRisks,
     score,
-    daysRemaining
+    daysRemaining,
+    behaviorState = {},
+    metrics = {},
+    languagePack = {}
   } = snap;
+
+  const historical = buildHistoricalAlertContext(snap);
+
+  const pickPriority = (basePriority) => {
+    const order = { low: 1, medium: 2, high: 3, critical: 4 };
+    const boosted = historical.priority || basePriority;
+    return (order[boosted] || 1) > (order[basePriority] || 1) ? boosted : basePriority;
+  };
 
   if (
     summary.income > 0 &&
@@ -4826,68 +4837,54 @@ const snap = getBehaviorEngineSnapshot();
       Math.ceil((summary.income - summary.expense) / Math.max(dailyAvgExpense, 1))
     );
 
+    const predictiveText =
+      `${historical.predictivePrefix || 'Seu comportamento atual projeta deterioração do caixa.'} ` +
+      `Mantido o ritmo atual, sua projeção fecha o ciclo em ${fmt(projectedBalance)} e a ruptura pode acontecer em cerca de ${daysToNegative} dia(s).` +
+      historical.sabotageCopy +
+      historical.relapseCopy +
+      historical.signatureCopy;
+
     addNotification(
-      'Risco de entrar no negativo',
-      `Se o ritmo atual continuar, seu caixa pode ficar negativo em cerca de ${daysToNegative} dia(s).`,
+      historical.recurringSabotage
+        ? 'Projeção crítica com sabotagem recorrente'
+        : historical.recurringRelapse
+        ? 'Projeção crítica com recaída recorrente'
+        : 'Projeção de saldo negativo',
+      predictiveText.trim(),
       'error',
       {
-        priority: 'critical',
+        priority: pickPriority('critical'),
         category: 'predictive',
-        source: 'predictive-engine',
+        source: historical.hasHistoricalContext ? historical.sourceSuffix : 'predictive-engine',
         score,
-        actionLabel: 'Ajustar agora',
+        actionLabel: 'Agir agora',
         actionPage: 'transactions'
       }
     );
-
-    showToast(
-      'error',
-      'Projeção crítica',
-      `Mantido o ritmo atual, você pode entrar no negativo em ${daysToNegative} dia(s).`
-    );
   }
-
-  categoryRisks.forEach(item => {
-    if (!item.limit || item.currentSpent <= 0) return;
-
-    if (
-      item.projected > item.limit &&
-      shouldTriggerAlert(`predict_limit_${item.category}`, 240)
-    ) {
-      const categoryDailyAvg = item.currentSpent / Math.max(1, new Date().getDate());
-      const remainingToLimit = Math.max(0, item.limit - item.currentSpent);
-      const daysToLimit = categoryDailyAvg > 0
-        ? Math.max(1, Math.ceil(remainingToLimit / categoryDailyAvg))
-        : daysRemaining;
-
-      addNotification(
-        'Estouro de limite previsto',
-        `${item.category} pode ultrapassar o limite em cerca de ${daysToLimit} dia(s). Projeção: ${fmt(item.projected)} para um limite de ${fmt(item.limit)}.`,
-        'warning',
-        {
-          priority: item.pct >= 90 ? 'high' : 'medium',
-          category: 'predictive-limit',
-          source: 'predictive-engine',
-          score,
-          actionLabel: 'Ver limites',
-          actionPage: 'settings'
-        }
-      );
-    }
-  });
 
   if (
     spendAfterIncomePct >= 60 &&
-    shouldTriggerAlert('predict_salary_burn', 240)
+    shouldTriggerAlert('predict_post_income_burn', 180)
   ) {
+    const postIncomeText =
+      `Você já comprometeu ${spendAfterIncomePct.toFixed(0)}% da renda após a entrada de dinheiro. Isso comprime sua margem cedo demais no ciclo.` +
+      (historical.dominantPattern === 'burn_after_income'
+        ? ' O sistema reconhece esse padrão como recorrente no seu histórico.'
+        : '') +
+      historical.sabotageCopy +
+      historical.signatureCopy;
+
     addNotification(
-      'Queima acelerada da renda',
-      `Você já comprometeu ${spendAfterIncomePct.toFixed(0)}% da última entrada de renda nos primeiros dias. Esse padrão aumenta risco de sufoco no fim do mês.`,
+      historical.dominantPattern === 'burn_after_income'
+        ? 'Aceleração recorrente após renda'
+        : 'Aceleração após entrada de renda',
+      postIncomeText,
       'warning',
       {
-        priority: spendAfterIncomePct >= 75 ? 'critical' : 'high',
-        category: 'behavior',
-        source: 'predictive-engine',
+        priority: pickPriority(spendAfterIncomePct >= 75 ? 'high' : 'medium'),
+        category: 'predictive',
+        source: historical.hasHistoricalContext ? historical.sourceSuffix : 'predictive-engine',
         score,
         actionLabel: 'Rever padrão',
         actionPage: 'transactions'
@@ -4895,31 +4892,76 @@ const snap = getBehaviorEngineSnapshot();
     );
   }
 
+  const highRiskCategories = Object.entries(categoryRisks || {}).filter(([, value]) => value >= 70);
+
   if (
-    dailyAvgExpense > 0 &&
-    summary.balance > 0 &&
-    (summary.balance / dailyAvgExpense) <= 7 &&
-    shouldTriggerAlert('predict_runway_short', 300)
+    highRiskCategories.length &&
+    shouldTriggerAlert('predict_category_risk_cluster', 240)
   ) {
-    const runwayDays = Math.max(1, Math.floor(summary.balance / dailyAvgExpense));
+    const topNames = highRiskCategories.slice(0, 2).map(([name]) => name).join(' e ');
 
     addNotification(
-      'Fôlego curto de caixa',
-      `No ritmo atual, seu saldo disponível cobre aproximadamente ${runwayDays} dia(s).`,
+      'Cluster de risco por categoria',
+      `${topNames} concentram risco elevado no seu ciclo atual. Isso amplia a chance de pressão progressiva no restante do mês.` +
+        historical.relapseCopy +
+        historical.signatureCopy,
       'warning',
       {
-        priority: runwayDays <= 3 ? 'critical' : 'high',
-        category: 'runway',
-        source: 'predictive-engine',
+        priority: pickPriority('medium'),
+        category: 'predictive',
+        source: historical.hasHistoricalContext ? historical.sourceSuffix : 'predictive-engine',
         score,
-        actionLabel: 'Ver dashboard',
+        actionLabel: 'Ver transações',
+        actionPage: 'transactions'
+      }
+    );
+  }
+
+  if (
+    behaviorState.state === 'recovery_fragile' &&
+    historical.fragileRecoveryRecurring &&
+    shouldTriggerAlert('predict_fragile_recovery_regression', 240)
+  ) {
+    addNotification(
+      'Risco de regressão após melhora',
+      `O sistema detecta melhora aparente, mas sua recuperação ainda é frágil e historicamente instável. Nos próximos ${Math.max(1, daysRemaining)} dia(s), o foco deve ser preservar consistência e não interpretar alívio como cura.` +
+        historical.signatureCopy,
+      'warning',
+      {
+        priority: pickPriority('high'),
+        category: 'predictive',
+        source: historical.sourceSuffix,
+        score,
+        actionLabel: 'Proteger recuperação',
         actionPage: 'dashboard'
+      }
+    );
+  }
+
+  if (
+    (metrics.silentRiskLoad >= 60 || behaviorState.trend === 'worsening' || score >= 55) &&
+    historical.hasHistoricalContext &&
+    shouldTriggerAlert('predict_historical_pressure', 240)
+  ) {
+    addNotification(
+      'Pressão histórica acumulada',
+      `${historical.predictivePrefix || 'Seu histórico está reforçando o risco atual.'} O problema não está apenas no saldo do momento, mas na repetição do padrão que antecede deterioração.` +
+        ' ' +
+        (languagePack.body || ''),
+      behaviorState.state === 'pre_collapse' ? 'error' : 'warning',
+      {
+        priority: pickPriority(behaviorState.state === 'pre_collapse' ? 'critical' : 'high'),
+        category: 'predictive',
+        source: historical.sourceSuffix,
+        score,
+        actionLabel: 'Abrir IA',
+        actionPage: 'ai'
       }
     );
   }
 }
 // ==========================================
-// ALERT CON2960TROL SYSTEM (FASE 2)
+// ALERT CONTROL SYSTEM (FASE 2)
 // ==========================================
 
 function shouldTriggerAlert(key, cooldownMinutes = 10) {
