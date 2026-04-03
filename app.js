@@ -20,8 +20,7 @@ const DB = {
 };
 
 let state = {
-  missionStatus: {
-    date: null,
+  missionStatus: {    date: null,
     type: 'discipline',
     severity: 'stable',
     diagnosis: 'controlled_growth',
@@ -595,7 +594,7 @@ function buildPredictiveSignals(snap) {
   if (!snap) {
     return {
       predictiveHeadline: 'Sem dados suficientes para previsão.',
-      predictiveBody: 'Adicione mais transações para ativar o motor preditivo.'
+      predictiveBody: 'Adicione mais transações para ativar a leitura comportamental.'
     };
   }
 
@@ -604,68 +603,67 @@ function buildPredictiveSignals(snap) {
     projectedBalance = 0,
     spendAfterIncomePct = 0,
     score = 0,
-    behavior = {}
+    behavior = {},
+    metrics = {},
+    behaviorState = {},
+    languagePack = {}
   } = snap;
 
   const impulseExpenseCount = behavior.impulseExpenseCount || 0;
-  const addictionType = behavior.addictionDiagnostic?.type || 'none';
 
-  // 🔴 CENÁRIO CRÍTICO (queda real)
-  if (projectedBalance < 0) {
-    const days = Math.max(2, Math.round(Math.abs(projectedBalance) / 50));
-
+  if (behaviorState.state === 'pre_collapse' || projectedBalance < 0) {
+    const days = Math.max(1, Math.round(Math.abs(projectedBalance) / Math.max(behavior.dailyAvgExpense || 50, 50)));
     return {
-      predictiveHeadline: `Em ${days} dias seu saldo pode entrar no negativo.`,
-      predictiveBody: 'Seu padrão atual indica que você está consumindo acima da sua capacidade real. Se mantido, isso gera ruptura financeira no curto prazo.'
+      predictiveHeadline: `Em ${days} dias seu caixa pode romper se esse padrão continuar.`,
+      predictiveBody: 'Seu problema não está mais só no nível de gasto. Está no padrão que acelera dano e reduz sua capacidade de reação.'
     };
   }
 
-  // 🟠 PRESSÃO DE CONSUMO
-  if (spendAfterIncomePct >= 65) {
+  if (behaviorState.state === 'sabotage_active') {
     return {
-      predictiveHeadline: 'Seu dinheiro está sendo consumido rápido demais após entrar.',
-      predictiveBody: 'Esse padrão reduz sua margem de segurança e aumenta risco de sufoco financeiro antes do fim do ciclo.'
+      predictiveHeadline: 'Sua disciplina está sendo rompida por sabotagem ativa.',
+      predictiveBody: 'Mesmo sem colapso imediato, a repetição atual já aponta deterioração concreta nos próximos dias.'
     };
   }
 
-  // 🟡 COMPORTAMENTO COMPULSIVO
-  if (
-    addictionType === 'compulsive_spending' ||
-    addictionType === 'emotional_spending'
-  ) {
+  if (metrics.postIncomeVulnerability >= 55 || spendAfterIncomePct >= 60) {
     return {
-      predictiveHeadline: 'Seu padrão de decisão está sendo influenciado por impulso/emocional.',
-      predictiveBody: 'Se não for interrompido, esse comportamento tende a escalar e comprometer sua estabilidade financeira nas próximas semanas.'
+      predictiveHeadline: 'Sua vulnerabilidade aumenta logo após entrada de renda.',
+      predictiveBody: 'Esse comportamento comprime sua margem cedo demais e tende a gerar sufoco antes do fim do ciclo.'
     };
   }
 
-  // 🟡 MICRO-IMPULSOS
-  if (impulseExpenseCount >= 3) {
+  if (metrics.silentRiskLoad >= 55) {
     return {
-      predictiveHeadline: 'Você entrou em sequência de decisões pequenas que acumulam impacto.',
-      predictiveBody: 'Esse tipo de comportamento fragmentado costuma passar despercebido, mas corrói sua margem ao longo do tempo.'
+      predictiveHeadline: 'Seu risco está se formando de maneira silenciosa.',
+      predictiveBody: 'Você ainda não parece em colapso, mas sua consistência está cedendo antes do problema ficar óbvio.'
     };
   }
 
-  // 🟢 ESTÁVEL COM ALERTA OCULTO
-  if (score >= 30 && score < 50) {
+  if (behaviorState.state === 'recovery_fragile') {
     return {
-      predictiveHeadline: 'Seu sistema ainda está estável, mas há sinais iniciais de descontrole.',
-      predictiveBody: 'Pequenos desvios agora podem se transformar em problemas maiores se não forem ajustados cedo.'
+      predictiveHeadline: 'Sua melhora ainda não é estrutural.',
+      predictiveBody: 'O sistema detecta alívio, mas não estabilização. O risco é repetir o mesmo ciclo com aparência de controle.'
     };
   }
 
-  // 🟢 CONTROLE
+  if (impulseExpenseCount >= 3 || score >= 30) {
+    return {
+      predictiveHeadline: languagePack.headline || 'Seu comportamento entrou em zona de atenção.',
+      predictiveBody: languagePack.body || 'Há sinais iniciais de fragmentação da disciplina financeira.'
+    };
+  }
+
   return {
     predictiveHeadline: 'Seu padrão financeiro está sob controle.',
-    predictiveBody: 'Mantenha consistência. O risco não está no agora — está em relaxar o padrão.'
+    predictiveBody: 'O sistema não detectou ruptura ativa, mas continua monitorando consistência e fragilidade.'
   };
 }
 function getPremiumRiskActionPlan(snap) {
   if (!snap) {
     return {
       title: 'Sem dados suficientes',
-      summary: 'Adicione transações para o FinanceAI montar sua leitura de risco.',
+      summary: 'Adicione transações para o FinanceAI montar sua leitura comportamental.',
       masterAlert: 'Ainda não há base suficiente para um alerta mestre.',
       action: 'Registrar receitas e despesas do mês atual.',
       objective: 'Criar consistência de dados para leitura inteligente.',
@@ -682,27 +680,24 @@ function getPremiumRiskActionPlan(snap) {
     riskLevel,
     projectedBalance,
     spendAfterIncomePct,
-    categoryRisks,
-    behavior = {}
+    behavior = {},
+    metrics = {},
+    behaviorState = {},
+    patterns = {},
+    languagePack = {}
   } = snap;
 
-  const impulseExpenseCount = behavior.impulseExpenseCount || 0;
-  const addictionDiagnostic = behavior.addictionDiagnostic || { type: 'none', severity: 'stable' };
   const predictive = buildPredictiveSignals(snap);
 
-  const topProjectedRisk = (categoryRisks || [])
-    .filter(item => item.limit > 0 && item.projected > item.limit)
-    .sort((a, b) => (b.projected - b.limit) - (a.projected - a.limit))[0] || null;
-
-  if (score >= 75 || projectedBalance < 0 || summary.balance < 0) {
+  if (behaviorState.state === 'pre_collapse' || projectedBalance < 0 || summary.balance < 0) {
     const deficit = Math.max(50, Math.ceil(Math.abs(projectedBalance || summary.balance || 0) / 10) * 10);
 
     return {
-      title: 'Seu risco financeiro está crítico',
-      summary: `Seu score atual está em ${score}/100 (${riskLevel}) e o sistema detectou deterioração ativa do seu caixa.`,
+      title: 'Seu risco comportamental está crítico',
+      summary: `Seu score atual está em ${score}/100 (${riskLevel}) e o sistema detectou formação de ruptura.`,
       masterAlert: `${predictive.predictiveHeadline} ${predictive.predictiveBody}`,
-      action: `Reduza pelo menos ${fmt(deficit)} em gastos variáveis imediatamente e bloqueie novas decisões não essenciais hoje.`,
-      objective: 'Ganhar fôlego de caixa e impedir ruptura financeira.',
+      action: `Reduza pelo menos ${fmt(deficit)} em gasto variável agora e interrompa novas decisões não essenciais hoje.`,
+      objective: 'Conter dano imediato e recuperar comando do caixa.',
       primaryLabel: 'Cortar gastos agora',
       primaryPage: 'transactions',
       secondaryLabel: 'Ver IA',
@@ -710,13 +705,27 @@ function getPremiumRiskActionPlan(snap) {
     };
   }
 
-  if (score >= 50 || spendAfterIncomePct >= 65) {
+  if (behaviorState.state === 'sabotage_active' || metrics.sabotageIndex >= 60) {
     return {
-      title: 'Seu padrão financeiro entrou em pressão ativa',
-      summary: `Seu score atual está em ${score}/100 (${riskLevel}) e o sistema detectou aceleração perigosa no consumo.`,
+      title: 'O sistema detectou sabotagem financeira ativa',
+      summary: `Seu score atual está em ${score}/100 (${riskLevel}) e seu padrão dominante já está abrindo deterioração.`,
+      masterAlert: `${languagePack.headline} ${languagePack.body}`,
+      action: 'Trave novas compras variáveis nas próximas horas e interrompa a próxima decisão impulsiva.',
+      objective: 'Quebrar a cadeia de auto-sabotagem antes que ela escale.',
+      primaryLabel: 'Bloquear impulsos',
+      primaryPage: 'transactions',
+      secondaryLabel: 'Abrir IA',
+      secondaryPage: 'ai'
+    };
+  }
+
+  if (behaviorState.state === 'pressure_escalation' || spendAfterIncomePct >= 60) {
+    return {
+      title: 'Seu padrão entrou em pressão crescente',
+      summary: `Seu score atual está em ${score}/100 (${riskLevel}) e a retenção de caixa começou a enfraquecer.`,
       masterAlert: `${predictive.predictiveHeadline} ${predictive.predictiveBody}`,
-      action: 'Trave novas despesas variáveis nas próximas 24h e reduza exposição a compras por impulso.',
-      objective: 'Interromper a escalada antes que ela vire deterioração do caixa.',
+      action: 'Trave despesas variáveis nas próximas 24h e preserve caixa antes que a pressão vire ruptura.',
+      objective: 'Interromper aceleração antes do dano estrutural.',
       primaryLabel: 'Revisar transações',
       primaryPage: 'transactions',
       secondaryLabel: 'Abrir IA',
@@ -724,48 +733,45 @@ function getPremiumRiskActionPlan(snap) {
     };
   }
 
-  if (
-    score >= 30 ||
-    impulseExpenseCount >= 3 ||
-    addictionDiagnostic.type === 'emotional_spending' ||
-    addictionDiagnostic.type === 'compulsive_spending' ||
-    addictionDiagnostic.type === 'impulse_drift' ||
-    spendAfterIncomePct >= 25
-  ) {
-    let masterAlert = `${predictive.predictiveHeadline} ${predictive.predictiveBody}`;
-    let action = 'Suspenda novas compras variáveis nas próximas horas e reduza estímulos de consumo impulsivo.';
-    let objective = 'Recuperar domínio comportamental antes que esse padrão vire hábito automático.';
+  if (behaviorState.state === 'recovery_fragile') {
+    return {
+      title: 'Sua recuperação ainda está frágil',
+      summary: `Seu score atual está em ${score}/100 (${riskLevel}) e o sistema ainda vê risco de recaída.`,
+      masterAlert: `${predictive.predictiveHeadline} ${predictive.predictiveBody}`,
+      action: 'Proteja a disciplina nas próximas horas e evite interpretar alívio momentâneo como controle definitivo.',
+      objective: 'Transformar melhora pontual em recuperação real.',
+      primaryLabel: 'Proteger consistência',
+      primaryPage: 'dashboard',
+      secondaryLabel: 'Abrir IA',
+      secondaryPage: 'ai'
+    };
+  }
 
-    if (addictionDiagnostic.type === 'compulsive_spending') {
-      masterAlert = 'O sistema detectou sequência de decisões de consumo com traço compulsivo. O risco aqui não é o valor isolado — é a repetição automática.';
-      action = 'Trave novas compras não essenciais hoje e interrompa a cadeia de impulsos antes do próximo gasto.';
-      objective = 'Quebrar o ciclo compulsivo antes que ele escale.';
-    } else if (addictionDiagnostic.type === 'emotional_spending') {
-      masterAlert = 'O sistema detectou padrão de gasto emocional recorrente. O problema agora é comportamental, não apenas matemático.';
-      action = 'Pause novas despesas variáveis hoje e adie decisões de consumo que sirvam para alívio imediato.';
-      objective = 'Retomar controle emocional sobre o consumo antes que isso comprima sua margem.';
-    } else if (impulseExpenseCount >= 3) {
-      masterAlert = 'Você entrou em sequência de microdecisões impulsivas. Separadas parecem pequenas; juntas, começam a desmontar sua disciplina.';
-      action = 'Interrompa a próxima compra por impulso e preserve caixa nas próximas horas.';
-      objective = 'Bloquear a fragmentação do consumo antes que ela vire padrão.';
-    } else if (topProjectedRisk) {
-      masterAlert = `${topProjectedRisk.category} já começou a puxar seu comportamento para uma zona de atenção.`;
-      action = `Reduza a exposição à categoria ${topProjectedRisk.category} antes que ela se torne o centro do descontrole do ciclo.`;
-      objective = 'Retomar comando sobre a categoria dominante do período.';
-    }
-
-         return {
+  if (behaviorState.state === 'behavior_attention' || metrics.silentRiskLoad >= 55) {
+    return {
       title: 'Seu comportamento financeiro entrou em atenção',
-      summary: `Seu score atual está em ${score}/100 (${riskLevel}) e o FinanceAI detectou sinais iniciais de fragmentação do seu controle financeiro.`,
-      masterAlert,
-      action,
-      objective,
-      primaryLabel: 'Bloquear impulsos',
+      summary: `Seu score atual está em ${score}/100 (${riskLevel}) e o FinanceAI detectou sinais iniciais de erosão de consistência.`,
+      masterAlert: `${predictive.predictiveHeadline} ${predictive.predictiveBody}`,
+      action: 'Corrija o padrão agora, antes que o problema fique visível no saldo.',
+      objective: 'Impedir que fragilidade silenciosa vire pressão ativa.',
+      primaryLabel: 'Rever padrão',
       primaryPage: 'transactions',
       secondaryLabel: 'Abrir IA',
       secondaryPage: 'ai'
     };
   }
+
+  return {
+    title: 'Seu sistema financeiro está sob controle',
+    summary: `Seu score atual está em ${score}/100 (${riskLevel}) e o padrão recente segue estável.`,
+    masterAlert: `${predictive.predictiveHeadline} ${predictive.predictiveBody}`,
+    action: 'Manter disciplina, retenção e leitura preventiva do comportamento.',
+    objective: 'Preservar estabilidade sustentável.',
+    primaryLabel: 'Ver dashboard',
+    primaryPage: 'dashboard',
+    secondaryLabel: 'Abrir IA',
+    secondaryPage: 'ai'
+  };
 }
 
 function renderPremiumRiskCard() {
