@@ -965,53 +965,188 @@ function renderPremiumRiskCard() {
   const card = document.getElementById('premiumRiskCard');
   if (!card) return;
 
-  const titleEl = document.getElementById('premiumRiskTitle');
-  const summaryEl = document.getElementById('premiumRiskSummary');
-  const scoreEl = document.getElementById('premiumRiskScore');
-  const levelEl = document.getElementById('premiumRiskLevel');
-  const masterAlertEl = document.getElementById('premiumRiskMasterAlert');
-  const actionEl = document.getElementById('premiumRiskAction');
-  const objectiveEl = document.getElementById('premiumRiskObjective');
-  const primaryBtn = document.getElementById('premiumRiskPrimaryBtn');
-  const secondaryBtn = document.getElementById('premiumRiskSecondaryBtn');
-
-  if (!titleEl || !summaryEl || !scoreEl || !levelEl || !masterAlertEl || !actionEl || !objectiveEl || !primaryBtn || !secondaryBtn) {
+  const snap = getBehaviorEngineSnapshot();
+  if (!snap) {
+    card.innerHTML = `
+      <div style="padding:22px;border-radius:18px;border:1px solid rgba(99,102,241,.18);background:linear-gradient(135deg, rgba(17,24,39,.92), rgba(30,41,59,.85));">
+        <div style="font-size:18px;font-weight:700;margin-bottom:8px;">Radar Financeiro Premium</div>
+        <div style="font-size:14px;opacity:.82;">Sem dados suficientes para leitura comportamental.</div>
+      </div>
+    `;
     return;
   }
 
-  const snap = getBehaviorEngineSnapshot();
-  const plan = getPremiumRiskActionPlan(snap);
+  const actionPlan = getPremiumRiskActionPlan(snap);
+  const radar = buildPremiumRadarSurface(snap, actionPlan);
+  const overlay = snap.historicalOverlay || {};
+  const tone = radar.radarTone;
 
-  titleEl.textContent = plan.title;
-  summaryEl.textContent = plan.summary;
-  masterAlertEl.textContent = plan.masterAlert;
-  actionEl.textContent = plan.action;
-  objectiveEl.textContent = plan.objective;
+  const toneMap = {
+    stable: {
+      border: 'rgba(16,185,129,.35)',
+      glow: 'rgba(16,185,129,.10)',
+      badge: '#10b981'
+    },
+    attention: {
+      border: 'rgba(245,158,11,.35)',
+      glow: 'rgba(245,158,11,.10)',
+      badge: '#f59e0b'
+    },
+    high: {
+      border: 'rgba(239,68,68,.35)',
+      glow: 'rgba(239,68,68,.10)',
+      badge: '#ef4444'
+    },
+    critical: {
+      border: 'rgba(244,63,94,.42)',
+      glow: 'rgba(244,63,94,.14)',
+      badge: '#f43f5e'
+    }
+  };
 
-  if (snap) {
-    scoreEl.textContent = `${snap.score}/100`;
-    levelEl.textContent = `Risco ${snap.riskLevel}`;
+  const palette = toneMap[tone] || toneMap.stable;
 
-    const levelColor =
-      snap.score >= 75 ? '#ef4444' :
-      snap.score >= 50 ? '#f59e0b' :
-      snap.score >= 25 ? '#facc15' :
-      '#10b981';
+  const historicalLine = overlay.hasEnoughHistory
+    ? `Memória ativa · ${radar.signatureLabel} · confiança ${radar.recurrenceConfidence}%`
+    : 'Memória histórica ainda em formação';
 
-    levelEl.style.color = levelColor;
-    scoreEl.style.color = levelColor;
-  } else {
-    scoreEl.textContent = '--/100';
-    levelEl.textContent = 'Sem leitura';
-    levelEl.style.color = '#94a3b8';
-    scoreEl.style.color = 'var(--text-primary)';
-  }
+  const riskPct = Math.max(0, Math.min(100, Number(snap.score || 0)));
+  const stabilityPct = Math.max(0, Math.min(100, 100 - riskPct));
+  const pressurePct = Math.max(0, Math.min(100, Number(radar.historicalPressure || 0) * 4));
+  const instabilityPct = Math.max(0, Math.min(100, Number(radar.instabilityIndex || 0)));
 
-  primaryBtn.textContent = plan.primaryLabel;
-  secondaryBtn.textContent = plan.secondaryLabel;
+  card.innerHTML = `
+    <div style="
+      padding: 22px;
+      border-radius: 22px;
+      border: 1px solid ${palette.border};
+      background: linear-gradient(135deg, rgba(15,23,42,.96), rgba(17,24,39,.92));
+      box-shadow: 0 12px 40px ${palette.glow};
+    ">
+      <div style="display:flex;justify-content:space-between;gap:18px;align-items:flex-start;flex-wrap:wrap;">
+        <div style="flex:1;min-width:260px;">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
+            <span style="font-size:19px;font-weight:800;">Radar Financeiro Premium</span>
+            <span style="
+              display:inline-flex;
+              align-items:center;
+              padding:6px 10px;
+              border-radius:999px;
+              font-size:12px;
+              font-weight:700;
+              color:white;
+              background:${palette.badge};
+            ">${radar.radarBadge}</span>
+          </div>
 
-primaryBtn.onclick = () => navigate(plan.primaryPage || 'transactions');
-secondaryBtn.onclick = () => navigate(plan.secondaryPage || 'ai');
+          <div style="font-size:15px;opacity:.78;margin-bottom:14px;">
+            ${historicalLine}
+          </div>
+
+          <div style="font-size:24px;font-weight:800;line-height:1.2;margin-bottom:8px;">
+            ${radar.radarTitle}
+          </div>
+
+          <div style="font-size:14px;line-height:1.7;opacity:.92;margin-bottom:16px;">
+            ${radar.radarBody}
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:16px;">
+            <div style="padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);">
+              <div style="font-size:11px;opacity:.62;margin-bottom:4px;">Driver principal</div>
+              <div style="font-size:13px;font-weight:700;text-transform:capitalize;">${radar.primaryDriverLabel}</div>
+            </div>
+            <div style="padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);">
+              <div style="font-size:11px;opacity:.62;margin-bottom:4px;">Assinatura dominante</div>
+              <div style="font-size:13px;font-weight:700;text-transform:capitalize;">${radar.dominantPatternLabel}</div>
+            </div>
+            <div style="padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);">
+              <div style="font-size:11px;opacity:.62;margin-bottom:4px;">Estado atual</div>
+              <div style="font-size:13px;font-weight:700;text-transform:capitalize;">${String(snap.behaviorState?.state || 'stable').replaceAll('_',' ')}</div>
+            </div>
+            <div style="padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);">
+              <div style="font-size:11px;opacity:.62;margin-bottom:4px;">Tendência</div>
+              <div style="font-size:13px;font-weight:700;text-transform:capitalize;">${String(snap.behaviorState?.trend || 'neutral').replaceAll('_',' ')}</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="width:260px;max-width:100%;display:flex;flex-direction:column;gap:12px;">
+          <div style="padding:16px;border-radius:18px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.08);">
+            <div style="font-size:12px;opacity:.7;margin-bottom:6px;">Score comportamental</div>
+            <div id="premiumRiskScore" style="font-size:34px;font-weight:900;line-height:1;">${snap.score}/100</div>
+            <div id="premiumRiskLevel" style="margin-top:8px;font-size:13px;font-weight:700;opacity:.9;">Risco ${snap.riskLevel}</div>
+          </div>
+
+          <div style="padding:16px;border-radius:18px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.08);">
+            <div style="margin-bottom:10px;">
+              <div style="display:flex;justify-content:space-between;font-size:12px;opacity:.7;margin-bottom:6px;">
+                <span>Risco atual</span><span>${riskPct}%</span>
+              </div>
+              <div style="height:8px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;">
+                <div style="height:100%;width:${riskPct}%;background:${palette.badge};"></div>
+              </div>
+            </div>
+
+            <div style="margin-bottom:10px;">
+              <div style="display:flex;justify-content:space-between;font-size:12px;opacity:.7;margin-bottom:6px;">
+                <span>Pressão histórica</span><span>${pressurePct}%</span>
+              </div>
+              <div style="height:8px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;">
+                <div style="height:100%;width:${pressurePct}%;background:rgba(99,102,241,.95);"></div>
+              </div>
+            </div>
+
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:12px;opacity:.7;margin-bottom:6px;">
+                <span>Integridade estimada</span><span>${stabilityPct}%</span>
+              </div>
+              <div style="height:8px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;">
+                <div style="height:100%;width:${stabilityPct}%;background:rgba(16,185,129,.95);"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:18px;padding:18px;border-radius:18px;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.18);">
+        <div style="font-size:12px;letter-spacing:.04em;text-transform:uppercase;opacity:.7;margin-bottom:8px;">Conduta prioritária do sistema</div>
+        <div style="font-size:20px;font-weight:800;line-height:1.25;margin-bottom:8px;">${radar.actionTitle}</div>
+        <div style="font-size:14px;line-height:1.7;opacity:.92;margin-bottom:10px;">${radar.actionSummary}</div>
+        <div style="font-size:14px;line-height:1.7;opacity:.88;margin-bottom:10px;"><strong>Alerta mestre:</strong> ${radar.actionAlert}</div>
+        <div style="font-size:14px;line-height:1.7;opacity:.88;margin-bottom:10px;"><strong>Ação:</strong> ${radar.actionStep}</div>
+        <div style="font-size:14px;line-height:1.7;opacity:.88;"><strong>Objetivo clínico do ciclo:</strong> ${radar.actionObjective}</div>
+
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;">
+          <button onclick="navigate('${radar.primaryPage}')" style="border:none;cursor:pointer;padding:11px 16px;border-radius:12px;font-weight:700;background:${palette.badge};color:white;">
+            ${radar.primaryLabel}
+          </button>
+          <button onclick="navigate('${radar.secondaryPage}')" style="cursor:pointer;padding:11px 16px;border-radius:12px;font-weight:700;background:transparent;color:white;border:1px solid rgba(255,255,255,.16);">
+            ${radar.secondaryLabel}
+          </button>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-top:16px;">
+        <div style="padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);">
+          <div style="font-size:11px;opacity:.62;margin-bottom:4px;">Confiança histórica</div>
+          <div style="font-size:15px;font-weight:800;">${radar.recurrenceConfidence}%</div>
+        </div>
+        <div style="padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);">
+          <div style="font-size:11px;opacity:.62;margin-bottom:4px;">Instabilidade acumulada</div>
+          <div style="font-size:15px;font-weight:800;">${instabilityPct}%</div>
+        </div>
+        <div style="padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);">
+          <div style="font-size:11px;opacity:.62;margin-bottom:4px;">Poupança atual</div>
+          <div style="font-size:15px;font-weight:800;">${Number(snap.summary?.savingsRate || 0).toFixed(1)}%</div>
+        </div>
+        <div style="padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);">
+          <div style="font-size:11px;opacity:.62;margin-bottom:4px;">Projeção do ciclo</div>
+          <div style="font-size:15px;font-weight:800;">${fmt(Number(snap.projectedBalance || 0))}</div>
+        </div>
+      </div>
+    </div>
+  `;
 }
 function getMissionSeverityFromSnapshot(snap) {
   if (!snap) return 'stable';
