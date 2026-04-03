@@ -59,8 +59,9 @@ let state = {
   currentPage: 'dashboard',
   period: 'month',
   charts: {},
-  aiInsights: [],
-  eduProgress: { completed: [], streak: 0, points: 0 }
+ aiInsights: [],
+ eduProgress: { completed: [], streak: 0, points: 0 },
+ behaviorMemory: []
 };
 // ==========================================
 // AUTH
@@ -277,8 +278,9 @@ state.behaviorProfile = {
   };
   state.currentPage = 'dashboard';
   state.period = 'month';
-  state.aiInsights = [];
-  state.eduProgress = { completed: [], streak: 0, points: 0 };
+ state.aiInsights = [];
+ state.eduProgress = { completed: [], streak: 0, points: 0 };
+ state.behaviorMemory = [];
 }
 
 function handleLogout() {
