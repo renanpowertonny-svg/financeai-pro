@@ -1974,6 +1974,10 @@ renderCategoryChart();
 renderRecentTransactions(txs);
 renderDashboardGoals();
 generateAIInsightBanner(txs, income, expense, savingsRate);
+
+const snap = getBehaviorEngineSnapshot();
+recordBehaviorMemorySnapshot(snap);
+
 renderDailyMission();
 renderPremiumRiskCard();
 analyzeAlertsSafe();
