@@ -1184,22 +1184,25 @@ else if (metrics.silentRiskLoad >= 55) {
 
   // 🟢 CONTROLE
   else {
-    mission = {
-      type: 'growth',
-      severity: 'stable',
-      diagnosis: 'controlled_growth',
-      title: 'Consolidação de Controle',
-      text: 'Você está estável. Sua missão hoje é manter consistência sem relaxar disciplina.',
-      actionLabel: 'Manter padrão',
-      target: Math.max(
-  20,
-  Math.round((snap.dailyAvgExpense || 100) * (dynamicMissionConfig?.adjustment || 1))
-),
-      scoreDeltaSuccess: 2,
-      scoreDeltaFail: -2,
-     psychologicalTone: dynamicMissionConfig?.psychologicalTone || 'supportive'
-    };
-  }
+ // 🟢 CONTROLE
+else {
+  mission = {
+    type: 'growth',
+    severity: dynamicMissionConfig?.severity || 'stable',
+    diagnosis: 'controlled_growth',
+    title: 'Consolidação de Controle',
+
+    text: (() => {
+      if (dynamicMissionConfig?.type === 'containment') {
+        return 'Hoje não é disciplina leve. É contenção total. Corte qualquer gasto não essencial.';
+      }
+      if (dynamicMissionConfig?.type === 'interruption') {
+        return 'Seu padrão indica sabotagem ativa. Sua missão é interromper o próximo impulso.';
+      }
+      if (dynamicMissionConfig?.type === 'stabilization') {
+        return 'Seu comportamento entrou em pressão. Hoje você precisa estabilizar antes de piorar.';
+      }
+      if (dynamicMissionConfig?.type === '
 
   state.missionStatus = {
     ...state.missionStatus,
