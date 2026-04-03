@@ -4472,7 +4472,328 @@ function recordBehaviorMemorySnapshot(snap) {
 
   state.behaviorMemory = memory.slice(0, 45);
 }
+function analyzeBehaviorMemoryPatterns(memoryEntries = []) {
+  const entries = Array.isArray(memoryEntries)
+    ? memoryEntries
+        .filter(item => item && typeof item === 'object')
+        .slice()
+        .sort((a, b) => new Date(a.date || a.createdAt || 0) - new Date(b.date || b.createdAt || 0))
+    : [];
 
+  const sampleSize = entries.length;
+
+  const fallback = {
+    hasEnoughHistory: false,
+    sampleSize,
+    recurringRelapse: false,
+    fragileRecoveryRecurring: false,
+    recurringSabotage: false,
+    dominantHistoricalSignature: 'insufficient_history',
+    dominantState: 'unknown',
+    dominantPattern: 'unknown',
+    stateCounts: {},
+    patternCounts: {},
+    riskLevelCounts: {},
+    avgScore: 0,
+    maxScore: 0,
+    minScore: 0,
+    negativeBalanceDays: 0,
+    highRiskDays: 0,
+    criticalDays: 0,
+    improvementCycles: 0,
+    relapseCount: 0,
+    fragileRecoveryCount: 0,
+    sabotageCount: 0,
+    instabilityIndex: 0,
+    recurrenceConfidence: 0,
+    historicalPressure: 0,
+    recentTrend: 'neutral',
+    last7AvgScore: 0,
+    last3AvgScore: 0,
+    summaryLabel: 'Histórico insuficiente para leitura recorrente.'
+  };
+
+  if (sampleSize < 3) {
+    return fallback;
+  }
+
+  const stateCounts = {};
+  const patternCounts = {};
+  const riskLevelCounts = {};
+
+  let totalScore = 0;
+  let maxScore = 0;
+  let minScore = 100;
+  let negativeBalanceDays = 0;
+  let highRiskDays = 0;
+  let criticalDays = 0;
+  let relapseCount = 0;
+  let fragileRecoveryCount = 0;
+  let sabotageCount = 0;
+  let improvementCycles = 0;
+
+  for (let i = 0; i < entries.length; i++) {
+    const item = entries[i];
+    const score = Number(item.score || 0);
+    const state = item.state || 'unknown';
+    const pattern = item.dominantPattern || 'unknown';
+    const riskLevel = item.riskLevel || 'stable';
+
+    totalScore += score;
+    maxScore = Math.max(maxScore, score);
+    minScore = Math.min(minScore, score);
+
+    stateCounts[state] = (stateCounts[state] || 0) + 1;
+    patternCounts[pattern] = (patternCounts[pattern] || 0) + 1;
+    riskLevelCounts[riskLevel] = (riskLevelCounts[riskLevel] || 0) + 1;
+
+    if (Number(item.balance || 0) < 0 || Number(item.projectedBalance || 0) < 0) {
+      negativeBalanceDays += 1;
+    }
+
+    if (score >= 60) highRiskDays += 1;
+    if (score >= 80 || riskLevel === 'critical') criticalDays += 1;
+
+    if (
+      state === 'sabotage_active' ||
+      pattern === 'burn_after_income' ||
+      pattern === 'impulse_cluster' ||
+      pattern === 'mission_resistance' ||
+      Number(item.sabotageIndex || 0) >= 60
+    ) {
+      sabotageCount += 1;
+    }
+
+    if (
+      state === 'recovery_fragile' ||
+      Number(item.recoveryFragility || 0) >= 60
+    ) {
+      fragileRecoveryCount += 1;
+    }
+
+    const prev = entries[i - 1];
+    if (prev) {
+      const prevScore = Number(prev.score || 0);
+      const prevState = prev.state || 'unknown';
+
+      const hadImprovement =
+        prevScore <= 35 ||
+        prevState === 'recovery_fragile' ||
+        prevState === 'stable_disciplined';
+
+      const nowWorse =
+        score >= 55 ||
+        state === 'sabotage_active' ||
+        state === 'pre_collapse';
+
+      if (hadImprovement && nowWorse) {
+        relapseCount += 1;
+      }
+
+      if (
+        prevScore >= 55 &&
+        score <= 35
+      ) {
+        improvementCycles += 1;
+      }
+    }
+  }
+
+  const getTopKey = (obj, fallbackValue = 'unknown') => {
+    const sorted = Object.entries(obj).sort((a, b) => b[1] - a[1]);
+    return sorted[0]?.[0] || fallbackValue;
+  };
+
+  const avgScore = totalScore / sampleSize;
+  const last7 = entries.slice(-7);
+  const last3 = entries.slice(-3);
+
+  const avg = arr => arr.length
+    ? arr.reduce((sum, item) => sum + Number(item.score || 0), 0) / arr.length
+    : 0;
+
+  const last7AvgScore = avg(last7);
+  const last3AvgScore = avg(last3);
+
+  let recentTrend = 'neutral';
+  if (last3AvgScore - last7AvgScore >= 8) recentTrend = 'worsening';
+  else if (last7AvgScore - last3AvgScore >= 8) recentTrend = 'improving';
+
+  const dominantState = getTopKey(stateCounts, 'unknown');
+  const dominantPattern = getTopKey(patternCounts, 'unknown');
+
+  let dominantHistoricalSignature = 'historical_instability';
+
+  if (sabotageCount >= Math.ceil(sampleSize * 0.35)) {
+    dominantHistoricalSignature = 'recurring_sabotage';
+  } else if (fragileRecoveryCount >= Math.ceil(sampleSize * 0.30)) {
+    dominantHistoricalSignature = 'fragile_recovery_loop';
+  } else if (relapseCount >= 2) {
+    dominantHistoricalSignature = 'relapse_cycle';
+  } else if (highRiskDays >= Math.ceil(sampleSize * 0.45)) {
+    dominantHistoricalSignature = 'persistent_high_risk';
+  } else if (dominantState === 'stable_disciplined' && avgScore <= 30) {
+    dominantHistoricalSignature = 'disciplined_recovery';
+  }
+
+  const recurringRelapse = relapseCount >= 2;
+  const fragileRecoveryRecurring = fragileRecoveryCount >= Math.max(2, Math.ceil(sampleSize * 0.25));
+  const recurringSabotage = sabotageCount >= Math.max(2, Math.ceil(sampleSize * 0.30));
+
+  let historicalPressure = 0;
+  if (recurringRelapse) historicalPressure += 8;
+  if (fragileRecoveryRecurring) historicalPressure += 6;
+  if (recurringSabotage) historicalPressure += 10;
+  if (negativeBalanceDays >= Math.ceil(sampleSize * 0.25)) historicalPressure += 6;
+  if (criticalDays >= Math.ceil(sampleSize * 0.20)) historicalPressure += 6;
+  if (recentTrend === 'worsening') historicalPressure += 5;
+  if (dominantHistoricalSignature === 'disciplined_recovery') historicalPressure -= 6;
+
+  historicalPressure = Math.max(-8, Math.min(22, historicalPressure));
+
+  const recurrenceConfidence = Math.max(
+    0,
+    Math.min(
+      100,
+      Math.round(
+        (sampleSize * 8) +
+        (relapseCount * 10) +
+        (sabotageCount * 8) +
+        (fragileRecoveryCount * 6)
+      )
+    )
+  );
+
+  let summaryLabel = 'Histórico com sinais mistos.';
+  if (recurringSabotage) {
+    summaryLabel = 'Histórico aponta sabotagem recorrente.';
+  } else if (recurringRelapse) {
+    summaryLabel = 'Histórico aponta recaída recorrente após melhora.';
+  } else if (fragileRecoveryRecurring) {
+    summaryLabel = 'Histórico aponta recuperação frágil e pouco confiável.';
+  } else if (dominantHistoricalSignature === 'disciplined_recovery') {
+    summaryLabel = 'Histórico aponta disciplina em consolidação.';
+  }
+
+  return {
+    hasEnoughHistory: true,
+    sampleSize,
+    recurringRelapse,
+    fragileRecoveryRecurring,
+    recurringSabotage,
+    dominantHistoricalSignature,
+    dominantState,
+    dominantPattern,
+    stateCounts,
+    patternCounts,
+    riskLevelCounts,
+    avgScore: Math.round(avgScore),
+    maxScore,
+    minScore,
+    negativeBalanceDays,
+    highRiskDays,
+    criticalDays,
+    improvementCycles,
+    relapseCount,
+    fragileRecoveryCount,
+    sabotageCount,
+    instabilityIndex: Math.max(0, Math.min(100, Math.round(avgScore + historicalPressure))),
+    recurrenceConfidence,
+    historicalPressure,
+    recentTrend,
+    last7AvgScore: Math.round(last7AvgScore),
+    last3AvgScore: Math.round(last3AvgScore),
+    summaryLabel
+  };
+}
+
+function buildHistoricalBehaviorOverlay(currentSnapshot, memoryEntries = []) {
+  const patterns = analyzeBehaviorMemoryPatterns(memoryEntries);
+
+  const fallback = {
+    enabled: false,
+    hasEnoughHistory: false,
+    sampleSize: patterns.sampleSize || 0,
+    historicalRiskDelta: 0,
+    dominantHistoricalSignature: patterns.dominantHistoricalSignature || 'insufficient_history',
+    dominantState: patterns.dominantState || 'unknown',
+    dominantPattern: patterns.dominantPattern || 'unknown',
+    recurringRelapse: false,
+    fragileRecoveryRecurring: false,
+    recurringSabotage: false,
+    recurrenceConfidence: 0,
+    historicalPressure: 0,
+    recentTrend: 'neutral',
+    summaryLabel: 'Sem histórico suficiente para overlay.',
+    radarEnrichment: 'sem_base_historica'
+  };
+
+  if (!currentSnapshot || !patterns.hasEnoughHistory) {
+    return fallback;
+  }
+
+  let historicalRiskDelta = Number(patterns.historicalPressure || 0);
+
+  if (
+    currentSnapshot.behaviorState?.state === 'recovery_fragile' &&
+    patterns.fragileRecoveryRecurring
+  ) {
+    historicalRiskDelta += 4;
+  }
+
+  if (
+    currentSnapshot.behaviorState?.state === 'sabotage_active' &&
+    patterns.recurringSabotage
+  ) {
+    historicalRiskDelta += 5;
+  }
+
+  if (
+    currentSnapshot.score <= 35 &&
+    patterns.recurringRelapse
+  ) {
+    historicalRiskDelta += 3;
+  }
+
+  if (
+    patterns.dominantHistoricalSignature === 'disciplined_recovery' &&
+    currentSnapshot.score <= 35
+  ) {
+    historicalRiskDelta -= 4;
+  }
+
+  historicalRiskDelta = Math.max(-8, Math.min(18, Math.round(historicalRiskDelta)));
+
+  let radarEnrichment = 'historical_instability';
+  if (patterns.recurringSabotage) {
+    radarEnrichment = 'recurring_sabotage';
+  } else if (patterns.recurringRelapse) {
+    radarEnrichment = 'relapse_cycle';
+  } else if (patterns.fragileRecoveryRecurring) {
+    radarEnrichment = 'fragile_recovery';
+  } else if (patterns.dominantHistoricalSignature === 'disciplined_recovery') {
+    radarEnrichment = 'disciplined_recovery';
+  }
+
+  return {
+    enabled: true,
+    hasEnoughHistory: true,
+    sampleSize: patterns.sampleSize,
+    historicalRiskDelta,
+    dominantHistoricalSignature: patterns.dominantHistoricalSignature,
+    dominantState: patterns.dominantState,
+    dominantPattern: patterns.dominantPattern,
+    recurringRelapse: patterns.recurringRelapse,
+    fragileRecoveryRecurring: patterns.fragileRecoveryRecurring,
+    recurringSabotage: patterns.recurringSabotage,
+    recurrenceConfidence: patterns.recurrenceConfidence,
+    historicalPressure: patterns.historicalPressure,
+    recentTrend: patterns.recentTrend,
+    summaryLabel: patterns.summaryLabel,
+    radarEnrichment,
+    patternSummary: patterns
+  };
+}
 function buildEducationCards() {
   // função placeholder para evitar erro
 }
