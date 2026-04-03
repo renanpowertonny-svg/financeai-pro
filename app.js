@@ -1544,6 +1544,7 @@ state.missionStatus = {
   savedAmount: 0,
   status: 'pending'
 };
+}
 function getBehaviorRiskLevel(score) {
   if (score >= 85) return 'Crítico';
   if (score >= 70) return 'Alto';
