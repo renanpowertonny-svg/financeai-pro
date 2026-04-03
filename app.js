@@ -1318,6 +1318,8 @@ function ensureMissionV3State(snap) {
 const behaviorState = snap.behaviorState || {};
 const metrics = snap.metrics || {};
 const patterns = snap.patterns || {};
+const historicalOverlay = snap?.historicalOverlay || {};
+const historicalMissionAdjustment = buildHistoricalMissionAdjustment(snap);
 
 let dynamicMissionConfig = {
   type: 'default',
@@ -1487,16 +1489,61 @@ else if (metrics.silentRiskLoad >= 55) {
     };
   }
 
-  state.missionStatus = {
-    ...state.missionStatus,
-    ...mission,
-    date: todayISO,
-    current: mission.target,
-    completed: false,
-    savedAmount: 0,
-    status: 'pending'
-  };
+ const adjustedMission = { ...mission };
+
+if (historicalMissionAdjustment) {
+  if (historicalMissionAdjustment.severity) {
+    adjustedMission.severity = historicalMissionAdjustment.severity;
+  }
+
+  if (historicalMissionAdjustment.psychologicalTone) {
+    adjustedMission.psychologicalTone = historicalMissionAdjustment.psychologicalTone;
+  }
+
+  if (historicalMissionAdjustment.actionLabel) {
+    adjustedMission.actionLabel = historicalMissionAdjustment.actionLabel;
+  }
+
+  if (historicalMissionAdjustment.diagnosisSuffix) {
+    adjustedMission.diagnosis = `${adjustedMission.diagnosis}_${historicalMissionAdjustment.diagnosisSuffix}`;
+  }
+
+  if (historicalMissionAdjustment.titlePrefix) {
+    adjustedMission.title = `${historicalMissionAdjustment.titlePrefix}: ${adjustedMission.title}`;
+  }
+
+  if (historicalMissionAdjustment.textPrefix) {
+    adjustedMission.text = `${historicalMissionAdjustment.textPrefix} ${adjustedMission.text}`;
+  }
+
+  if (
+    typeof historicalMissionAdjustment.targetMultiplier === 'number' &&
+    Number.isFinite(historicalMissionAdjustment.targetMultiplier)
+  ) {
+    adjustedMission.target = Math.max(
+      20,
+      Math.round((Number(adjustedMission.target || 0) * historicalMissionAdjustment.targetMultiplier) / 10) * 10
+    );
+  }
 }
+
+state.missionStatus = {
+  ...state.missionStatus,
+  ...adjustedMission,
+  historicalContext: {
+    enabled: historicalOverlay.hasEnoughHistory === true,
+    signature: historicalOverlay.dominantHistoricalSignature || 'insufficient_history',
+    recurringRelapse: historicalOverlay.recurringRelapse === true,
+    fragileRecoveryRecurring: historicalOverlay.fragileRecoveryRecurring === true,
+    recurringSabotage: historicalOverlay.recurringSabotage === true,
+    recurrenceConfidence: Number(historicalOverlay.recurrenceConfidence || 0)
+  },
+  date: todayISO,
+  current: adjustedMission.target,
+  completed: false,
+  savedAmount: 0,
+  status: 'pending'
+};
 function getBehaviorRiskLevel(score) {
   if (score >= 85) return 'Crítico';
   if (score >= 70) return 'Alto';
