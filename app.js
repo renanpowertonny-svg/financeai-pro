@@ -440,6 +440,7 @@ DB.set(`missionStatus_${k}`, state.missionStatus);
 DB.set(`missionHistory_${k}`, state.missionHistory);
 DB.set(`behaviorProfile_${k}`, state.behaviorProfile);
 DB.set(`eduProgress_${k}`, state.eduProgress);
+DB.set(`behaviorMemory_${k}`, state.behaviorMemory);
 }
 
 // ==========================================
