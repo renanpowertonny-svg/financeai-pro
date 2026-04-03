@@ -1025,7 +1025,70 @@ function ensureMissionV3State(snap) {
   ) {
     return;
   }
+// ==========================================
+// BEHAVIOR-DRIVEN MISSION ENGINE (V1)
+// ==========================================
 
+const behaviorState = snap.behaviorState || {};
+const metrics = snap.metrics || {};
+const patterns = snap.patterns || {};
+
+let dynamicMissionConfig = {
+  type: 'default',
+  severity: 'stable',
+  psychologicalTone: 'neutral',
+  adjustment: 1
+};
+
+// 🔴 PRÉ-COLAPSO
+if (behaviorState.state === 'pre_collapse') {
+  dynamicMissionConfig = {
+    type: 'containment',
+    severity: 'critical',
+    psychologicalTone: 'urgent_control',
+    adjustment: 0.5
+  };
+}
+
+// 🔴 SABOTAGEM
+else if (behaviorState.state === 'sabotage_active') {
+  dynamicMissionConfig = {
+    type: 'interruption',
+    severity: 'high',
+    psychologicalTone: 'firm_intervention',
+    adjustment: 0.6
+  };
+}
+
+// 🟠 PRESSÃO
+else if (behaviorState.state === 'pressure_escalation') {
+  dynamicMissionConfig = {
+    type: 'stabilization',
+    severity: 'medium',
+    psychologicalTone: 'preventive_control',
+    adjustment: 0.8
+  };
+}
+
+// 🟡 RECUPERAÇÃO FRÁGIL
+else if (behaviorState.state === 'recovery_fragile') {
+  dynamicMissionConfig = {
+    type: 'protection',
+    severity: 'attention',
+    psychologicalTone: 'cautious_support',
+    adjustment: 0.7
+  };
+}
+
+// 🟡 RISCO SILENCIOSO
+else if (metrics.silentRiskLoad >= 55) {
+  dynamicMissionConfig = {
+    type: 'precision_adjustment',
+    severity: 'attention',
+    psychologicalTone: 'strategic_alert',
+    adjustment: 0.85
+  };
+}
   let mission = {
     type: 'growth',
     severity: 'stable',
