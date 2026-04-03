@@ -4638,19 +4638,42 @@ function analyzeAlertsSafe() {
   const snap = getBehaviorEngineSnapshot();
   if (!snap) return;
 
-  const { summary, topCategoryName, topCategoryValue, score, riskLevel } = snap;
+  const {
+    summary,
+    topCategoryName,
+    topCategoryValue,
+    score,
+    riskLevel,
+    behaviorState = {},
+    metrics = {},
+    languagePack = {}
+  } = snap;
+
+  const historical = buildHistoricalAlertContext(snap);
+
+  const pickPriority = (basePriority) => {
+    const order = { low: 1, medium: 2, high: 3, critical: 4 };
+    const boosted = historical.priority || basePriority;
+    return (order[boosted] || 1) > (order[basePriority] || 1) ? boosted : basePriority;
+  };
 
   if (summary.balance < 0 && shouldTriggerAlert('saldo_negativo', 30)) {
-    showToast('error', 'Saldo negativo', 'Suas despesas já superaram sua receita neste mês.');
+    const text =
+      `Seu mês já está negativo em ${fmt(Math.abs(summary.balance))}. Prioridade imediata: travar gastos não essenciais.` +
+      historical.sabotageCopy +
+      historical.relapseCopy +
+      historical.signatureCopy;
+
+    showToast('error', 'Saldo negativo', 'Seu caixa já entrou em ruptura no mês atual.');
 
     addNotification(
-      'Saldo negativo',
-      `Seu mês já está negativo em ${fmt(Math.abs(summary.balance))}. Prioridade imediata: travar gastos não essenciais.`,
+      historical.hasHistoricalContext ? 'Ruptura de caixa com memória histórica' : 'Saldo negativo',
+      text,
       'error',
       {
-        priority: 'critical',
+        priority: pickPriority('critical'),
         category: 'cashflow',
-        source: 'safe-engine',
+        source: historical.hasHistoricalContext ? historical.sourceSuffix : 'safe-engine',
         score,
         actionLabel: 'Ver transações',
         actionPage: 'transactions'
@@ -4659,14 +4682,23 @@ function analyzeAlertsSafe() {
   }
 
   if (summary.savingsRate < 10 && shouldTriggerAlert('poupanca_baixa', 60)) {
+    const retentionBase =
+      `Sua taxa de retenção está em ${summary.savingsRate.toFixed(1)}%. Abaixo de 10%, o caixa perde estabilidade.`;
+
+    const retentionText =
+      retentionBase +
+      historical.recoveryCopy +
+      historical.relapseCopy +
+      historical.signatureCopy;
+
     addNotification(
-      'Baixa retenção',
-      `Sua taxa de retenção está em ${summary.savingsRate.toFixed(1)}%. Abaixo de 10%, o caixa perde estabilidade.`,
+      historical.fragileRecoveryRecurring ? 'Retenção baixa com recuperação frágil' : 'Baixa retenção',
+      retentionText,
       'warning',
       {
-        priority: summary.savingsRate < 5 ? 'high' : 'medium',
+        priority: pickPriority(summary.savingsRate < 5 ? 'high' : 'medium'),
         category: 'savings',
-        source: 'safe-engine',
+        source: historical.hasHistoricalContext ? historical.sourceSuffix : 'safe-engine',
         score,
         actionLabel: 'Ver análise',
         actionPage: 'ai'
@@ -4678,14 +4710,24 @@ function analyzeAlertsSafe() {
     const pct = (topCategoryValue / summary.income) * 100;
 
     if (pct >= 35 && shouldTriggerAlert(`categoria_top_${topCategoryName}`, 90)) {
+      const concentrationText =
+        `${topCategoryName} está consumindo ${pct.toFixed(0)}% da sua renda do mês. Isso reduz sua margem de segurança.` +
+        (historical.dominantPattern === 'burn_after_income'
+          ? ' Seu histórico sugere aceleração depois da entrada de renda.'
+          : '') +
+        historical.sabotageCopy +
+        historical.signatureCopy;
+
       addNotification(
-        'Concentração de gasto',
-        `${topCategoryName} está consumindo ${pct.toFixed(0)}% da sua renda do mês. Isso reduz sua margem de segurança.`,
+        historical.dominantPattern === 'burn_after_income'
+          ? 'Concentração com aceleração histórica'
+          : 'Concentração de gasto',
+        concentrationText,
         'warning',
         {
-          priority: pct >= 50 ? 'high' : 'medium',
+          priority: pickPriority(pct >= 50 ? 'high' : 'medium'),
           category: 'category',
-          source: 'safe-engine',
+          source: historical.hasHistoricalContext ? historical.sourceSuffix : 'safe-engine',
           score,
           actionLabel: 'Revisar categoria',
           actionPage: 'transactions'
@@ -4694,21 +4736,71 @@ function analyzeAlertsSafe() {
     }
   }
 
-  if (score >= 75 && shouldTriggerAlert('risk_score_critical', 120)) {
+  if (
+    (score >= 75 || behaviorState.state === 'pre_collapse' || metrics.sabotageIndex >= 70) &&
+    shouldTriggerAlert('risk_score_critical', 120)
+  ) {
+    const riskText =
+      `Seu score atual está em ${score}/100 (${riskLevel}). O sistema detectou fragilidade alta no seu caixa.` +
+      ' ' +
+      (languagePack.headline || '') +
+      historical.sabotageCopy +
+      historical.relapseCopy +
+      historical.recoveryCopy +
+      historical.signatureCopy;
+
     addNotification(
-      'Risco financeiro crítico',
-      `Seu score atual está em ${score}/100 (${riskLevel}). O sistema detectou fragilidade alta no seu caixa.`,
+      historical.recurringSabotage
+        ? 'Risco crítico com sabotagem recorrente'
+        : historical.recurringRelapse
+        ? 'Risco crítico com recaída recorrente'
+        : 'Risco financeiro crítico',
+      riskText.trim(),
       'error',
       {
-        priority: 'critical',
+        priority: pickPriority('critical'),
         category: 'risk',
-        source: 'safe-engine',
+        source: historical.hasHistoricalContext ? historical.sourceSuffix : 'safe-engine',
         score,
         actionLabel: 'Ver IA',
         actionPage: 'ai'
       }
     );
-  }  
+  }
+
+  if (
+    historical.hasHistoricalContext &&
+    historical.recurrenceConfidence >= 55 &&
+    shouldTriggerAlert(`historical_pattern_${historical.recurrenceLabel || 'generic'}`, 240)
+  ) {
+    let title = 'Padrão histórico recorrente';
+    let body = 'O FinanceAI detectou repetição de padrão com impacto direto na sua estabilidade.';
+
+    if (historical.recurrenceLabel === 'sabotagem_recorrente') {
+      title = 'Sabotagem financeira recorrente';
+      body = 'Seu histórico mostra repetição de sabotagem após sinais de alívio ou impulso. O risco atual precisa ser tratado como padrão recorrente.';
+    } else if (historical.recurrenceLabel === 'recaida_recorrente') {
+      title = 'Recaída recorrente detectada';
+      body = 'Você não está apenas em atenção hoje. O sistema detectou repetição de melhora seguida de retorno ao erro.';
+    } else if (historical.recurrenceLabel === 'recuperacao_fragil_recorrente') {
+      title = 'Recuperação ainda não consolidada';
+      body = 'Sua melhora recente ainda não é confiável. O histórico mostra recuperação frágil com chance real de regressão.';
+    }
+
+    addNotification(
+      title,
+      `${body} Confiança histórica: ${historical.recurrenceConfidence}%.`,
+      historical.recurrenceLabel === 'sabotagem_recorrente' ? 'error' : 'warning',
+      {
+        priority: pickPriority(historical.recurrenceLabel === 'sabotagem_recorrente' ? 'critical' : 'high'),
+        category: 'behavior',
+        source: historical.sourceSuffix,
+        score,
+        actionLabel: 'Abrir IA',
+        actionPage: 'ai'
+      }
+    );
+  }
 }
 function analyzePredictiveAlerts() {
 const snap = getBehaviorEngineSnapshot();
