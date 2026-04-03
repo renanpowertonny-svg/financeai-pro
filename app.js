@@ -4429,6 +4429,46 @@ function shouldTriggerAlert(key, cooldownMinutes = 10) {
 
   return true;
 }
+function recordBehaviorMemorySnapshot(snap) {
+  if (!state.user || !snap) return;
+
+  const today = fmtDate(new Date());
+  const memory = Array.isArray(state.behaviorMemory) ? state.behaviorMemory : [];
+
+  const entry = {
+    date: today,
+    score: Number(snap.score || 0),
+    riskLevel: snap.riskLevel || 'stable',
+    state: snap.behaviorState?.state || 'stable_disciplined',
+    severity: snap.behaviorState?.severity || 'stable',
+    trend: snap.behaviorState?.trend || 'neutral',
+    dominantPattern: snap.patterns?.dominant || 'stable_control',
+    sabotageIndex: Number(snap.metrics?.sabotageIndex || 0),
+    consistencyIntegrity: Number(snap.metrics?.consistencyIntegrity || 0),
+    recoveryFragility: Number(snap.metrics?.recoveryFragility || 0),
+    postIncomeVulnerability: Number(snap.metrics?.postIncomeVulnerability || 0),
+    silentRiskLoad: Number(snap.metrics?.silentRiskLoad || 0),
+    projectedBalance: Number(snap.projectedBalance || 0),
+    savingsRate: Number(snap.summary?.savingsRate || 0),
+    balance: Number(snap.summary?.balance || 0),
+    missionType: state.missionStatus?.type || 'discipline',
+    missionSeverity: state.missionStatus?.severity || 'stable',
+    missionCompleted: !!state.missionStatus?.completed,
+    missionStatus: state.missionStatus?.status || 'pending',
+    createdAt: new Date().toISOString()
+  };
+
+  const existingIndex = memory.findIndex(item => item.date === today);
+
+  if (existingIndex >= 0) {
+    memory[existingIndex] = entry;
+  } else {
+    memory.unshift(entry);
+  }
+
+  state.behaviorMemory = memory.slice(0, 45);
+}
+
 function buildEducationCards() {
   // função placeholder para evitar erro
 }
