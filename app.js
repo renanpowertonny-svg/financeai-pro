@@ -2435,7 +2435,7 @@ renderDailyMission();
 renderPremiumRiskCard();
 analyzeAlertsSafe();
 analyzePredictiveAlerts();
-   
+renderPremiumRiskCard();
 }
 
 function renderRecentTransactions(txs) {
@@ -2753,6 +2753,7 @@ function deleteTransaction(id) {
   filterTransactions();
   if (state.currentPage === 'dashboard') renderDashboard();
   showToast('success', 'Excluída', 'Transação removida com sucesso.');
+  renderPremiumRiskCard();
 }
 
 function checkSpendingLimits(category, value) {
