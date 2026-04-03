@@ -959,6 +959,7 @@ function getBehaviorEngineSnapshot() {
     languagePack,
     historicalOverlay
   };
+}
    function getPremiumRiskActionPlan(snap) {
   if (!snap) {
     return {
