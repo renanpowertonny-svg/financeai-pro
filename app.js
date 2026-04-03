@@ -990,7 +990,17 @@ function renderPremiumRiskCard() {
   }
 
   const snap = getBehaviorEngineSnapshot();
-  const plan = getPremiumRiskActionPlan(snap);
+  const plan = {
+  title: 'Radar FinanceAI ativo',
+  summary: 'Leitura comportamental em execução.',
+  masterAlert: 'Sistema analisando seu padrão financeiro.',
+  action: 'Continue registrando movimentações para melhorar a precisão.',
+  objective: 'Gerar base comportamental consistente.',
+  primaryLabel: 'Ver transações',
+  secondaryLabel: 'Abrir IA',
+  primaryPage: 'transactions',
+  secondaryPage: 'ai'
+};
 
   if (!snap) {
     titleEl.textContent = 'Sem leitura suficiente';
