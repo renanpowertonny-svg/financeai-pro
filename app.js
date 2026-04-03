@@ -1409,6 +1409,95 @@ function buildHistoricalMissionDirective(snap) {
 
   return fallback;
 }
+function buildHistoricalMissionAdjustment() {
+  return {
+    scoreAdjustment: 0,
+    urgencyBoost: 0,
+    behavioralPenalty: 0,
+    reason: 'no_historical_data'
+  };
+}
+function buildHistoricalMissionAdjustment(snap) {
+  const overlay = snap?.historicalOverlay || {};
+  const fallback = {
+    mode: 'default',
+    severityBoost: 0,
+    targetMultiplier: 1,
+    scoreDeltaSuccessBoost: 0,
+    scoreDeltaFailBoost: 0,
+    diagnosisSuffix: '',
+    titlePrefix: '',
+    textPrefix: '',
+    actionPrefix: '',
+    psychologicalTone: null
+  };
+
+  if (!overlay || overlay.hasEnoughHistory !== true) {
+    return fallback;
+  }
+
+  if (overlay.recurringSabotage) {
+    return {
+      mode: 'recurring_sabotage',
+      severityBoost: 2,
+      targetMultiplier: 0.85,
+      scoreDeltaSuccessBoost: 1,
+      scoreDeltaFailBoost: -2,
+      diagnosisSuffix: '_recurring_sabotage',
+      titlePrefix: 'Interrupção de Sabotagem',
+      textPrefix: 'Seu histórico mostra sabotagem recorrente. ',
+      actionPrefix: 'Interromper sabotagem',
+      psychologicalTone: 'firm_intervention'
+    };
+  }
+
+  if (overlay.recurringRelapse) {
+    return {
+      mode: 'recurring_relapse',
+      severityBoost: 1,
+      targetMultiplier: 0.9,
+      scoreDeltaSuccessBoost: 1,
+      scoreDeltaFailBoost: -1,
+      diagnosisSuffix: '_relapse_cycle',
+      titlePrefix: 'Proteção Contra Recaída',
+      textPrefix: 'Seu histórico mostra recaída recorrente após melhora. ',
+      actionPrefix: 'Proteger recuperação',
+      psychologicalTone: 'strategic'
+    };
+  }
+
+  if (overlay.fragileRecoveryRecurring) {
+    return {
+      mode: 'fragile_recovery',
+      severityBoost: 1,
+      targetMultiplier: 0.95,
+      scoreDeltaSuccessBoost: 0,
+      scoreDeltaFailBoost: -1,
+      diagnosisSuffix: '_fragile_recovery',
+      titlePrefix: 'Consolidação de Recuperação',
+      textPrefix: 'Sua recuperação ainda é frágil no histórico. ',
+      actionPrefix: 'Consolidar padrão',
+      psychologicalTone: 'cautious_support'
+    };
+  }
+
+  if (overlay.dominantHistoricalSignature === 'disciplined_recovery') {
+    return {
+      mode: 'disciplined_recovery',
+      severityBoost: -1,
+      targetMultiplier: 1.05,
+      scoreDeltaSuccessBoost: 0,
+      scoreDeltaFailBoost: 0,
+      diagnosisSuffix: '_disciplined_recovery',
+      titlePrefix: 'Expansão de Consistência',
+      textPrefix: 'Seu histórico mostra disciplina em consolidação. ',
+      actionPrefix: 'Expandir consistência',
+      psychologicalTone: 'supportive'
+    };
+  }
+
+  return fallback;
+}
 function ensureMissionV3State(snap) {
   if (!state.user) return;
 
