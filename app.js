@@ -5569,7 +5569,23 @@ function buildHistoricalBehaviorOverlay(currentSnapshot, memoryEntries = []) {
   };
 }
 function buildEducationCards() {
-  // função placeholder para evitar erro
+  ensureEducationState();
+
+  const grid = document.getElementById('eduGrid');
+  if (!grid) return;
+
+  const statsIds = ['lessonsCompleted', 'eduStreak', 'eduPoints'];
+  const hasStats = statsIds.every(id => document.getElementById(id));
+
+  if (!hasStats) return;
+
+  const completed = Array.isArray(state.eduProgress.completed)
+    ? state.eduProgress.completed
+    : [];
+
+  state.eduProgress.completed = completed;
+  state.eduProgress.streak = Number(state.eduProgress.streak || 0);
+  state.eduProgress.points = Number(state.eduProgress.points || 0);
 }
 // ==========================================
 // GLOBAL EXPOSURE (CRÍTICO)
