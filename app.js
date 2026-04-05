@@ -3797,7 +3797,8 @@ function applyEducationAction(action) {
   const ctx = getEducationContext();
   const diagnosis = getEducationDiagnosis(ctx);
 
-  const notify = (title, text, severity = 'medium') => {
+  const pushEducationNotification = (title, text, severity = 'medium') => {
+    state.notifications = Array.isArray(state.notifications) ? state.notifications : [];
     state.notifications.unshift({
       id: genId(),
       type: 'education',
@@ -3811,13 +3812,24 @@ function applyEducationAction(action) {
     renderNotifications();
   };
 
-  // ========================
-  // AÇÕES BASE
-  // ========================
+  const registerEducationTouch = (entry) => {
+    state.behaviorMemory = Array.isArray(state.behaviorMemory) ? state.behaviorMemory : [];
+    state.behaviorMemory.push({
+      type: 'education_intervention',
+      createdAt: new Date().toISOString(),
+      ...entry
+    });
+    state.behaviorMemory = state.behaviorMemory.slice(-50);
+    saveUserData();
+  };
 
   if (action === 'review-transactions') {
     navigate('transactions');
-    showToast('info', 'Auditoria iniciada', 'Revise agora seus gastos e identifique excessos.');
+    showToast(
+      'info',
+      'Auditoria aberta',
+      'Revise agora os lançamentos e identifique o que foi necessidade, impulso ou conforto repetido.'
+    );
     return;
   }
 
@@ -3827,34 +3839,52 @@ function applyEducationAction(action) {
       if (typeof openGoalModal === 'function') openGoalModal();
     }, 120);
 
-    showToast('warning', 'Blindagem necessária', 'Você precisa construir reserva para reduzir risco.');
+    showToast(
+      'warning',
+      'Blindagem iniciada',
+      'Sua reserva precisa sair do campo da intenção e virar meta ativa com primeiro aporte definido.'
+    );
     return;
   }
 
   if (action === 'set-food-limit') {
     navigate('settings');
-
     setTimeout(() => {
       const input = document.querySelector('.limit-input[data-cat="Alimentação"]');
       if (input) {
-        const suggested = Math.round((ctx.foodExpense || 0) * 0.85);
-        input.value = suggested;
+        const suggestedLimit = Math.max(50, Math.round((Number(ctx.foodExpense || 0)) * 0.85));
         input.focus();
         input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        input.value = suggestedLimit;
+        input.dispatchEvent(new Event('input', { bubbles: true }));
       }
     }, 120);
 
-    showToast('warning', 'Limite aplicado', 'Definimos um teto para conter o vazamento.');
+    showToast(
+      'warning',
+      'Limite sugerido preparado',
+      'Preenchemos um teto inicial para alimentação. Agora salve esse limite para conter o vazamento.'
+    );
     return;
   }
 
   if (action === 'open-goals') {
     navigate('goals');
+    showToast(
+      'info',
+      'Plano de metas aberto',
+      'Agora transforme objetivo em estrutura: prazo, valor e aporte recorrente.'
+    );
     return;
   }
 
   if (action === 'open-ai') {
     navigate('ai');
+    showToast(
+      'info',
+      'Diagnóstico aprofundado',
+      'Abrindo a IA para detalhar causa, consequência e correção recomendada.'
+    );
     return;
   }
 
@@ -3864,58 +3894,69 @@ function applyEducationAction(action) {
     return;
   }
 
-  // ========================
-  // 🔥 CORREÇÃO DO PROBLEMA
-  // ========================
+  const interventionIds = [
+    'reserve-shield',
+    'salary-evaporation',
+    'food-control',
+    'cash-bleeding',
+    'recurring-burden',
+    'stability-before-investing',
+    'goal-discipline',
+    'discipline-engine'
+  ];
 
-  if (action === diagnosis.lessonId) {
-
-    notify(
-      'Correção iniciada',
-      `Detectamos que seu problema principal é: ${diagnosis.title}`,
+  if (interventionIds.includes(action)) {
+    pushEducationNotification(
+      'Intervenção premium iniciada',
+      `O FinanceAI abriu uma intervenção guiada para atacar sua dor dominante: ${diagnosis.title}.`,
       'high'
     );
 
-    // ROTEAMENTO INTELIGENTE
+    registerEducationTouch({
+      lessonId: action,
+      diagnosisTitle: diagnosis.title,
+      currentPage: state.currentPage
+    });
 
-    if (action === 'food-control') {
-      navigate('settings');
-      showToast('warning', 'Ajuste alimentar', 'Vamos reduzir seu gasto com alimentação agora.');
-      return;
-    }
+    openLesson(action);
 
-    if (action === 'cash-bleeding') {
-      navigate('transactions');
-      showToast('warning', 'Vazamento detectado', 'Revise sua principal fonte de gasto.');
-      return;
-    }
+    setTimeout(() => {
+      showToast(
+        'info',
+        'Intervenção guiada aberta',
+        'Agora você não foi jogado em uma tela genérica. O sistema abriu a explicação da causa, do erro e do próximo passo.'
+      );
+    }, 80);
 
-    if (action === 'reserve-shield') {
-      navigate('goals');
-      showToast('warning', 'Sem proteção', 'Crie sua reserva de emergência agora.');
-      return;
-    }
+    return;
+  }
 
-    if (action === 'salary-evaporation') {
-      navigate('transactions');
-      showToast('warning', 'Renda evaporando', 'Seu problema está na retenção.');
-      return;
-    }
+  if (diagnosis && action === diagnosis.lessonId) {
+    pushEducationNotification(
+      'Correção iniciada',
+      `Sua dor dominante atual é: ${diagnosis.title}. O FinanceAI abriu a intervenção correspondente.`,
+      'high'
+    );
 
-    if (action === 'recurring-burden') {
-      navigate('transactions');
-      showToast('warning', 'Custos ocultos', 'Revise assinaturas e cobranças recorrentes.');
-      return;
-    }
+    registerEducationTouch({
+      lessonId: diagnosis.lessonId,
+      diagnosisTitle: diagnosis.title,
+      currentPage: state.currentPage
+    });
 
-    if (action === 'stability-before-investing') {
-      navigate('ai');
-      showToast('info', 'Base antes de crescer', 'Você precisa estabilizar antes de investir.');
-      return;
-    }
+    openLesson(diagnosis.lessonId);
+
+    setTimeout(() => {
+      showToast(
+        'warning',
+        'Dor dominante identificada',
+        `Abrimos a intervenção de ${diagnosis.title} com explicação prática, não só navegação.`
+      );
+    }, 80);
+
+    return;
   }
 }
-
 function openLesson(id) {
   const lesson = EDUCATION_PROGRAMS.find(item => item.id === id);
   if (!lesson) return;
