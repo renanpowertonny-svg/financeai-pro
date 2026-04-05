@@ -3830,9 +3830,9 @@ function applyEducationAction(action) {
   if (action === 'complete-mission') {
     const mission = getEducationMission(getEducationContext());
     completeEducationMission(mission.id, mission.reward);
-    return;
   }
 }
+
 function openLesson(id) {
   const lesson = EDUCATION_PROGRAMS.find(item => item.id === id);
   if (!lesson) return;
