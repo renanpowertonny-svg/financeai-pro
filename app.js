@@ -4127,21 +4127,197 @@ function completeLesson(id, overlay) {
   renderEducation();
 }
 
+function getEducationMissionExecutionPlan(missionId, ctx) {
+  const plans = {
+    'mission-food-cap': {
+      title: 'Redução prática em alimentação',
+      badge: 'Execução guiada',
+      lessonId: 'food-control',
+      problem: `Seu gasto atual em alimentação está em ${fmt(ctx.foodExpense || 0)}. O ponto aqui não é “gastar menos por gastar menos”. É parar a erosão silenciosa da sua margem.`,
+      whyNow: 'Quando alimentação variável cresce sem teto, ela rouba espaço de meta, reserva e tranquilidade.',
+      nextStep: `Vou abrir Configurações e preencher um teto inicial sugerido em torno de ${fmt(Math.max(50, Math.round((Number(ctx.foodExpense || 0)) * 0.85)))} para você revisar e salvar.`,
+      expected: 'Se você consolidar esse teto e sustentar o ajuste, sua margem começa a respirar já no próximo ciclo.',
+      actionLabel: 'Definir teto agora'
+    },
+
+    'mission-create-reserve': {
+      title: 'Blindagem mínima contra imprevisto',
+      badge: 'Proteção financeira',
+      lessonId: 'reserve-shield',
+      problem: `Sua cobertura atual está abaixo do ideal. A reserva estimada para sua realidade é ${fmt(ctx.emergencyTarget || 0)} e hoje você tem ${fmt(ctx.emergencyCurrent || 0)}.`,
+      whyNow: 'Sem reserva, qualquer choque empurra o usuário para cartão, atraso ou decisão ruim sob pressão.',
+      nextStep: 'Vou abrir Metas e acionar o fluxo para você criar a reserva com primeiro aporte definido.',
+      expected: 'A partir do momento em que a reserva entra no sistema como meta ativa, a ansiedade cai e o controle sobe.',
+      actionLabel: 'Criar blindagem agora'
+    },
+
+    'mission-cut-variable': {
+      title: 'Travar vazamento variável',
+      badge: 'Correção imediata',
+      lessonId: 'cash-bleeding',
+      problem: `Sua retenção atual está em ${Number(ctx.savingsRate || 0).toFixed(1)}% e seu maior centro de pressão hoje está em ${ctx.topExpenseCategory || 'uma categoria crítica'} com ${fmt(ctx.topExpenseValue || 0)}.`,
+      whyNow: 'Quando a retenção despenca, o problema raramente é só renda. O dano vem do gasto variável sem fricção suficiente.',
+      nextStep: 'Vou abrir Transações para você auditar o bloco mais perigoso do mês e separar necessidade de impulso.',
+      expected: 'Ao travar o vazamento dominante, você recupera margem e volta a respirar antes de pensar em crescer.',
+      actionLabel: 'Auditar vazamento agora'
+    },
+
+    'mission-structure': {
+      title: 'Organizar base antes de acelerar',
+      badge: 'Estrutura',
+      lessonId: 'discipline-engine',
+      problem: `Sua consistência atual está em ${ctx.disciplineScore || 0}/100. Sem rotina, prioridade e limite claros, o sistema financeiro continua dependendo de motivação.`,
+      whyNow: 'Sem base estável, qualquer tentativa de crescer vira esforço disperso.',
+      nextStep: 'Vou abrir a IA para aprofundar causa, fragilidade e ordem correta de organização.',
+      expected: 'Quando a base fica clara, o usuário para de reagir e passa a conduzir o dinheiro.',
+      actionLabel: 'Organizar base agora'
+    }
+  };
+
+  return plans[missionId] || {
+    title: 'Missão operacional',
+    badge: 'Execução',
+    lessonId: 'discipline-engine',
+    problem: 'Sua missão precisa sair do modo decorativo e virar execução prática.',
+    whyNow: 'Sem ação concreta, missão vira texto e o produto perde poder.',
+    nextStep: 'Vou abrir o fluxo mais apropriado para você executar a correção agora.',
+    expected: 'O objetivo é transformar orientação em mudança observável.',
+    actionLabel: 'Executar agora'
+  };
+}
+
+function executeEducationMissionAction(missionId, reward) {
+  ensureEducationState();
+
+  state.eduProgress.missionsDone = Array.isArray(state.eduProgress.missionsDone)
+    ? state.eduProgress.missionsDone
+    : [];
+
+  state.notifications = Array.isArray(state.notifications) ? state.notifications : [];
+
+  const ctx = getEducationContext();
+  const plan = getEducationMissionExecutionPlan(missionId, ctx);
+
+  const alreadyDone = state.eduProgress.missionsDone.includes(missionId);
+
+  if (missionId === 'mission-food-cap') {
+    navigate('settings');
+
+    setTimeout(() => {
+      const input = document.querySelector('.limit-input[data-cat="Alimentação"]');
+      if (!input) return;
+
+      const suggestedLimit = Math.max(50, Math.round((Number(ctx.foodExpense || 0)) * 0.85));
+
+      input.focus();
+      input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      input.value = suggestedLimit;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    }, 140);
+  } else if (missionId === 'mission-create-reserve') {
+    navigate('goals');
+
+    setTimeout(() => {
+      if (typeof openGoalModal === 'function') openGoalModal();
+    }, 140);
+  } else if (missionId === 'mission-cut-variable') {
+    navigate('transactions');
+  } else if (missionId === 'mission-structure') {
+    navigate('ai');
+  } else {
+    navigate('education');
+  }
+
+  state.notifications.unshift({
+    id: genId(),
+    type: 'education_mission',
+    title: alreadyDone ? 'Fluxo prático reaberto' : 'Missão executada com ação real',
+    text: alreadyDone
+      ? `A missão "${plan.title}" já tinha sido pontuada, mas o FinanceAI reabriu a execução prática para você agir agora.`
+      : `A missão "${plan.title}" foi convertida em ação prática. O sistema abriu o fluxo correto para a correção.`,
+    severity: alreadyDone ? 'low' : 'medium',
+    createdAt: new Date().toISOString()
+  });
+
+  state.notifications = state.notifications.slice(0, 20);
+
+  if (!alreadyDone) {
+    state.eduProgress.missionsDone.push(missionId);
+    state.eduProgress.points = Number(state.eduProgress.points || 0) + Number(reward || 0);
+    state.eduProgress.streak = Number(state.eduProgress.streak || 0) + 1;
+    state.eduProgress.lastMissionDate = new Date().toISOString();
+  }
+
+  saveUserData();
+  renderNotifications();
+  renderEducation();
+
+  document.querySelector('.education-mission-overlay')?.remove();
+
+  showToast(
+    alreadyDone ? 'info' : 'success',
+    alreadyDone ? 'Fluxo reaberto com inteligência' : 'Missão convertida em execução',
+    alreadyDone
+      ? 'A missão já estava pontuada, mas o FinanceAI reabriu o plano prático para você agir agora.'
+      : `+${reward} pontos adicionados e execução prática aberta.`
+  );
+}
+
 function completeEducationMission(missionId, reward) {
   ensureEducationState();
 
-  if (!state.eduProgress.missionsDone.includes(missionId)) {
-    state.eduProgress.missionsDone.push(missionId);
-    state.eduProgress.points = (state.eduProgress.points || 0) + reward;
-    state.eduProgress.streak = (state.eduProgress.streak || 0) + 1;
-    state.eduProgress.lastMissionDate = new Date().toISOString();
-    saveUserData();
-    showToast('success', 'Missão concluída!', `+${reward} pontos adicionados.`);
-  } else {
-    showToast('info', 'Missão já registrada', 'Essa missão já foi marcada anteriormente.');
-  }
+  const ctx = getEducationContext();
+  const plan = getEducationMissionExecutionPlan(missionId, ctx);
+  const alreadyDone = Array.isArray(state.eduProgress.missionsDone) && state.eduProgress.missionsDone.includes(missionId);
 
-  renderEducation();
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay education-mission-overlay';
+  overlay.innerHTML = `
+    <div class="modal" style="max-width:780px;">
+      <div class="modal-header">
+        <h2>🎯 ${plan.title}</h2>
+        <button onclick="this.closest('.modal-overlay').remove()">✕</button>
+      </div>
+
+      <div class="modal-body" style="max-height:70vh;overflow-y:auto;">
+        <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
+          <span style="padding:8px 12px;border-radius:999px;background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.28);font-size:12px;color:#a5b4fc;">${plan.badge}</span>
+          <span style="padding:8px 12px;border-radius:999px;background:${alreadyDone ? 'rgba(16,185,129,.12)' : 'rgba(255,255,255,.04)'};border:1px solid ${alreadyDone ? 'rgba(16,185,129,.28)' : 'rgba(255,255,255,.08)'};font-size:12px;color:${alreadyDone ? '#6ee7b7' : 'var(--text-secondary)'};">
+            ${alreadyDone ? 'Já pontuada' : 'Pronta para execução'}
+          </span>
+        </div>
+
+        <div style="margin-bottom:14px;padding:16px;border-radius:16px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);">
+          <div style="font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">Problema real</div>
+          <div style="font-size:15px;line-height:1.7;color:var(--text-secondary);">${plan.problem}</div>
+        </div>
+
+        <div style="margin-bottom:14px;padding:16px;border-radius:16px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.18);">
+          <div style="font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:#fca5a5;margin-bottom:6px;">Por que isso precisa acontecer agora</div>
+          <div style="font-size:15px;line-height:1.7;color:var(--text-secondary);">${plan.whyNow}</div>
+        </div>
+
+        <div style="margin-bottom:14px;padding:16px;border-radius:16px;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.18);">
+          <div style="font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:#a5b4fc;margin-bottom:6px;">Próximo passo operacional</div>
+          <div style="font-size:15px;line-height:1.7;color:var(--text-secondary);">${plan.nextStep}</div>
+        </div>
+
+        <div style="margin-bottom:6px;padding:16px;border-radius:16px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.18);">
+          <div style="font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:#6ee7b7;margin-bottom:6px;">Impacto esperado</div>
+          <div style="font-size:15px;line-height:1.7;color:var(--text-secondary);">${plan.expected}</div>
+        </div>
+      </div>
+
+      <div class="modal-actions" style="display:flex;gap:12px;justify-content:space-between;flex-wrap:wrap;">
+        <button class="btn-ghost" onclick="openLesson('${plan.lessonId}')">Ver explicação aprofundada</button>
+        <button class="btn-primary" onclick="executeEducationMissionAction('${missionId}', ${Number(reward || 0)})">
+          ${alreadyDone ? 'Reabrir execução prática' : plan.actionLabel}
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
 }
 // ==========================================
 // REPORTS PAGE
