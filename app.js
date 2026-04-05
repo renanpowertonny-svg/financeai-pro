@@ -3792,8 +3792,32 @@ function renderEducation() {
 }
 
 function applyEducationAction(action) {
+  ensureEducationState();
+
+  const ctx = getEducationContext();
+  const diagnosis = getEducationDiagnosis(ctx);
+
+  const notify = (title, text, severity = 'medium') => {
+    state.notifications.unshift({
+      id: genId(),
+      type: 'education',
+      title,
+      text,
+      severity,
+      createdAt: new Date().toISOString()
+    });
+    state.notifications = state.notifications.slice(0, 20);
+    saveUserData();
+    renderNotifications();
+  };
+
+  // ========================
+  // AÇÕES BASE
+  // ========================
+
   if (action === 'review-transactions') {
     navigate('transactions');
+    showToast('info', 'Auditoria iniciada', 'Revise agora seus gastos e identifique excessos.');
     return;
   }
 
@@ -3802,18 +3826,25 @@ function applyEducationAction(action) {
     setTimeout(() => {
       if (typeof openGoalModal === 'function') openGoalModal();
     }, 120);
+
+    showToast('warning', 'Blindagem necessária', 'Você precisa construir reserva para reduzir risco.');
     return;
   }
 
   if (action === 'set-food-limit') {
     navigate('settings');
+
     setTimeout(() => {
       const input = document.querySelector('.limit-input[data-cat="Alimentação"]');
       if (input) {
+        const suggested = Math.round((ctx.foodExpense || 0) * 0.85);
+        input.value = suggested;
         input.focus();
         input.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
     }, 120);
+
+    showToast('warning', 'Limite aplicado', 'Definimos um teto para conter o vazamento.');
     return;
   }
 
@@ -3828,8 +3859,60 @@ function applyEducationAction(action) {
   }
 
   if (action === 'complete-mission') {
-    const mission = getEducationMission(getEducationContext());
+    const mission = getEducationMission(ctx);
     completeEducationMission(mission.id, mission.reward);
+    return;
+  }
+
+  // ========================
+  // 🔥 CORREÇÃO DO PROBLEMA
+  // ========================
+
+  if (action === diagnosis.lessonId) {
+
+    notify(
+      'Correção iniciada',
+      `Detectamos que seu problema principal é: ${diagnosis.title}`,
+      'high'
+    );
+
+    // ROTEAMENTO INTELIGENTE
+
+    if (action === 'food-control') {
+      navigate('settings');
+      showToast('warning', 'Ajuste alimentar', 'Vamos reduzir seu gasto com alimentação agora.');
+      return;
+    }
+
+    if (action === 'cash-bleeding') {
+      navigate('transactions');
+      showToast('warning', 'Vazamento detectado', 'Revise sua principal fonte de gasto.');
+      return;
+    }
+
+    if (action === 'reserve-shield') {
+      navigate('goals');
+      showToast('warning', 'Sem proteção', 'Crie sua reserva de emergência agora.');
+      return;
+    }
+
+    if (action === 'salary-evaporation') {
+      navigate('transactions');
+      showToast('warning', 'Renda evaporando', 'Seu problema está na retenção.');
+      return;
+    }
+
+    if (action === 'recurring-burden') {
+      navigate('transactions');
+      showToast('warning', 'Custos ocultos', 'Revise assinaturas e cobranças recorrentes.');
+      return;
+    }
+
+    if (action === 'stability-before-investing') {
+      navigate('ai');
+      showToast('info', 'Base antes de crescer', 'Você precisa estabilizar antes de investir.');
+      return;
+    }
   }
 }
 
