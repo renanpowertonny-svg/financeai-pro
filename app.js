@@ -959,160 +959,6 @@ function getBehaviorEngineSnapshot() {
     languagePack,
     historicalOverlay
   };
-
-
-function getPremiumRiskActionPlan(snap) {
-  if (!snap) {
-    return {
-      title: 'Sem leitura suficiente',
-      summary: 'O FinanceAI ainda não tem base suficiente para interpretar seu comportamento com precisão.',
-      masterAlert: 'Adicione mais movimentações para ativar a leitura comportamental premium.',
-      action: 'Registrar receitas e despesas do mês atual.',
-      objective: 'Criar consistência de dados para leitura inteligente.',
-      primaryLabel: 'Ir para transações',
-      primaryPage: 'transactions',
-      secondaryLabel: 'Abrir IA',
-      secondaryPage: 'ai'
-    };
-  }
-
-  const {
-    summary = {},
-    score = 0,
-    riskLevel = 'stable',
-    projectedBalance = 0,
-    spendAfterIncomePct = 0,
-    behavior = {},
-    metrics = {},
-    behaviorState = {},
-    historicalOverlay = {}
-  } = snap;
-
-  const predictive = buildPredictiveSignals(snap);
-
-  if (historicalOverlay.recurringSabotage) {
-    return {
-      title: 'Seu histórico mostra sabotagem recorrente',
-      summary: `Seu score está em ${score}/100 (${riskLevel}) e o sistema detecta repetição de autossabotagem financeira. O problema não é pontual, é estrutural.`,
-      masterAlert: `${predictive.predictiveHeadline} ${predictive.predictiveBody}`,
-      action: 'Interrompa imediatamente novas despesas variáveis e corte o principal canal de impulsividade hoje.',
-      objective: 'Quebrar o ciclo recorrente que acelera dano financeiro.',
-      primaryLabel: 'Bloquear gasto agora',
-      primaryPage: 'transactions',
-      secondaryLabel: 'Abrir IA',
-      secondaryPage: 'ai'
-    };
-  }
-
-  if (historicalOverlay.recurringRelapse) {
-    return {
-      title: 'Sua melhora ainda não é confiável',
-      summary: `Seu score está em ${score}/100 (${riskLevel}) e o histórico mostra melhora seguida de recaída. O problema não é só cair, é repetir o ciclo.`,
-      masterAlert: `${predictive.predictiveHeadline} ${predictive.predictiveBody}`,
-      action: 'Trate qualquer alívio atual como frágil e preserve margem antes que o ciclo se repita.',
-      objective: 'Transformar melhora temporária em estabilidade verdadeira.',
-      primaryLabel: 'Proteger recuperação',
-      primaryPage: 'transactions',
-      secondaryLabel: 'Abrir IA',
-      secondaryPage: 'ai'
-    };
-  }
-
-  if (historicalOverlay.fragileRecoveryRecurring) {
-    return {
-      title: 'Sua recuperação ainda está frágil',
-      summary: `Seu score está em ${score}/100 (${riskLevel}) e o sistema detecta melhora instável. Há alívio, mas ainda não há estabilidade estrutural.`,
-      masterAlert: `${predictive.predictiveHeadline} ${predictive.predictiveBody}`,
-      action: 'Reduza exposição a decisões impulsivas e mantenha contenção até consolidar consistência real.',
-      objective: 'Impedir regressão e consolidar recuperação.',
-      primaryLabel: 'Consolidar padrão',
-      primaryPage: 'dashboard',
-      secondaryLabel: 'Abrir IA',
-      secondaryPage: 'ai'
-    };
-  }
-
-  if (behaviorState.state === 'pre_collapse' || projectedBalance < 0 || summary.balance < 0) {
-    return {
-      title: 'Seu risco financeiro está crítico',
-      summary: `Seu score está em ${score}/100 (${riskLevel}) e o sistema detecta deterioração acelerada do seu caixa.`,
-      masterAlert: `${predictive.predictiveHeadline} ${predictive.predictiveBody}`,
-      action: 'Interrompa novas saídas não essenciais e execute contenção imediata de dano.',
-      objective: 'Recuperar margem de reação antes da ruptura total.',
-      primaryLabel: 'Ver transações',
-      primaryPage: 'transactions',
-      secondaryLabel: 'Abrir IA',
-      secondaryPage: 'ai'
-    };
-  }
-
-  if (behaviorState.state === 'sabotage_active' || Number(metrics.sabotageIndex || 0) >= 60) {
-    return {
-      title: 'Seu comportamento entrou em sabotagem ativa',
-      summary: `Seu score está em ${score}/100 (${riskLevel}) e sua disciplina está sendo rompida por padrão comportamental.`,
-      masterAlert: `${predictive.predictiveHeadline} ${predictive.predictiveBody}`,
-      action: 'Trave novas compras variáveis e elimine decisões de impulso no restante do dia.',
-      objective: 'Restaurar comando comportamental antes de ampliar dano financeiro.',
-      primaryLabel: 'Interromper padrão',
-      primaryPage: 'transactions',
-      secondaryLabel: 'Abrir IA',
-      secondaryPage: 'ai'
-    };
-  }
-
-  if (Number(metrics.postIncomeVulnerability || 0) >= 55 || spendAfterIncomePct >= 60) {
-    return {
-      title: 'Sua renda está sendo queimada cedo demais',
-      summary: `Seu score está em ${score}/100 (${riskLevel}) e o sistema detecta aceleração logo após entrada de dinheiro.`,
-      masterAlert: `${predictive.predictiveHeadline} ${predictive.predictiveBody}`,
-      action: 'Preserve caixa imediatamente após receber e evite transformar entrada de renda em sensação falsa de segurança.',
-      objective: 'Impedir sufoco precoce no ciclo mensal.',
-      primaryLabel: 'Preservar caixa',
-      primaryPage: 'transactions',
-      secondaryLabel: 'Abrir IA',
-      secondaryPage: 'ai'
-    };
-  }
-
-  if (behaviorState.state === 'recovery_fragile') {
-    return {
-      title: 'Sua melhora ainda está instável',
-      summary: `Seu score está em ${score}/100 (${riskLevel}) e o sistema detecta alívio parcial sem consolidação de estrutura.`,
-      masterAlert: `${predictive.predictiveHeadline} ${predictive.predictiveBody}`,
-      action: 'Mantenha retenção e consistência. Não relaxe agora.',
-      objective: 'Transformar alívio em estabilidade sustentável.',
-      primaryLabel: 'Manter disciplina',
-      primaryPage: 'dashboard',
-      secondaryLabel: 'Abrir IA',
-      secondaryPage: 'ai'
-    };
-  }
-
-  if (behaviorState.state === 'attention' || Number(metrics.silentRiskLoad || 0) >= 55) {
-    return {
-      title: 'Seu comportamento entrou em atenção',
-      summary: `Seu score está em ${score}/100 (${riskLevel}) e o FinanceAI detectou sinais iniciais de erosão de consistência.`,
-      masterAlert: `${predictive.predictiveHeadline} ${predictive.predictiveBody}`,
-      action: 'Corrija o padrão agora, antes que o problema fique visível no saldo.',
-      objective: 'Impedir que fragilidade silenciosa vire pressão ativa.',
-      primaryLabel: 'Rever padrão',
-      primaryPage: 'transactions',
-      secondaryLabel: 'Abrir IA',
-      secondaryPage: 'ai'
-    };
-  }
-
-  return {
-    title: 'Seu sistema financeiro está sob controle',
-    summary: `Seu score está em ${score}/100 (${riskLevel}) e o padrão recente segue estável.`,
-    masterAlert: `${predictive.predictiveHeadline} ${predictive.predictiveBody}`,
-    action: 'Manter disciplina, retenção e leitura preventiva do comportamento.',
-    objective: 'Preservar estabilidade sustentável.',
-    primaryLabel: 'Ver dashboard',
-    primaryPage: 'dashboard',
-    secondaryLabel: 'Abrir IA',
-    secondaryPage: 'ai'
-  };
 }
 
 function renderPremiumRiskCard() {
@@ -1144,53 +990,160 @@ function renderPremiumRiskCard() {
   }
 
   const snap = getBehaviorEngineSnapshot();
-  const plan = getPremiumRiskActionPlan(snap);
+  const plan = {
+  title: 'Radar FinanceAI ativo',
+  summary: 'Leitura comportamental em execução.',
+  masterAlert: 'Sistema analisando seu padrão financeiro.',
+  action: 'Continue registrando movimentações para melhorar a precisão.',
+  objective: 'Gerar base comportamental consistente.',
+  primaryLabel: 'Ver transações',
+  secondaryLabel: 'Abrir IA',
+  primaryPage: 'transactions',
+  secondaryPage: 'ai'
+};
 
-  titleEl.textContent = plan.title;
-  summaryEl.textContent = plan.summary;
-  masterAlertEl.textContent = plan.masterAlert;
-  actionEl.textContent = plan.action;
-  objectiveEl.textContent = plan.objective;
-
-  if (snap) {
-    scoreEl.textContent = `${snap.score}/100`;
-    levelEl.textContent = `Risco ${snap.riskLevel}`;
-
-    const levelColor =
-      snap.score >= 75 ? '#ef4444' :
-      snap.score >= 50 ? '#f59e0b' :
-      snap.score >= 25 ? '#facc15' :
-      '#10b981';
-
-    levelEl.style.color = levelColor;
-    scoreEl.style.color = levelColor;
-
-    const overlay = snap.historicalOverlay || {};
-
-    if (snap.score >= 75 || overlay.recurringSabotage) {
-      card.style.border = '1px solid rgba(239,68,68,0.35)';
-      card.style.background = 'linear-gradient(135deg, rgba(127,29,29,0.28), rgba(15,23,42,0.96))';
-    } else if (snap.score >= 50 || overlay.recurringRelapse || overlay.fragileRecoveryRecurring) {
-      card.style.border = '1px solid rgba(245,158,11,0.30)';
-      card.style.background = 'linear-gradient(135deg, rgba(120,53,15,0.24), rgba(15,23,42,0.96))';
-    } else {
-      card.style.border = '1px solid rgba(16,185,129,0.22)';
-      card.style.background = 'linear-gradient(135deg, rgba(6,95,70,0.20), rgba(15,23,42,0.95))';
-    }
-  } else {
+  if (!snap) {
+    titleEl.textContent = 'Sem leitura suficiente';
+    summaryEl.textContent = 'Adicione mais movimentações para o FinanceAI consolidar sua leitura comportamental.';
     scoreEl.textContent = '--/100';
     levelEl.textContent = 'Sem leitura';
     levelEl.style.color = '#94a3b8';
     scoreEl.style.color = 'var(--text-primary)';
+    masterAlertEl.textContent = 'Ainda não há base suficiente para um alerta mestre.';
+    actionEl.textContent = 'Registrar receitas e despesas do mês atual.';
+    objectiveEl.textContent = 'Criar consistência de dados para leitura inteligente.';
+    primaryBtn.textContent = 'Ir para transações';
+    secondaryBtn.textContent = 'Abrir IA';
+    primaryBtn.onclick = () => navigate('transactions');
+    secondaryBtn.onclick = () => navigate('ai');
     card.style.border = '1px solid rgba(99,102,241,0.22)';
     card.style.background = 'linear-gradient(135deg, rgba(99,102,241,0.16), rgba(15,23,42,0.95))';
+    return;
   }
 
-  primaryBtn.textContent = plan.primaryLabel;
-  secondaryBtn.textContent = plan.secondaryLabel;
+  const overlay = snap.historicalOverlay || {};
+  const behaviorState = snap.behaviorState || {};
+  const metrics = snap.metrics || {};
+  const patterns = snap.patterns || {};
+  const summary = snap.summary || {};
+
+  const score = Number(snap.score || 0);
+  const recurrenceConfidence = Number(overlay.recurrenceConfidence || 0);
+  const historicalPressure = Number(overlay.historicalPressure || 0);
+  const instabilityIndex = Number(metrics.instabilityIndex || 0);
+
+  let signatureLabel = 'Histórico em formação';
+  if (overlay.dominantHistoricalSignature === 'recurring_sabotage') {
+    signatureLabel = 'Sabotagem recorrente';
+  } else if (overlay.dominantHistoricalSignature === 'relapse_cycle') {
+    signatureLabel = 'Ciclo de recaída';
+  } else if (overlay.dominantHistoricalSignature === 'fragile_recovery_loop') {
+    signatureLabel = 'Recuperação frágil recorrente';
+  } else if (overlay.dominantHistoricalSignature === 'persistent_high_risk') {
+    signatureLabel = 'Risco alto persistente';
+  } else if (overlay.dominantHistoricalSignature === 'disciplined_recovery') {
+    signatureLabel = 'Recuperação disciplinada';
+  } else if (overlay.dominantHistoricalSignature === 'historical_instability') {
+    signatureLabel = 'Instabilidade histórica';
+  }
+
+  let radarTitle = plan.title || 'Radar FinanceAI ativo';
+  let radarSummary = plan.summary || 'O sistema está lendo seu comportamento financeiro.';
+  let masterAlert = plan.masterAlert || 'Sem alerta mestre disponível.';
+  let recommendedAction = plan.action || 'Sem ação recomendada.';
+  let tacticalObjective = plan.objective || 'Sem objetivo definido.';
+
+  if (overlay.recurringSabotage) {
+    radarTitle = 'Seu histórico mostra sabotagem recorrente';
+    radarSummary = `Seu score está em ${score}/100 e o sistema detectou repetição de autossabotagem financeira. Isso não é evento isolado; é padrão.`;
+    masterAlert = 'O risco atual está sendo amplificado por sabotagem recorrente no histórico.';
+    recommendedAction = 'Interrompa novas despesas variáveis hoje e reduza imediatamente o padrão impulsivo.';
+    tacticalObjective = 'Quebrar a repetição que antecede deterioração do caixa.';
+  } else if (overlay.recurringRelapse) {
+    radarTitle = 'Sua melhora ainda não é confiável';
+    radarSummary = `Seu score está em ${score}/100 e o histórico mostra melhora seguida de recaída. O problema não é só cair, mas repetir o ciclo.`;
+    masterAlert = 'O sistema detecta recaída recorrente após sinais de alívio.';
+    recommendedAction = 'Proteja a disciplina nas próximas horas e não trate alívio momentâneo como controle real.';
+    tacticalObjective = 'Transformar melhora pontual em estabilidade consistente.';
+  } else if (overlay.fragileRecoveryRecurring) {
+    radarTitle = 'Sua recuperação ainda está frágil';
+    radarSummary = `Seu score está em ${score}/100 e o histórico mostra recuperação instável. Ainda existe risco real de regressão.`;
+    masterAlert = 'A melhora recente ainda não consolidou segurança estrutural.';
+    recommendedAction = 'Reduza exposição a gasto impulsivo e preserve retenção nas próximas 24h.';
+    tacticalObjective = 'Consolidar recuperação antes de novo ciclo de pressão.';
+  } else if (behaviorState.state === 'pre_collapse') {
+    radarTitle = 'Seu risco financeiro está crítico';
+    radarSummary = `Seu score está em ${score}/100 e o sistema detecta deterioração acelerada do seu caixa.`;
+  } else if (behaviorState.state === 'sabotage_active') {
+    radarTitle = 'Seu comportamento entrou em sabotagem ativa';
+    radarSummary = `Seu score está em ${score}/100 e a sua disciplina está sendo rompida por padrão comportamental.`;
+  } else if (behaviorState.state === 'recovery_fragile') {
+    radarTitle = 'Sua melhora ainda está instável';
+    radarSummary = `Seu score está em ${score}/100 e o sistema detecta que sua recuperação ainda não virou estabilidade real.`;
+  } else if (metrics.silentRiskLoad >= 55) {
+    radarTitle = 'Seu risco está se formando em silêncio';
+    radarSummary = `Seu score está em ${score}/100 e a sua consistência começou a ceder antes do problema ficar óbvio.`;
+  }
+
+  const dominantPattern = String(
+    patterns.historicalDominantSignature ||
+    patterns.dominant ||
+    overlay.dominantPattern ||
+    'stable_support'
+  ).replaceAll('_', ' ');
+
+  const enrichedSummary =
+    `${radarSummary} Assinatura dominante: ${signatureLabel}. ` +
+    `Padrão principal: ${dominantPattern}. ` +
+    `Confiança histórica: ${recurrenceConfidence}%. ` +
+    `Pressão histórica: ${historicalPressure}. ` +
+    `Instabilidade acumulada: ${instabilityIndex}.`;
+
+  titleEl.textContent = radarTitle;
+  summaryEl.textContent = enrichedSummary;
+  masterAlertEl.textContent = masterAlert;
+  actionEl.textContent = recommendedAction;
+  objectiveEl.textContent = tacticalObjective;
+
+  scoreEl.textContent = `${score}/100`;
+  levelEl.textContent = `Risco ${snap.riskLevel}`;
+
+  const levelColor =
+    score >= 75 ? '#ef4444' :
+    score >= 50 ? '#f59e0b' :
+    score >= 25 ? '#facc15' :
+    '#10b981';
+
+  levelEl.style.color = levelColor;
+  scoreEl.style.color = levelColor;
+
+  if (score >= 75 || overlay.recurringSabotage) {
+    card.style.border = '1px solid rgba(239,68,68,0.35)';
+    card.style.background = 'linear-gradient(135deg, rgba(127,29,29,0.28), rgba(15,23,42,0.96))';
+  } else if (score >= 50 || overlay.recurringRelapse || overlay.fragileRecoveryRecurring) {
+    card.style.border = '1px solid rgba(245,158,11,0.30)';
+    card.style.background = 'linear-gradient(135deg, rgba(120,53,15,0.24), rgba(15,23,42,0.96))';
+  } else {
+    card.style.border = '1px solid rgba(16,185,129,0.22)';
+    card.style.background = 'linear-gradient(135deg, rgba(6,95,70,0.20), rgba(15,23,42,0.95))';
+  }
+
+  primaryBtn.textContent = plan.primaryLabel || 'Ver ação principal';
+  secondaryBtn.textContent = plan.secondaryLabel || 'Abrir análise completa';
 
   primaryBtn.onclick = () => navigate(plan.primaryPage || 'transactions');
   secondaryBtn.onclick = () => navigate(plan.secondaryPage || 'ai');
+
+  primaryBtn.style.boxShadow =
+    score >= 75 || overlay.recurringSabotage
+      ? '0 12px 24px rgba(239,68,68,0.22)'
+      : score >= 50 || overlay.recurringRelapse || overlay.fragileRecoveryRecurring
+      ? '0 12px 24px rgba(245,158,11,0.18)'
+      : '0 12px 24px rgba(16,185,129,0.18)';
+
+  if (summary.balance < 0) {
+    objectiveEl.textContent = 'Conter ruptura de caixa e recuperar margem de reação imediatamente.';
+  }
 }
 
 function getMissionSeverityFromSnapshot(snap) {
