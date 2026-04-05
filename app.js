@@ -3823,17 +3823,13 @@ function applyEducationAction(action) {
     ? EDUCATION_PROGRAMS.find(item => item.id === action)
     : null;
 
-  if (lesson) {
-    if (lesson.id === 'cash-bleeding') {
-      normalizeEducationCompletion(
-        lesson.id,
-        'Correção iniciada',
-        'Abrindo suas transações para atacar o principal vazamento do seu caixa.'
-      );
-      navigate('transactions');
-      return;
-    }
+if (lesson) {
+  const ctx = getEducationContext ? getEducationContext() : {};
 
+  executeEducationIntervention(lesson, ctx);
+
+  return;
+}
     if (lesson.id === 'reserve-shield') {
       normalizeEducationCompletion(
         lesson.id,
@@ -3970,6 +3966,60 @@ function applyEducationAction(action) {
     completeEducationMission(mission.id, mission.reward);
     return;
   }
+}
+function executeEducationIntervention(lesson, ctx) {
+  const summary = ctx?.summary || {};
+  const topCategory = ctx?.topCategory || 'desconhecida';
+  const amount = ctx?.topCategoryAmount || 0;
+
+  let title = '';
+  let message = '';
+  let action = null;
+
+  if (lesson.id === 'cash-bleeding') {
+    title = 'Vazamento financeiro identificado';
+
+    message = `Você está perdendo controle no ${topCategory}. Já são R$ ${amount} drenando seu caixa. Isso não é gasto normal, é padrão de vazamento.`;
+
+    action = () => {
+      navigate('transactions');
+
+      setTimeout(() => {
+        highlightCriticalTransactions(topCategory);
+      }, 200);
+    };
+  }
+
+  if (lesson.id === 'food-control') {
+    title = 'Sabotagem alimentar detectada';
+
+    message = `Seu padrão de alimentação está consumindo sua margem. Reduzir 15% aqui já recupera controle imediato.`;
+
+    action = () => {
+      navigate('settings');
+
+      setTimeout(() => {
+        const input = document.querySelector('.limit-input[data-cat="Alimentação"]');
+        if (input) {
+          input.focus();
+          input.value = Math.floor((Number(input.value || 0)) * 0.85);
+        }
+      }, 200);
+    };
+  }
+
+  showToast('warning', title, message);
+
+  if (typeof action === 'function') action();
+
+  state.behaviorMemory.push({
+    type: 'education_intervention',
+    lesson: lesson.id,
+    impact: amount,
+    createdAt: new Date().toISOString()
+  });
+
+  saveUserData();
 }
 function openLesson(id) {
   const lesson = EDUCATION_PROGRAMS.find(item => item.id === id);
