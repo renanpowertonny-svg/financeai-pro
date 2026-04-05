@@ -3792,6 +3792,144 @@ function renderEducation() {
 }
 
 function applyEducationAction(action) {
+  if (!action) return;
+
+  const normalizeEducationCompletion = (lessonId, feedbackTitle, feedbackText) => {
+    ensureEducationState();
+
+    if (!state.eduProgress.completed.includes(lessonId)) {
+      state.eduProgress.completed.push(lessonId);
+      state.eduProgress.points = Number(state.eduProgress.points || 0) + 15;
+      state.eduProgress.streak = Number(state.eduProgress.streak || 0) + 1;
+    }
+
+    state.notifications.unshift({
+      id: genId(),
+      type: 'education',
+      title: feedbackTitle,
+      text: feedbackText,
+      severity: 'medium',
+      createdAt: new Date().toISOString()
+    });
+
+    state.notifications = state.notifications.slice(0, 20);
+    saveUserData();
+    renderNotifications();
+
+    showToast('success', feedbackTitle, feedbackText);
+  };
+
+  const lesson = Array.isArray(EDUCATION_PROGRAMS)
+    ? EDUCATION_PROGRAMS.find(item => item.id === action)
+    : null;
+
+  if (lesson) {
+    if (lesson.id === 'cash-bleeding') {
+      normalizeEducationCompletion(
+        lesson.id,
+        'Correção iniciada',
+        'Abrindo suas transações para atacar o principal vazamento do seu caixa.'
+      );
+      navigate('transactions');
+      return;
+    }
+
+    if (lesson.id === 'reserve-shield') {
+      normalizeEducationCompletion(
+        lesson.id,
+        'Blindagem ativada',
+        'Abrindo metas para você estruturar sua reserva e reduzir pressão futura.'
+      );
+      navigate('goals');
+      setTimeout(() => {
+        if (typeof openGoalModal === 'function') openGoalModal();
+      }, 120);
+      return;
+    }
+
+    if (lesson.id === 'food-control') {
+      normalizeEducationCompletion(
+        lesson.id,
+        'Contenção aplicada',
+        'Abrindo limites para reduzir alimentação fora de casa com ação prática.'
+      );
+      navigate('settings');
+      setTimeout(() => {
+        const input = document.querySelector('.limit-input[data-cat="Alimentação"]');
+        if (input) {
+          input.focus();
+          input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 120);
+      return;
+    }
+
+    if (lesson.id === 'salary-burn') {
+      normalizeEducationCompletion(
+        lesson.id,
+        'Padrão crítico identificado',
+        'Abrindo transações para você revisar onde a renda está sendo queimada cedo demais.'
+      );
+      navigate('transactions');
+      return;
+    }
+
+    if (lesson.id === 'goal-execution') {
+      normalizeEducationCompletion(
+        lesson.id,
+        'Execução iniciada',
+        'Abrindo metas para transformar intenção em aporte recorrente real.'
+      );
+      navigate('goals');
+      return;
+    }
+
+    if (lesson.id === 'subscription-hygiene') {
+      normalizeEducationCompletion(
+        lesson.id,
+        'Higiene financeira iniciada',
+        'Abrindo transações para auditar cobranças recorrentes que drenam seu caixa.'
+      );
+      navigate('transactions');
+      return;
+    }
+
+    if (lesson.id === 'order-first') {
+      normalizeEducationCompletion(
+        lesson.id,
+        'Ordem correta aplicada',
+        'Abrindo IA Insights para aprofundar o diagnóstico antes de qualquer movimento tático.'
+      );
+      navigate('ai');
+      return;
+    }
+
+    if (lesson.id === 'discipline-loop') {
+      const mission = getEducationMission(getEducationContext());
+
+      normalizeEducationCompletion(
+        lesson.id,
+        'Disciplina ativada',
+        'Aplicando a missão recomendada para transformar orientação em consistência.'
+      );
+
+      completeEducationMission(mission.id, mission.reward);
+      return;
+    }
+
+    if (lesson.ctaAction && lesson.ctaAction !== lesson.id) {
+      applyEducationAction(lesson.ctaAction);
+      return;
+    }
+
+    normalizeEducationCompletion(
+      lesson.id,
+      'Ação educacional aplicada',
+      'O FinanceAI registrou sua intervenção e abriu o próximo passo operacional.'
+    );
+    return;
+  }
+
   if (action === 'review-transactions') {
     navigate('transactions');
     return;
@@ -3830,9 +3968,9 @@ function applyEducationAction(action) {
   if (action === 'complete-mission') {
     const mission = getEducationMission(getEducationContext());
     completeEducationMission(mission.id, mission.reward);
+    return;
   }
 }
-
 function openLesson(id) {
   const lesson = EDUCATION_PROGRAMS.find(item => item.id === id);
   if (!lesson) return;
