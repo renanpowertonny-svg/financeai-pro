@@ -4103,7 +4103,7 @@ function applyEducationAction(action) {
 
   return;
 }
-   
+ }
 function openLesson(id) {
   const lesson = EDUCATION_PROGRAMS.find(item => item.id === id);
   if (!lesson) return;
