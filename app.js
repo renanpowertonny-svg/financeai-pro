@@ -3880,11 +3880,22 @@ function renderEducation() {
 function applyEducationAction(action) {
   ensureEducationState();
 
+  state.eduProgress.completed = Array.isArray(state.eduProgress.completed)
+    ? state.eduProgress.completed
+    : [];
+
+  state.behaviorMemory = Array.isArray(state.behaviorMemory)
+    ? state.behaviorMemory
+    : [];
+
+  state.notifications = Array.isArray(state.notifications)
+    ? state.notifications
+    : [];
+
   const ctx = getEducationContext();
   const diagnosis = getEducationDiagnosis(ctx);
 
   const pushEducationNotification = (title, text, severity = 'medium') => {
-    state.notifications = Array.isArray(state.notifications) ? state.notifications : [];
     state.notifications.unshift({
       id: genId(),
       type: 'education',
@@ -3893,29 +3904,31 @@ function applyEducationAction(action) {
       severity,
       createdAt: new Date().toISOString()
     });
+
     state.notifications = state.notifications.slice(0, 20);
     saveUserData();
-    renderNotifications();
+
+    if (typeof renderNotifications === 'function') {
+      renderNotifications();
+    }
   };
 
-  const registerEducationTouch = (entry) => {
-    state.behaviorMemory = Array.isArray(state.behaviorMemory) ? state.behaviorMemory : [];
-    state.behaviorMemory.push({
+  const registerEducationTouch = ({ lessonId, diagnosisTitle, currentPage }) => {
+    state.behaviorMemory.unshift({
+      id: genId(),
       type: 'education_intervention',
-      createdAt: new Date().toISOString(),
-      ...entry
+      lessonId,
+      diagnosisTitle,
+      currentPage,
+      createdAt: new Date().toISOString()
     });
-    state.behaviorMemory = state.behaviorMemory.slice(-50);
+
+    state.behaviorMemory = state.behaviorMemory.slice(0, 30);
     saveUserData();
   };
 
   if (action === 'review-transactions') {
     navigate('transactions');
-    showToast(
-      'info',
-      'Auditoria aberta',
-      'Revise agora os lançamentos e identifique o que foi necessidade, impulso ou conforto repetido.'
-    );
     return;
   }
 
@@ -3924,12 +3937,6 @@ function applyEducationAction(action) {
     setTimeout(() => {
       if (typeof openGoalModal === 'function') openGoalModal();
     }, 120);
-
-    showToast(
-      'warning',
-      'Blindagem iniciada',
-      'Sua reserva precisa sair do campo da intenção e virar meta ativa com primeiro aporte definido.'
-    );
     return;
   }
 
@@ -3938,44 +3945,25 @@ function applyEducationAction(action) {
     setTimeout(() => {
       const input = document.querySelector('.limit-input[data-cat="Alimentação"]');
       if (input) {
-        const suggestedLimit = Math.max(50, Math.round((Number(ctx.foodExpense || 0)) * 0.85));
         input.focus();
         input.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        input.value = suggestedLimit;
-        input.dispatchEvent(new Event('input', { bubbles: true }));
       }
     }, 120);
-
-    showToast(
-      'warning',
-      'Limite sugerido preparado',
-      'Preenchemos um teto inicial para alimentação. Agora salve esse limite para conter o vazamento.'
-    );
     return;
   }
 
   if (action === 'open-goals') {
     navigate('goals');
-    showToast(
-      'info',
-      'Plano de metas aberto',
-      'Agora transforme objetivo em estrutura: prazo, valor e aporte recorrente.'
-    );
     return;
   }
 
   if (action === 'open-ai') {
     navigate('ai');
-    showToast(
-      'info',
-      'Diagnóstico aprofundado',
-      'Abrindo a IA para detalhar causa, consequência e correção recomendada.'
-    );
     return;
   }
 
   if (action === 'complete-mission') {
-    const mission = getEducationMission(ctx);
+    const mission = getEducationMission(getEducationContext());
     completeEducationMission(mission.id, mission.reward);
     return;
   }
@@ -4043,6 +4031,7 @@ function applyEducationAction(action) {
     return;
   }
 }
+
 function openLesson(id) {
   const lesson = EDUCATION_PROGRAMS.find(item => item.id === id);
   if (!lesson) return;
