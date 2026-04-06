@@ -4747,7 +4747,7 @@ function renderNotifications() {
   const list = document.getElementById('notifList');
   if (!list) return;
 
-  const items = state.notifications.slice(0, 20);
+  const items = Array.isArray(state.notifications) ? state.notifications.slice(0, 20) : [];
 
   if (!items.length) {
     list.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-muted);font-size:14px;">Sem notificações</div>';
@@ -4761,21 +4761,56 @@ function renderNotifications() {
     critical: 'Crítico'
   };
 
-  list.innerHTML = items.map(n => `
-    <div class="notif-item" style="align-items:flex-start;">
-      <div class="notif-dot ${n.style}"></div>
-      <div style="flex:1;">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
-          <div style="font-weight:700;font-size:13px;color:var(--text-primary);">${n.title || 'Notificação'}</div>
-          <div style="font-size:11px;color:var(--text-muted);">${priorityLabel[n.priority] || 'Baixo'}</div>
-        </div>
-        <div class="notif-text" style="margin-top:4px;">${n.text}</div>
-        <div class="notif-time" style="margin-top:6px;">
-          ${timeAgo(n.time)}${typeof n.score === 'number' ? ` · score ${n.score}/100` : ''}
+  const normalizePriority = (n) => {
+    if (n?.priority && priorityLabel[n.priority]) return n.priority;
+    if (n?.severity && priorityLabel[n.severity]) return n.severity;
+    return 'medium';
+  };
+
+  const normalizeTime = (n) => {
+    if (n?.time) return n.time;
+    if (n?.createdAt) return n.createdAt;
+    return new Date().toISOString();
+  };
+
+  const normalizeStyle = (n, priority) => {
+    if (n?.style) return n.style;
+    if (priority === 'critical' || priority === 'high') return 'warning';
+    if (n?.type === 'education' || n?.type === 'education_mission') return 'info';
+    return 'info';
+  };
+
+  const safeText = (value) => {
+    return String(value || '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;');
+  };
+
+  list.innerHTML = items.map(raw => {
+    const priority = normalizePriority(raw);
+    const notifTime = normalizeTime(raw);
+    const style = normalizeStyle(raw, priority);
+    const title = safeText(raw?.title || 'Notificação');
+    const text = safeText(raw?.text || '');
+    const scoreSuffix = typeof raw?.score === 'number' ? ` · score ${raw.score}/100` : '';
+
+    return `
+      <div class="notif-item" style="align-items:flex-start;">
+        <div class="notif-dot ${style}"></div>
+        <div style="flex:1;">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
+            <div style="font-weight:700;font-size:13px;color:var(--text-primary);">${title}</div>
+            <div style="font-size:11px;color:var(--text-muted);">${priorityLabel[priority]}</div>
+          </div>
+          <div class="notif-text" style="margin-top:4px;">${text}</div>
+          <div class="notif-time" style="margin-top:6px;">
+            ${timeAgo(notifTime)}${scoreSuffix}
+          </div>
         </div>
       </div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 
   updateNotifBadge();
 }
