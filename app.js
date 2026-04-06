@@ -3883,23 +3883,20 @@ function applyEducationAction(action) {
   const ctx = getEducationContext();
   const diagnosis = getEducationDiagnosis(ctx);
 
-  const pushEducationNotification = (title, text, severity = 'medium', extra = {}) => {
-  const normalizedPriority = normalizeTacticalSeverity(extra.priority || severity || 'medium');
-
-  addNotification(
-    title,
-    text,
-    extra.style || (normalizedPriority === 'critical' || normalizedPriority === 'high' ? 'warning' : 'info'),
-    {
-      priority: normalizedPriority,
-      category: extra.category || 'education_intervention',
-      source: extra.source || 'education-phase3',
-      score: typeof extra.score === 'number' ? extra.score : (typeof ctx?.score === 'number' ? ctx.score : null),
-      actionLabel: extra.actionLabel || '',
-      actionPage: extra.actionPage || ''
-    }
-  );
-};
+  const pushEducationNotification = (title, text, severity = 'medium') => {
+    state.notifications = Array.isArray(state.notifications) ? state.notifications : [];
+    state.notifications.unshift({
+      id: genId(),
+      type: 'education',
+      title,
+      text,
+      severity,
+      createdAt: new Date().toISOString()
+    });
+    state.notifications = state.notifications.slice(0, 20);
+    saveUserData();
+    renderNotifications();
+  };
 
   const registerEducationTouch = (entry) => {
     state.behaviorMemory = Array.isArray(state.behaviorMemory) ? state.behaviorMemory : [];
