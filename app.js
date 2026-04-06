@@ -4050,32 +4050,58 @@ function openLesson(id) {
   const ctx = getEducationContext();
   const content = getLessonContent(id, ctx);
 
+  const display = {
+    emoji: lesson.emoji,
+    title: lesson.title,
+    tag: lesson.tag,
+    duration: lesson.duration,
+    difficulty: lesson.difficulty,
+    problem: lesson.problem,
+    actionLabel: lesson.ctaLabel || 'Executar ação'
+  };
+
+  const isHousingCompression =
+    id === 'cash-bleeding' &&
+    ['Moradia', 'Habitação', 'Aluguel'].includes(ctx.topExpenseCategory);
+
+  if (isHousingCompression) {
+    display.emoji = '🏠';
+    display.title = 'Moradia está comprimindo sua margem estrutural';
+    display.tag = 'Compressão estrutural';
+    display.duration = '8 min';
+    display.difficulty = 'Prioridade Alta';
+    display.problem = `Moradia já está em ${fmt(ctx.topExpenseValue || 0)} e consome ${Number(ctx.concentrationPct || 0).toFixed(1)}% da sua renda do período. O ponto crítico não é impulso. É custo estrutural acima da faixa saudável para o seu caixa.`;
+    display.actionLabel = 'Abrir revisão de moradia';
+  }
+
   const modal = document.createElement('div');
   modal.className = 'modal-overlay';
   modal.innerHTML = `
     <div class="modal" style="max-width:760px;">
       <div class="modal-header">
-        <h2>${lesson.emoji} ${lesson.title}</h2>
+        <h2>${display.emoji} ${display.title}</h2>
         <button onclick="this.closest('.modal-overlay').remove()">✕</button>
       </div>
 
       <div class="modal-body" style="max-height:68vh;overflow-y:auto;">
         <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
-          <span style="padding:8px 12px;border-radius:999px;background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.25);font-size:12px;color:#a5b4fc;">${lesson.tag}</span>
-          <span style="padding:8px 12px;border-radius:999px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);font-size:12px;color:var(--text-secondary);">${lesson.duration} · ${lesson.difficulty}</span>
+          <span style="padding:8px 12px;border-radius:999px;background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.25);font-size:12px;color:#a5b4fc;">${display.tag}</span>
+          <span style="padding:8px 12px;border-radius:999px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);font-size:12px;color:var(--text-secondary);">${display.duration} · ${display.difficulty}</span>
         </div>
 
         <div style="margin-bottom:16px;padding:14px;border-radius:16px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.05);">
           <div style="font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">Diagnóstico conectado ao usuário</div>
-          <div style="font-size:15px;line-height:1.7;color:var(--text-secondary);">${lesson.problem}</div>
+          <div style="font-size:15px;line-height:1.7;color:var(--text-secondary);">${display.problem}</div>
         </div>
 
-        <div style="line-height:1.85;font-size:15px;color:var(--text-secondary);">${content}</div>
+        <div style="font-size:15px;line-height:1.85;color:var(--text-secondary);">
+          ${content}
+        </div>
       </div>
 
-      <div class="modal-footer" style="display:flex;gap:10px;flex-wrap:wrap;">
-        <button class="btn-ghost" onclick="applyEducationAction('${lesson.ctaAction}')">${lesson.ctaLabel}</button>
-        <button class="btn-primary" onclick="completeLesson('${id}', this.closest('.modal-overlay'))">✓ Marcar como aplicada</button>
+      <div class="modal-actions" style="display:flex;gap:12px;justify-content:space-between;flex-wrap:wrap;">
+        <button class="btn-ghost" onclick="applyEducationAction('${lesson.ctaAction}')">${display.actionLabel}</button>
+        <button class="btn-primary" onclick="completeLesson('${lesson.id}', this.closest('.modal-overlay'))">✓ Marcar como aplicada</button>
       </div>
     </div>
   `;
