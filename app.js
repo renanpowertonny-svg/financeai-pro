@@ -4108,6 +4108,7 @@ function openLesson(id) {
 
   document.body.appendChild(modal);
 }
+};
 
 function getLessonContent(id, ctx) {
   const content = {
