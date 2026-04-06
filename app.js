@@ -3992,92 +3992,57 @@ function applyEducationAction(action) {
   ];
 
   if (interventionIds.includes(action)) {
-  const tacticalCopy = buildTacticalInterventionCopy(
-    {
-      mode: action,
-      diagnosisKey: action,
-      diagnosisTitle: diagnosis?.title || 'Correção tática prioritária',
-      severity: diagnosis?.severity || 'high',
-      score: Number(ctx?.score || 0),
-      actionLabel: 'Abrir correção'
-    },
-    {
-      score: Number(ctx?.score || 0),
-      topExpenseCategory: ctx?.topExpenseCategory || '',
-      concentrationPct: Number(ctx?.concentrationPct || 0),
-      savingsRate: Number(ctx?.savingsRate || 0),
-      projectedBalance: Number(ctx?.projectedBalance || 0)
-    }
-  );
-
-  pushEducationNotification(
-    tacticalCopy.notificationTitle,
-    tacticalCopy.notificationText,
-    tacticalCopy.priority
-  );
-
-  registerEducationTouch({
-    lessonId: action,
-    diagnosisTitle: diagnosis?.title || tacticalCopy.title,
-    currentPage: state.currentPage
-  });
-
-  openLesson(action);
-
-  setTimeout(() => {
-    showToast(
-      tacticalCopy.priority === 'critical' ? 'error' : tacticalCopy.priority === 'high' ? 'warning' : 'info',
-      tacticalCopy.toastTitle,
-      tacticalCopy.toastText
+    pushEducationNotification(
+      'Intervenção premium iniciada',
+      `O FinanceAI abriu uma intervenção guiada para atacar sua dor dominante: ${diagnosis.title}.`,
+      'high'
     );
-  }, 80);
 
-  return;
-}
- if (diagnosis && action === diagnosis.lessonId) {
-  const tacticalCopy = buildTacticalInterventionCopy(
-    {
-      mode: diagnosis.mode || diagnosis.diagnosis || diagnosis.lessonId,
-      diagnosisKey: diagnosis.diagnosis || diagnosis.lessonId,
-      diagnosisTitle: diagnosis.title || 'Correção tática prioritária',
-      severity: diagnosis.severity || 'high',
-      score: Number(ctx?.score || 0),
-      actionLabel: diagnosis.actionLabel || 'Abrir correção'
-    },
-    {
-      score: Number(ctx?.score || 0),
-      topExpenseCategory: ctx?.topExpenseCategory || '',
-      concentrationPct: Number(ctx?.concentrationPct || 0),
-      savingsRate: Number(ctx?.savingsRate || 0),
-      projectedBalance: Number(ctx?.projectedBalance || 0)
-    }
-  );
+    registerEducationTouch({
+      lessonId: action,
+      diagnosisTitle: diagnosis.title,
+      currentPage: state.currentPage
+    });
 
-  pushEducationNotification(
-    tacticalCopy.notificationTitle,
-    tacticalCopy.notificationText,
-    tacticalCopy.priority
-  );
+    openLesson(action);
 
-  registerEducationTouch({
-    lessonId: diagnosis.lessonId,
-    diagnosisTitle: diagnosis.title || tacticalCopy.title,
-    currentPage: state.currentPage
-  });
+    setTimeout(() => {
+      showToast(
+        'info',
+        'Intervenção guiada aberta',
+        'Agora você não foi jogado em uma tela genérica. O sistema abriu a explicação da causa, do erro e do próximo passo.'
+      );
+    }, 80);
 
-  openLesson(diagnosis.lessonId);
+    return;
+  }
 
-  setTimeout(() => {
-    showToast(
-      tacticalCopy.priority === 'critical' ? 'error' : tacticalCopy.priority === 'high' ? 'warning' : 'info',
-      tacticalCopy.toastTitle,
-      tacticalCopy.toastText
+  if (diagnosis && action === diagnosis.lessonId) {
+    pushEducationNotification(
+      'Correção iniciada',
+      `Sua dor dominante atual é: ${diagnosis.title}. O FinanceAI abriu a intervenção correspondente.`,
+      'high'
     );
-  }, 80);
 
-  return;
+    registerEducationTouch({
+      lessonId: diagnosis.lessonId,
+      diagnosisTitle: diagnosis.title,
+      currentPage: state.currentPage
+    });
+
+    openLesson(diagnosis.lessonId);
+
+    setTimeout(() => {
+      showToast(
+        'warning',
+        'Dor dominante identificada',
+        `Abrimos a intervenção de ${diagnosis.title} com explicação prática, não só navegação.`
+      );
+    }, 80);
+
+    return;
+  }
 }
-   
 function openLesson(id) {
   const lesson = EDUCATION_PROGRAMS.find(item => item.id === id);
   if (!lesson) return;
@@ -4652,137 +4617,7 @@ state.behaviorMemory = [];
   navigate('dashboard');
   showToast('success', 'Dados apagados', 'Todos os dados foram removidos.');
 }
-function normalizeTacticalSeverity(severity) {
-  const map = {
-    low: 'low',
-    medium: 'medium',
-    high: 'high',
-    critical: 'critical',
-    stable: 'low',
-    attention: 'medium',
-    warning: 'medium',
-    urgent: 'high',
-    danger: 'critical'
-  };
 
-  return map[String(severity || '').toLowerCase()] || 'medium';
-}
-
-function getTacticalPriorityLabel(priority) {
-  const labels = {
-    low: 'Baixa prioridade',
-    medium: 'Prioridade moderada',
-    high: 'Prioridade alta',
-    critical: 'Prioridade crítica'
-  };
-
-  return labels[normalizeTacticalSeverity(priority)] || 'Prioridade moderada';
-}
-
-function buildTacticalInterventionCopy(core, ctx = {}) {
-  const severity = normalizeTacticalSeverity(core?.severity || core?.priority || 'medium');
-  const score = Number(core?.score ?? ctx?.score ?? 0);
-  const topCategory = ctx?.topExpenseCategory || core?.categoryLabel || 'seu padrão atual';
-  const concentrationPct = Number(ctx?.concentrationPct || 0);
-  const savingsRate = Number(ctx?.savingsRate || 0);
-  const projectedBalance = Number(ctx?.projectedBalance || 0);
-  const diagnosisTitle = core?.diagnosisTitle || core?.title || 'ponto crítico';
-  const mode = core?.mode || core?.diagnosisKey || '';
-
-  const base = {
-    title: 'Intervenção tática iniciada',
-    notificationTitle: 'Intervenção tática iniciada',
-    notificationText: 'O FinanceAI ativou uma intervenção guiada com causa, impacto e próximo passo.',
-    toastTitle: 'Intervenção tática aberta',
-    toastText: 'O sistema abriu uma correção prática para agir no ponto de maior pressão.',
-    actionLabel: core?.actionLabel || 'Abrir correção',
-    category: core?.category || 'intervention',
-    priority: severity,
-    source: 'phase3-tactical-engine'
-  };
-
-  if (mode === 'reserve-shield' || mode === 'reserve-insufficient') {
-    return {
-      ...base,
-      title: 'Blindagem financeira insuficiente',
-      notificationTitle: 'Blindagem insuficiente detectada',
-      notificationText: `Sua reserva ainda não protege seu caixa. O FinanceAI abriu uma intervenção para impedir que o próximo imprevisto vire pressão real.`,
-      toastTitle: 'Blindagem ativada',
-      toastText: `Sua dor principal agora é proteção. Abrimos a correção para começar a construir margem antes que a pressão aumente.`,
-      actionLabel: 'Ativar blindagem'
-    };
-  }
-
-  if (mode === 'structural-compression' || mode === 'housing-review') {
-    return {
-      ...base,
-      title: 'Compressão estrutural de moradia',
-      notificationTitle: 'Compressão estrutural detectada',
-      notificationText: `Moradia está comprimindo sua margem${concentrationPct > 0 ? ` com ${concentrationPct.toFixed(1)}% da renda comprometida` : ''}. A prioridade agora é revisar custo fixo, não gasto periférico.`,
-      toastTitle: 'Revisão estrutural aberta',
-      toastText: `Sua dor dominante é estrutural. O FinanceAI abriu a correção para atacar o custo que mais sufoca seu caixa hoje.`,
-      actionLabel: 'Revisar moradia'
-    };
-  }
-
-  if (mode === 'retention-failure' || mode === 'salary-evaporation') {
-    return {
-      ...base,
-      title: 'Retenção em colapso',
-      notificationTitle: 'Retenção insuficiente detectada',
-      notificationText: `Sua retenção${savingsRate > 0 ? ` caiu para ${savingsRate.toFixed(1)}%` : ''}. O sistema abriu uma intervenção para travar vazamentos antes de o ciclo fechar sem folga.`,
-      toastTitle: 'Contenção de vazamentos aberta',
-      toastText: `O problema agora não é ganhar mais. É parar de deixar sua renda evaporar antes de gerar proteção.`,
-      actionLabel: 'Travar vazamentos'
-    };
-  }
-
-  if (mode === 'food-erosion' || mode === 'food-control') {
-    return {
-      ...base,
-      title: 'Erosão alimentar silenciosa',
-      notificationTitle: 'Erosão alimentar detectada',
-      notificationText: `Alimentação variável está corroendo sua margem com baixa percepção. O FinanceAI abriu uma contenção prática para interromper essa drenagem.`,
-      toastTitle: 'Contenção alimentar aberta',
-      toastText: `Você não está em colapso por um gasto grande. Está perdendo força por repetição silenciosa. Abrimos a correção para cortar isso agora.`,
-      actionLabel: 'Aplicar contenção'
-    };
-  }
-
-  if (mode === 'recurring-drain' || mode === 'recurring-burden') {
-    return {
-      ...base,
-      title: 'Drenagem recorrente silenciosa',
-      notificationTitle: 'Drenagem recorrente detectada',
-      notificationText: `Seus custos recorrentes ganharam peso estrutural. O FinanceAI abriu uma auditoria para recuperar margem e eliminar recorrências fracas.`,
-      toastTitle: 'Auditoria recorrente aberta',
-      toastText: `Seu caixa não está sendo ferido só por impulso. Há peso fixo silencioso drenando sua margem mês após mês.`,
-      actionLabel: 'Auditar recorrências'
-    };
-  }
-
-  if (projectedBalance < 0 || severity === 'critical' || score >= 75) {
-    return {
-      ...base,
-      title: 'Janela crítica de deterioração',
-      notificationTitle: 'Risco financeiro em escalada',
-      notificationText: `O sistema detectou escalada de risco${score ? ` com score ${score}/100` : ''}. A intervenção aberta agora serve para cortar progressão, não apenas explicar o problema.`,
-      toastTitle: 'Correção crítica aberta',
-      toastText: 'Você entrou em uma janela de deterioração. O FinanceAI abriu a resposta prática para impedir agravamento do dano.',
-      actionLabel: 'Executar correção'
-    };
-  }
-
-  return {
-    ...base,
-    title: diagnosisTitle,
-    notificationTitle: diagnosisTitle,
-    notificationText: `O FinanceAI abriu uma microintervenção tática para agir sobre ${topCategory}. O foco agora é correção prática, não observação passiva.`,
-    toastTitle: 'Microintervenção aberta',
-    toastText: 'O sistema saiu do aviso genérico e abriu uma correção orientada pela sua dor dominante.',
-    actionLabel: core?.actionLabel || 'Abrir correção'
-  };
-}
 // ==========================================
 // NOTIFICATIONS
 // ==========================================
