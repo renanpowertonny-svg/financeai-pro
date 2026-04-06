@@ -3542,99 +3542,185 @@ function getEducationContext() {
   };
 }
 
-function getEducationDiagnosis(ctx) {
-  const priorities = [];
+function getEducationCoreDirective(ctx) {
+  const directives = [];
+
+  const housingPressure = ['Moradia', 'Habitação', 'Aluguel'].includes(ctx.topExpenseCategory)
+    && ctx.concentrationPct >= 18;
+
+  const foodPressure = ctx.topExpenseCategory === 'Alimentação' && ctx.concentrationPct >= 15;
+
+  const variablePressure = ctx.savingsRate < 10 && ctx.topExpenseCategory && !housingPressure;
 
   if (ctx.emergencyCoveragePct < 20) {
-    priorities.push({
+    directives.push({
+      priority: 95,
+      mode: 'protection',
       level: 'Risco Alto',
       title: 'Você está financeiramente exposto',
       desc: `Sua proteção financeira está abaixo do mínimo. A reserva recomendada para sua realidade é ${fmt(ctx.emergencyTarget)} e hoje você tem ${fmt(ctx.emergencyCurrent)}.`,
-      gain: 'Blindar imprevistos e reduzir chance de dívida cara.',
-      lessonId: 'reserve-shield'
+      gain: 'Blindar imprevistos e reduzir a chance de entrar em dívida cara.',
+      lessonId: 'reserve-shield',
+      mission: {
+        id: 'mission-create-reserve',
+        title: 'Missão: ativar sua blindagem mínima',
+        desc: `Sua cobertura atual está em ${ctx.emergencyCoveragePct.toFixed(0)}%. O foco agora é criar a reserva e definir o primeiro aporte ainda hoje.`,
+        reward: 100,
+        button: 'Ativar blindagem'
+      },
+      notification: {
+        title: 'Blindagem insuficiente',
+        text: `Sua proteção financeira está abaixo do mínimo. O FinanceAI priorizou a construção imediata da sua reserva.`,
+        severity: 'high'
+      }
     });
   }
 
-  if (ctx.savingsRate < 10) {
-    priorities.push({
+  if (housingPressure) {
+    directives.push({
+      priority: 92,
+      mode: 'structural-compression',
+      level: 'Estrutural',
+      title: 'Moradia está comprimindo sua margem estrutural',
+      desc: `Seu maior centro de gasto hoje é Moradia, somando ${fmt(ctx.topExpenseValue)} e consumindo ${ctx.concentrationPct.toFixed(1)}% da sua renda do período.`,
+      gain: 'Recuperar margem estrutural e reduzir sufoco recorrente no caixa.',
+      lessonId: 'cash-bleeding',
+      mission: {
+        id: 'mission-housing-review',
+        title: 'Missão: revisar custo fixo de moradia',
+        desc: `Moradia já consome ${ctx.concentrationPct.toFixed(1)}% da sua renda. O objetivo agora é identificar alavancas reais de compressão, renegociação ou ajuste de estrutura.`,
+        reward: 95,
+        button: 'Revisar moradia'
+      },
+      notification: {
+        title: 'Compressão estrutural detectada',
+        text: `Moradia se tornou a principal força de compressão do seu caixa. A prioridade agora é revisar custo fixo, não atacar gasto periférico.`,
+        severity: 'high'
+      }
+    });
+  }
+
+  if (ctx.savingsRate < 10 && !housingPressure) {
+    directives.push({
+      priority: 88,
+      mode: 'retention-failure',
       level: 'Urgente',
       title: 'Você não está retendo dinheiro suficiente',
       desc: `Sua taxa de retenção está em ${ctx.savingsRate.toFixed(1)}%. Isso indica baixa capacidade de acumular segurança e patrimônio.`,
       gain: 'Aumentar folga financeira já no próximo ciclo.',
-      lessonId: 'salary-evaporation'
+      lessonId: 'salary-evaporation',
+      mission: {
+        id: 'mission-cut-variable',
+        title: 'Missão: travar vazamentos variáveis por 7 dias',
+        desc: `Sua retenção está em ${ctx.savingsRate.toFixed(1)}%. A prioridade agora é interromper compras por impulso e rastrear os pontos de fuga do caixa.`,
+        reward: 80,
+        button: 'Travar vazamentos'
+      },
+      notification: {
+        title: 'Retenção insuficiente',
+        text: `Sua retenção caiu para ${ctx.savingsRate.toFixed(1)}%. O FinanceAI priorizou contenção de vazamentos variáveis.`,
+        severity: 'high'
+      }
     });
   }
 
-  if (ctx.topExpenseCategory && ctx.concentrationPct >= 20) {
-    priorities.push({
+  if (foodPressure) {
+    directives.push({
+      priority: 82,
+      mode: 'food-erosion',
       level: 'Ação Rápida',
-      title: `${ctx.topExpenseCategory} está consumindo fatia relevante da sua renda`,
-      desc: `Seu maior centro de gasto está consumindo uma parte relevante da sua renda.`,
-      gain: 'Reduzir vazamento com ajuste simples de comportamento.',
-      lessonId: ctx.topExpenseCategory === 'Alimentação' ? 'food-control' : 'cash-bleeding'
+      title: 'Alimentação está corroendo sua margem com baixa percepção',
+      desc: `Seu gasto com alimentação está em ${fmt(ctx.foodExpense)} e já ocupa uma fatia relevante da sua renda atual.`,
+      gain: 'Reduzir erosão silenciosa e recuperar espaço para meta, reserva e tranquilidade.',
+      lessonId: 'food-control',
+      mission: {
+        id: 'mission-food-cap',
+        title: 'Missão: conter alimentação variável em 15%',
+        desc: `Seu gasto atual em alimentação está em ${fmt(ctx.foodExpense)}. O alvo agora é reduzir pelo menos 15% sem radicalismo.`,
+        reward: 70,
+        button: 'Aplicar contenção'
+      },
+      notification: {
+        title: 'Erosão alimentar detectada',
+        text: `Alimentação variável está drenando sua margem. O FinanceAI preparou uma contenção prática para os próximos dias.`,
+        severity: 'medium'
+      }
     });
   }
 
   if (ctx.recurringCount >= 4) {
-    priorities.push({
+    directives.push({
+      priority: 78,
+      mode: 'recurring-drain',
       level: 'Revisão',
-      title: 'Você tem despesas recorrentes demais para ignorar',
+      title: 'Custos recorrentes estão drenando seu caixa silenciosamente',
       desc: `Há ${ctx.recurringCount} cobranças recorrentes ativas no sistema. Custos silenciosos tendem a corroer margem mês após mês.`,
-      gain: 'Aliviar o peso fixo do orçamento.',
-      lessonId: 'recurring-burden'
+      gain: 'Aliviar peso fixo e recuperar margem de decisão.',
+      lessonId: 'recurring-burden',
+      mission: {
+        id: 'mission-recurring-audit',
+        title: 'Missão: auditar recorrências invisíveis',
+        desc: `Você tem ${ctx.recurringCount} recorrências ativas. O foco agora é separar o que é essencial, útil ou descartável.`,
+        reward: 75,
+        button: 'Auditar recorrências'
+      },
+      notification: {
+        title: 'Drenagem recorrente detectada',
+        text: `Seus custos recorrentes viraram peso silencioso. O FinanceAI priorizou uma auditoria de recorrências.`,
+        severity: 'medium'
+      }
     });
   }
 
-  if (!priorities.length) {
-    priorities.push({
+  if (!directives.length) {
+    directives.push({
+      priority: 40,
+      mode: 'growth-readiness',
       level: 'Crescimento',
       title: 'Sua base está relativamente estável',
-      desc: `Seu saldo do período está em ${fmt(ctx.balance)} e a taxa de retenção em ${ctx.savingsRate.toFixed(1)}%. Agora o foco passa a ser consistência e crescimento.`,
-      gain: 'Transformar controle em patrimônio.',
-      lessonId: 'stability-before-investing'
+      desc: `Seu saldo do período está em ${fmt(ctx.balance)} e sua retenção em ${ctx.savingsRate.toFixed(1)}%. Agora o foco passa a ser consistência e crescimento.`,
+      gain: 'Transformar controle em patrimônio com progressão estável.',
+      lessonId: 'stability-before-investing',
+      mission: {
+        id: 'mission-structure',
+        title: 'Missão: reforçar sua disciplina financeira',
+        desc: 'Revise categorias, metas e uma prioridade do mês para manter consistência e preparar crescimento.',
+        reward: 60,
+        button: 'Reforçar disciplina'
+      },
+      notification: {
+        title: 'Base estável detectada',
+        text: 'O FinanceAI identificou estabilidade relativa. A prioridade agora é consistência e construção de base forte.',
+        severity: 'low'
+      }
     });
   }
 
-  return priorities[0];
+  directives.sort((a, b) => b.priority - a.priority);
+  return directives[0];
+}
+
+function getEducationDiagnosis(ctx) {
+  const core = getEducationCoreDirective(ctx);
+
+  return {
+    level: core.level,
+    title: core.title,
+    desc: core.desc,
+    gain: core.gain,
+    lessonId: core.lessonId
+  };
 }
 
 function getEducationMission(ctx) {
-  if (ctx.savingsRate < 10) {
-    return {
-      id: 'mission-cut-variable',
-      title: 'Missão de 7 dias: travar gastos variáveis',
-      desc: 'Passe os próximos 7 dias registrando tudo e evitando compras por impulso.',
-      reward: 80,
-      button: 'Marcar missão como aplicada'
-    };
-  }
-
-  if (ctx.emergencyCoveragePct < 20) {
-    return {
-      id: 'mission-create-reserve',
-      title: 'Missão: ativar sua blindagem mínima',
-      desc: 'Crie hoje uma meta de reserva de emergência e defina o primeiro aporte.',
-      reward: 100,
-      button: 'Concluir missão'
-    };
-  }
-
-  if (ctx.foodExpense > 0) {
-    return {
-      id: 'mission-food-cap',
-      title: 'Missão: reduzir alimentação fora em 15%',
-      desc: `Seu gasto atual em alimentação está em ${fmt(ctx.foodExpense)}. O alvo agora é reduzir pelo menos 15%.`,
-      reward: 70,
-      button: 'Aplicar redução'
-    };
-  }
+  const core = getEducationCoreDirective(ctx);
 
   return {
-    id: 'mission-structure',
-    title: 'Missão: reforçar sua disciplina financeira',
-    desc: 'Revise categorias, metas e uma prioridade do mês para manter consistência.',
-    reward: 60,
-    button: 'Marcar como feita'
+    id: core.mission.id,
+    title: core.mission.title,
+    desc: core.mission.desc,
+    reward: core.mission.reward,
+    button: core.mission.button
   };
 }
 
