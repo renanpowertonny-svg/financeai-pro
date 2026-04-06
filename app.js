@@ -4146,6 +4146,16 @@ function completeLesson(id, overlay) {
 
 function getEducationMissionExecutionPlan(missionId, ctx) {
   const plans = {
+     'mission-housing-review': {
+  title: 'Compressão estrutural de moradia',
+  badge: 'Revisão estrutural',
+  lessonId: 'cash-bleeding',
+  problem: `Moradia está em ${fmt(ctx.topExpenseValue || 0)} e já consome ${Number(ctx.concentrationPct || 0).toFixed(1)}% da sua renda do período. O problema aqui não é descontrole pequeno. É compressão estrutural.`,
+  whyNow: 'Quando o custo de moradia entra alto demais na estrutura, o resto do orçamento passa a viver espremido. Isso enfraquece retenção, reserva e sensação de controle.',
+  nextStep: 'Vou abrir sua revisão de transações para você identificar o que dentro da moradia é custo-base, custo agregado e possível alavanca de renegociação ou ajuste.',
+  expected: 'Ao enxergar a composição da moradia e separar o que realmente pode ser comprimido, você sai do sufoco difuso e entra em plano concreto de alívio estrutural.',
+  actionLabel: 'Revisar moradia agora'
+},
     'mission-food-cap': {
       title: 'Redução prática em alimentação',
       badge: 'Execução guiada',
