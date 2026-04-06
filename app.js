@@ -3478,14 +3478,31 @@ function getEducationContext() {
     .map(m => getMonthTotal(m.year, m.month, 'expense'))
     .filter(v => v > 0);
 
-  const expenseBase = avgMonthlyExpense.length
-    ? avgMonthlyExpense.reduce((a, b) => a + b, 0) / avgMonthlyExpense.length
-    : summary.expense;
+ const expenseBase = avgMonthlyExpense.length
+  ? avgMonthlyExpense.reduce((a, b) => a + b, 0) / avgMonthlyExpense.length
+  : summary.expense;
 
-  const emergencyTarget = Math.max(expenseBase * 6, 3000);
-  const emergencyCurrent = emergencyGoal ? (emergencyGoal.current || 0) : 0;
-  const emergencyCoveragePct = emergencyTarget > 0 ? Math.min((emergencyCurrent / emergencyTarget) * 100, 100) : 0;
+const emergencyMinimumTarget = Math.max(expenseBase * 1, 800);
+const emergencyEssentialTarget = Math.max(expenseBase * 3, 2000);
+const emergencyTarget = Math.max(expenseBase * 6, 3000);
 
+const emergencyCurrent = emergencyGoal ? (emergencyGoal.current || 0) : 0;
+
+const emergencyCoveragePct = emergencyTarget > 0
+  ? Math.min((emergencyCurrent / emergencyTarget) * 100, 100)
+  : 0;
+
+const emergencyMinimumCoveragePct = emergencyMinimumTarget > 0
+  ? Math.min((emergencyCurrent / emergencyMinimumTarget) * 100, 100)
+  : 0;
+
+const emergencyEssentialCoveragePct = emergencyEssentialTarget > 0
+  ? Math.min((emergencyCurrent / emergencyEssentialTarget) * 100, 100)
+  : 0;
+
+const emergencyMinimumGap = Math.max(emergencyMinimumTarget - emergencyCurrent, 0);
+const emergencyEssentialGap = Math.max(emergencyEssentialTarget - emergencyCurrent, 0);
+const emergencyIdealGap = Math.max(emergencyTarget - emergencyCurrent, 0);
   const latestIncomeDate = incomeTxs
     .map(t => new Date(t.date))
     .sort((a, b) => b - a)[0] || null;
@@ -3532,9 +3549,16 @@ function getEducationContext() {
     foodExpense,
     recurringCount,
     goalsCount,
+    emergencyMinimumTarget,
+    emergencyEssentialTarget,
     emergencyTarget,
     emergencyCurrent,
     emergencyCoveragePct,
+    emergencyMinimumCoveragePct,
+    emergencyEssentialCoveragePct,
+    emergencyMinimumGap,
+    emergencyEssentialGap,
+    emergencyIdealGap,
     spendAfterIncome,
     concentrationPct,
     negativeMonths,
@@ -3552,29 +3576,29 @@ function getEducationCoreDirective(ctx) {
 
   const variablePressure = ctx.savingsRate < 10 && ctx.topExpenseCategory && !housingPressure;
 
-  if (ctx.emergencyCoveragePct < 20) {
-    directives.push({
-      priority: 95,
-      mode: 'protection',
-      level: 'Risco Alto',
-      title: 'Você está financeiramente exposto',
-      desc: `Sua proteção financeira está abaixo do mínimo. A reserva recomendada para sua realidade é ${fmt(ctx.emergencyTarget)} e hoje você tem ${fmt(ctx.emergencyCurrent)}.`,
-      gain: 'Blindar imprevistos e reduzir a chance de entrar em dívida cara.',
-      lessonId: 'reserve-shield',
-      mission: {
-        id: 'mission-create-reserve',
-        title: 'Missão: ativar sua blindagem mínima',
-        desc: `Sua cobertura atual está em ${ctx.emergencyCoveragePct.toFixed(0)}%. O foco agora é criar a reserva e definir o primeiro aporte ainda hoje.`,
-        reward: 100,
-        button: 'Ativar blindagem'
-      },
-      notification: {
-        title: 'Blindagem insuficiente',
-        text: `Sua proteção financeira está abaixo do mínimo. O FinanceAI priorizou a construção imediata da sua reserva.`,
-        severity: 'high'
-      }
-    });
-  }
+  if (ctx.emergencyMinimumCoveragePct < 100) {
+  directives.push({
+    priority: 95,
+    mode: 'protection',
+    level: 'Risco Alto',
+    title: 'Você está financeiramente exposto',
+    desc: `Sua proteção atual ainda não cobre o primeiro escudo contra imprevistos. Seu colchão mínimo recomendado é ${fmt(ctx.emergencyMinimumTarget)}, hoje você tem ${fmt(ctx.emergencyCurrent)} e faltam ${fmt(ctx.emergencyMinimumGap)} para sair da zona mais frágil.`,
+    gain: `Ao atingir a blindagem mínima, você reduz a chance de entrar em dívida por choque imediato. Depois disso, o próximo degrau é ${fmt(ctx.emergencyEssentialTarget)} e o alvo ideal completo é ${fmt(ctx.emergencyTarget)}.`,
+    lessonId: 'reserve-shield',
+    mission: {
+      id: 'mission-create-reserve',
+      title: 'Missão: ativar sua blindagem mínima',
+      desc: `Seu foco agora não é perseguir a reserva ideal inteira. É fechar primeiro o escudo mínimo de ${fmt(ctx.emergencyMinimumTarget)}. Hoje faltam ${fmt(ctx.emergencyMinimumGap)} para você sair da zona mais vulnerável.`,
+      reward: 100,
+      button: 'Ativar blindagem'
+    },
+    notification: {
+      title: 'Blindagem mínima ainda não construída',
+      text: `Sua proteção atual ainda não cobre o primeiro escudo contra imprevistos. O FinanceAI priorizou a construção da sua blindagem mínima antes do objetivo ideal.`,
+      severity: 'high'
+    }
+  });
+}
 
   if (housingPressure) {
     directives.push({
@@ -4349,16 +4373,16 @@ function getEducationMissionExecutionPlan(missionId, ctx) {
       actionLabel: 'Definir teto agora'
     },
 
-    'mission-create-reserve': {
-      title: 'Blindagem mínima contra imprevisto',
-      badge: 'Proteção financeira',
-      lessonId: 'reserve-shield',
-      problem: `Sua cobertura atual está abaixo do ideal. A reserva estimada para sua realidade é ${fmt(ctx.emergencyTarget || 0)} e hoje você tem ${fmt(ctx.emergencyCurrent || 0)}.`,
-      whyNow: 'Sem reserva, qualquer choque empurra o usuário para cartão, atraso ou decisão ruim sob pressão.',
-      nextStep: 'Vou abrir Metas e acionar o fluxo para você criar a reserva com primeiro aporte definido.',
-      expected: 'A partir do momento em que a reserva entra no sistema como meta ativa, a ansiedade cai e o controle sobe.',
-      actionLabel: 'Criar blindagem agora'
-    },
+   'mission-create-reserve': {
+  title: 'Blindagem mínima contra imprevisto',
+  badge: 'Proteção financeira',
+  lessonId: 'reserve-shield',
+  problem: `Hoje sua reserva ainda não cobre o primeiro escudo financeiro. Seu mínimo recomendado é ${fmt(ctx.emergencyMinimumTarget || 0)}, você tem ${fmt(ctx.emergencyCurrent || 0)} e faltam ${fmt(ctx.emergencyMinimumGap || 0)} para sair da zona mais frágil.`,
+  whyNow: 'Sem essa blindagem mínima, qualquer imprevisto pequeno já pressiona cartão, atraso, ansiedade e decisão ruim sob sufoco.',
+  nextStep: `Vou abrir Metas para você transformar essa proteção em execução prática. Primeiro fechamos o escudo mínimo. Depois avançamos para a blindagem essencial de ${fmt(ctx.emergencyEssentialTarget || 0)}.`,
+  expected: 'Quando a reserva mínima entra como meta ativa, o usuário deixa de operar totalmente exposto e começa a recuperar margem psicológica e financeira.',
+  actionLabel: 'Criar blindagem agora'
+},
 
     'mission-cut-variable': {
       title: 'Travar vazamento variável',
