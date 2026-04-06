@@ -3992,90 +3992,100 @@ function applyEducationAction(action) {
   ];
 
   if (interventionIds.includes(action)) {
-  const tacticalCopy = buildTacticalInterventionCopy(
-    {
-      mode: action,
-      diagnosisKey: action,
-      diagnosisTitle: diagnosis?.title || 'Correção tática prioritária',
-      severity: diagnosis?.severity || 'high',
-      score: Number(ctx?.score || 0),
-      actionLabel: 'Abrir correção'
-    },
-    {
-      score: Number(ctx?.score || 0),
-      topExpenseCategory: ctx?.topExpenseCategory || '',
-      concentrationPct: Number(ctx?.concentrationPct || 0),
-      savingsRate: Number(ctx?.savingsRate || 0),
-      projectedBalance: Number(ctx?.projectedBalance || 0)
-    }
-  );
-
-  pushEducationNotification(
-    tacticalCopy.notificationTitle,
-    tacticalCopy.notificationText,
-    tacticalCopy.priority
-  );
-
-  registerEducationTouch({
-    lessonId: action,
-    diagnosisTitle: diagnosis?.title || tacticalCopy.title,
-    currentPage: state.currentPage
-  });
-
-  openLesson(action);
-
-  setTimeout(() => {
-    showToast(
-      tacticalCopy.priority === 'critical' ? 'error' : tacticalCopy.priority === 'high' ? 'warning' : 'info',
-      tacticalCopy.toastTitle,
-      tacticalCopy.toastText
+    const tacticalCopy = buildTacticalInterventionCopy(
+      {
+        mode: action,
+        diagnosisKey: action,
+        diagnosisTitle: diagnosis?.title || 'Correção tática prioritária',
+        severity: diagnosis?.severity || 'high',
+        score: Number(ctx?.score || 0),
+        actionLabel: 'Abrir correção'
+      },
+      {
+        score: Number(ctx?.score || 0),
+        topExpenseCategory: ctx?.topExpenseCategory || '',
+        concentrationPct: Number(ctx?.concentrationPct || 0),
+        savingsRate: Number(ctx?.savingsRate || 0),
+        projectedBalance: Number(ctx?.projectedBalance || 0)
+      }
     );
-  }, 80);
 
-  return;
-}
- if (diagnosis && action === diagnosis.lessonId) {
-  const tacticalCopy = buildTacticalInterventionCopy(
-    {
-      mode: diagnosis.mode || diagnosis.diagnosis || diagnosis.lessonId,
-      diagnosisKey: diagnosis.diagnosis || diagnosis.lessonId,
-      diagnosisTitle: diagnosis.title || 'Correção tática prioritária',
-      severity: diagnosis.severity || 'high',
-      score: Number(ctx?.score || 0),
-      actionLabel: diagnosis.actionLabel || 'Abrir correção'
-    },
-    {
-      score: Number(ctx?.score || 0),
-      topExpenseCategory: ctx?.topExpenseCategory || '',
-      concentrationPct: Number(ctx?.concentrationPct || 0),
-      savingsRate: Number(ctx?.savingsRate || 0),
-      projectedBalance: Number(ctx?.projectedBalance || 0)
-    }
-  );
-
-  pushEducationNotification(
-    tacticalCopy.notificationTitle,
-    tacticalCopy.notificationText,
-    tacticalCopy.priority
-  );
-
-  registerEducationTouch({
-    lessonId: diagnosis.lessonId,
-    diagnosisTitle: diagnosis.title || tacticalCopy.title,
-    currentPage: state.currentPage
-  });
-
-  openLesson(diagnosis.lessonId);
-
-  setTimeout(() => {
-    showToast(
-      tacticalCopy.priority === 'critical' ? 'error' : tacticalCopy.priority === 'high' ? 'warning' : 'info',
-      tacticalCopy.toastTitle,
-      tacticalCopy.toastText
+    pushEducationNotification(
+      tacticalCopy.notificationTitle,
+      tacticalCopy.notificationText,
+      tacticalCopy.priority
     );
-  }, 80);
 
-  return;
+    registerEducationTouch({
+      lessonId: action,
+      diagnosisTitle: diagnosis?.title || tacticalCopy.title,
+      currentPage: state.currentPage
+    });
+
+    openLesson(action);
+
+    setTimeout(() => {
+      showToast(
+        tacticalCopy.priority === 'critical'
+          ? 'error'
+          : tacticalCopy.priority === 'high'
+          ? 'warning'
+          : 'info',
+        tacticalCopy.toastTitle,
+        tacticalCopy.toastText
+      );
+    }, 80);
+
+    return;
+  }
+
+  if (diagnosis && action === diagnosis.lessonId) {
+    const tacticalCopy = buildTacticalInterventionCopy(
+      {
+        mode: diagnosis.mode || diagnosis.diagnosis || diagnosis.lessonId,
+        diagnosisKey: diagnosis.diagnosis || diagnosis.lessonId,
+        diagnosisTitle: diagnosis.title || 'Correção tática prioritária',
+        severity: diagnosis.severity || 'high',
+        score: Number(ctx?.score || 0),
+        actionLabel: diagnosis.actionLabel || 'Abrir correção'
+      },
+      {
+        score: Number(ctx?.score || 0),
+        topExpenseCategory: ctx?.topExpenseCategory || '',
+        concentrationPct: Number(ctx?.concentrationPct || 0),
+        savingsRate: Number(ctx?.savingsRate || 0),
+        projectedBalance: Number(ctx?.projectedBalance || 0)
+      }
+    );
+
+    pushEducationNotification(
+      tacticalCopy.notificationTitle,
+      tacticalCopy.notificationText,
+      tacticalCopy.priority
+    );
+
+    registerEducationTouch({
+      lessonId: diagnosis.lessonId,
+      diagnosisTitle: diagnosis.title || tacticalCopy.title,
+      currentPage: state.currentPage
+    });
+
+    openLesson(diagnosis.lessonId);
+
+    setTimeout(() => {
+      showToast(
+        tacticalCopy.priority === 'critical'
+          ? 'error'
+          : tacticalCopy.priority === 'high'
+          ? 'warning'
+          : 'info',
+        tacticalCopy.toastTitle,
+        tacticalCopy.toastText
+      );
+    }, 80);
+
+    return;
+  }
 }
    
 function openLesson(id) {
