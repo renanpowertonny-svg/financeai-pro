@@ -4291,65 +4291,121 @@ function openLesson(id) {
 
 function getLessonContent(id, ctx) {
   const content = {
-  'cash-bleeding': `
-  ${
-    ['Moradia', 'Habitação', 'Aluguel'].includes(ctx.topExpenseCategory)
-      ? `
-      <p><strong>O problema aqui não é gasto impulsivo.</strong> É compressão estrutural. Quando moradia ocupa uma faixa alta demais da renda, o usuário perde margem antes mesmo de começar o mês.</p>
+    'cash-bleeding': `
+      ${
+        ['Moradia', 'Habitação', 'Aluguel'].includes(ctx.topExpenseCategory)
+          ? `
+          <p><strong>O problema aqui não é gasto impulsivo.</strong> É compressão estrutural. Quando moradia ocupa uma faixa alta demais da renda, o usuário perde margem antes mesmo de começar o mês.</p>
+          <br>
+          <p><strong>No seu cenário atual:</strong> Moradia está em <strong>${fmt(ctx.topExpenseValue)}</strong>, consumindo <strong>${ctx.concentrationPct.toFixed(1)}%</strong> da sua renda do período.</p>
+          <br>
+          <p><strong>Leitura profissional:</strong></p>
+          <p>1. Isso não se resolve com microeconomia em café ou delivery.</p>
+          <p>2. O centro do problema está no custo fixo estrutural.</p>
+          <p>3. Enquanto essa faixa continuar pressionada, sua retenção seguirá fraca.</p>
+          <p>4. O usuário sente sufoco recorrente mesmo quando reduz gastos menores.</p>
+          <br>
+          <p><strong>Estratégia prática de compressão:</strong></p>
+          <p>1. Separar o que é moradia-base do que é custo agregado (condomínio, energia, internet, manutenção).</p>
+          <p>2. Identificar qual parte é renegociável, substituível ou reestruturável.</p>
+          <p>3. Definir uma faixa-alvo de moradia mais saudável para o seu nível de renda.</p>
+          <p>4. Criar um plano de compressão sem desorganizar sua rotina.</p>
+          <br>
+          <p><strong>Métrica de vitória:</strong> recuperar cerca de <strong>${fmt(Math.max(50, Math.round((ctx.topExpenseValue || 0) * 0.20)))}</strong> a <strong>${fmt(Math.max(80, Math.round((ctx.topExpenseValue || 0) * 0.30)))}</strong> por ciclo já começa a aliviar sua estrutura.</p>
+          `
+          : `
+          <p><strong>O problema real não é só gastar.</strong> É gastar sem perceber o padrão. Quando o usuário não enxerga para onde o dinheiro escapa, ele sente que “nunca sobra”, mesmo trabalhando e recebendo.</p>
+          <br>
+          <p><strong>No seu cenário atual:</strong> a categoria de maior pressão é <strong>${ctx.topExpenseCategory || 'não identificada'}</strong>, somando <strong>${fmt(ctx.topExpenseValue)}</strong> no período.</p>
+          <br>
+          <p><strong>Estratégia prática:</strong></p>
+          <p>1. Liste as 5 últimas despesas da categoria crítica.</p>
+          <p>2. Separe o que foi necessidade real do que foi conforto/impulso.</p>
+          <p>3. Defina um teto semanal, não apenas mensal.</p>
+          <p>4. Faça revisão de 3 minutos ao final do dia.</p>
+          <br>
+          <p><strong>Métrica de controle:</strong> o objetivo é reduzir de 10% a 20% esse centro de gasto sem gerar sensação de punição.</p>
+          `
+      }
+    `,
+
+    'reserve-shield': `
+      <p><strong>Você está sem blindagem mínima.</strong> Isso significa que qualquer imprevisto pequeno pode virar pressão financeira real.</p>
       <br>
-      <p><strong>No seu cenário atual:</strong> Moradia está em <strong>${fmt(ctx.topExpenseValue)}</strong>, consumindo <strong>${ctx.concentrationPct.toFixed(1)}%</strong> da sua renda do período.</p>
+      <p><strong>No seu cenário atual:</strong> você tem <strong>${fmt(ctx.emergencyCurrent || 0)}</strong> guardado, mas seu primeiro escudo real começa em <strong>${fmt(ctx.emergencyMinimumTarget || 0)}</strong>.</p>
       <br>
       <p><strong>Leitura profissional:</strong></p>
-      <p>1. Isso não se resolve com microeconomia em café ou delivery.</p>
-      <p>2. O centro do problema está no custo fixo estrutural.</p>
-      <p>3. Enquanto essa faixa continuar pressionada, sua retenção seguirá fraca.</p>
-      <p>4. O usuário sente sufoco recorrente mesmo quando reduz gastos menores.</p>
+      <p>1. Seu problema agora não é atingir a reserva ideal completa.</p>
+      <p>2. Seu foco é sair da zona mais frágil.</p>
+      <p>3. Sem blindagem mínima, qualquer pressão vira cartão, atraso ou ansiedade.</p>
+      <p>4. O sistema precisa transformar proteção em rotina, não em intenção solta.</p>
       <br>
-      <p><strong>Estratégia prática de compressão:</strong></p>
-      <p>1. Separar o que é moradia-base do que é custo agregado (condomínio, energia, internet, manutenção).</p>
-      <p>2. Identificar qual parte é renegociável, substituível ou reestruturável.</p>
-      <p>3. Definir uma faixa-alvo de moradia mais saudável para o seu nível de renda.</p>
-      <p>4. Criar um plano de compressão sem desorganizar sua rotina.</p>
+      <p><strong>Estratégia prática de blindagem:</strong></p>
+      <p>1. Criar ou abrir a meta de reserva imediatamente.</p>
+      <p>2. Definir o primeiro aporte, mesmo que ele ainda seja pequeno.</p>
+      <p>3. Tratar a blindagem mínima como prioridade de estabilidade, não como meta “quando sobrar”.</p>
+      <p>4. Fechar primeiro o escudo mínimo antes de pensar no alvo ideal completo.</p>
       <br>
-      <p><strong>Métrica de vitória:</strong> recuperar cerca de <strong>${fmt(Math.max(50, Math.round((ctx.topExpenseValue || 0) * 0.20)))}</strong> a <strong>${fmt(Math.max(80, Math.round((ctx.topExpenseValue || 0) * 0.30)))}</strong> por ciclo já começa a aliviar sua estrutura.</p>
-      `
-      : `
-      <p><strong>O problema real não é só gastar.</strong> É gastar sem perceber o padrão. Quando o usuário não enxerga para onde o dinheiro escapa, ele sente que “nunca sobra”, mesmo trabalhando e recebendo.</p>
+      <p><strong>Seu próximo degrau:</strong> depois de atingir <strong>${fmt(ctx.emergencyMinimumTarget || 0)}</strong>, o próximo nível de proteção sobe para <strong>${fmt(ctx.emergencyEssentialTarget || 0)}</strong>.</p>
       <br>
-      <p><strong>No seu cenário atual:</strong> a categoria de maior pressão é <strong>${ctx.topExpenseCategory || 'não identificada'}</strong>, somando <strong>${fmt(ctx.topExpenseValue)}</strong> no período.</p>
-      <br>
-      <p><strong>Estratégia prática:</strong></p>
-      <p>1. Liste as 5 últimas despesas da categoria crítica.</p>
-      <p>2. Separe o que foi necessidade real do que foi conforto/impulso.</p>
-      <p>3. Defina um teto semanal, não apenas mensal.</p>
-      <p>4. Faça revisão de 3 minutos ao final do dia.</p>
-      <br>
-      <p><strong>Métrica de controle:</strong> o objetivo é reduzir de 10% a 20% esse centro de gasto sem gerar sensação de punição.</p>
-      `
-  }
-`,
+      <p><strong>Métrica de vitória:</strong> faltam <strong>${fmt(ctx.emergencyMinimumGap || 0)}</strong> para você sair da zona mais vulnerável e começar a operar com um mínimo de proteção real.</p>
+    `
   };
 
-  return content[id] || `<p>Conteúdo em preparação.</p>`;
-}
+  if (!content[id]) {
+    return `
+      <p><strong>Diagnóstico identificado, mas protocolo ainda não carregado.</strong></p>
+      <br>
+      <p>O sistema reconheceu a dor dominante, porém esta intervenção ainda não recebeu conteúdo premium completo.</p>
+      <p>Isso precisa ser tratado para manter coerência total da experiência.</p>
+    `;
+  }
 
+  return content[id];
+}
 function completeLesson(id, overlay) {
   ensureEducationState();
+
+  const completionMessages = {
+    'reserve-shield': {
+      successTitle: 'Blindagem registrada com intenção de execução',
+      successText: 'Você marcou a correção, mas a proteção só começa de verdade quando o primeiro aporte entra na meta.',
+      nextTitle: 'Próximo passo crítico',
+      nextText: 'Agora vá em Metas e registre o primeiro valor da sua blindagem. Sem aporte, a vulnerabilidade continua a mesma.'
+    },
+    'cash-bleeding': {
+      successTitle: 'Auditoria iniciada com foco real',
+      successText: 'Agora o importante é transformar percepção em corte prático no centro do vazamento.',
+      nextTitle: 'Próximo passo crítico',
+      nextText: 'Revise as despesas da categoria dominante e separe necessidade, conforto e excesso ainda hoje.'
+    }
+  };
+
+  const message = completionMessages[id] || {
+    successTitle: 'Correção registrada',
+    successText: 'Você marcou essa intervenção no seu progresso. Agora transforme esse entendimento em ação prática.',
+    nextTitle: 'Próximo passo crítico',
+    nextText: 'Defina ainda hoje uma ação concreta para que essa intervenção não vire só consciência sem execução.'
+  };
 
   if (!state.eduProgress.completed.includes(id)) {
     state.eduProgress.completed.push(id);
     state.eduProgress.points = (state.eduProgress.points || 0) + 80;
     state.eduProgress.streak = (state.eduProgress.streak || 0) + 1;
     saveUserData();
-    showToast('success', 'Aplicado com sucesso!', 'Esse módulo entrou no seu progresso educacional.');
+
+    showToast('success', message.successTitle, message.successText);
+
+    setTimeout(() => {
+      showToast('info', message.nextTitle, message.nextText);
+    }, 1200);
   } else {
-    showToast('info', 'Módulo já concluído', 'Esse conteúdo já está marcado no seu progresso.');
+    showToast('info', 'Módulo já concluído', 'Esse conteúdo já está marcado no seu progresso. O foco agora é executar a próxima ação prática.');
   }
 
   if (overlay) overlay.remove();
   renderEducation();
 }
-
 function getEducationMissionExecutionPlan(missionId, ctx) {
   const plans = {
      'mission-housing-review': {
