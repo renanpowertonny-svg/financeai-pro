@@ -4085,29 +4085,7 @@ function openLesson(id) {
 
 function getLessonContent(id, ctx) {
   const content = {
- 'cash-bleeding': `
-  ${
-    ['Moradia', 'Habitação', 'Aluguel'].includes(ctx.topExpenseCategory)
-      ? `
-      <p><strong>O problema aqui não é gasto impulsivo.</strong> É compressão estrutural. Quando moradia ocupa uma faixa alta demais da renda, o usuário perde margem antes mesmo de começar o mês.</p>
-      <br>
-      <p><strong>No seu cenário atual:</strong> Moradia está em <strong>${fmt(ctx.topExpenseValue)}</strong>, consumindo <strong>${ctx.concentrationPct.toFixed(1)}%</strong> da sua renda do período.</p>
-      <br>
-      <p><strong>Leitura profissional:</strong></p>
-      <p>1. Isso não se resolve com microeconomia em café ou delivery.</p>
-      <p>2. O centro do problema está no custo fixo estrutural.</p>
-      <p>3. Enquanto essa faixa continuar pressionada, sua retenção seguirá fraca.</p>
-      <p>4. O usuário sente sufoco recorrente mesmo quando reduz gastos menores.</p>
-      <br>
-      <p><strong>Estratégia prática de compressão:</strong></p>
-      <p>1. Separar o que é moradia-base do que é custo agregado (condomínio, energia, internet, manutenção).</p>
-      <p>2. Identificar qual parte é renegociável, substituível ou reestruturável.</p>
-      <p>3. Definir uma faixa-alvo de moradia mais saudável para o seu nível de renda.</p>
-      <p>4. Criar um plano de compressão sem desorganizar sua rotina.</p>
-      <br>
-      <p><strong>Métrica de vitória:</strong> recuperar cerca de <strong>${fmt(Math.max(50, Math.round((ctx.topExpenseValue || 0) * 0.20)))}</strong> a <strong>${fmt(Math.max(80, Math.round((ctx.topExpenseValue || 0) * 0.30)))}</strong> por ciclo já começa a aliviar sua estrutura.</p>
-      `
-      : `
+    'cash-bleeding': `
       <p><strong>O problema real não é só gastar.</strong> É gastar sem perceber o padrão. Quando o usuário não enxerga para onde o dinheiro escapa, ele sente que “nunca sobra”, mesmo trabalhando e recebendo.</p>
       <br>
       <p><strong>No seu cenário atual:</strong> a categoria de maior pressão é <strong>${ctx.topExpenseCategory || 'não identificada'}</strong>, somando <strong>${fmt(ctx.topExpenseValue)}</strong> no período.</p>
@@ -4119,9 +4097,101 @@ function getLessonContent(id, ctx) {
       <p>4. Faça revisão de 3 minutos ao final do dia.</p>
       <br>
       <p><strong>Métrica de controle:</strong> o objetivo é reduzir de 10% a 20% esse centro de gasto sem gerar sensação de punição.</p>
-      `
-  }
-`,
+    `,
+    'reserve-shield': `
+      <p><strong>Reserva de emergência não é luxo. É blindagem.</strong> Sem ela, qualquer choque empurra o usuário para cartão, empréstimo ou atraso.</p>
+      <br>
+      <p><strong>No seu caso:</strong> o alvo de proteção estimado é <strong>${fmt(ctx.emergencyTarget)}</strong>. Hoje, sua cobertura está em <strong>${ctx.emergencyCoveragePct.toFixed(0)}%</strong>.</p>
+      <br>
+      <p><strong>Ordem correta:</strong></p>
+      <p>1. Definir a meta mínima.</p>
+      <p>2. Criar aporte recorrente, mesmo pequeno.</p>
+      <p>3. Não misturar reserva com meta de consumo.</p>
+      <p>4. Priorizar liquidez e segurança, não rentabilidade agressiva.</p>
+      <br>
+      <p><strong>Verdade prática:</strong> a reserva reduz ansiedade, dá poder de decisão e impede que um problema vire crise financeira.</p>
+    `,
+    'food-control': `
+      <p><strong>Alimentação fora de casa parece pequena no dia. No mês, vira erosão de margem.</strong></p>
+      <br>
+      <p><strong>Seu gasto atual ligado a alimentação está em torno de:</strong> <strong>${fmt(ctx.foodExpense)}</strong>.</p>
+      <br>
+      <p><strong>Como corrigir sem radicalismo:</strong></p>
+      <p>1. Defina um teto semanal para alimentação variável.</p>
+      <p>2. Identifique os 3 gatilhos mais frequentes: pressa, cansaço ou recompensa.</p>
+      <p>3. Crie duas alternativas de baixo atrito: compra planejada e refeição pronta em casa.</p>
+      <p>4. Monitore delivery separado de supermercado.</p>
+      <br>
+      <p><strong>Métrica de vitória:</strong> reduzir 15% a 20% já costuma abrir espaço para meta ou reserva.</p>
+    `,
+    'salary-evaporation': `
+      <p><strong>O salário não some por mágica. Ele some por falta de retenção.</strong></p>
+      <br>
+      <p><strong>Sua retenção atual:</strong> <strong>${ctx.savingsRate.toFixed(1)}%</strong>.</p>
+      <p><strong>Gasto nos 5 dias após a entrada de renda:</strong> <strong>${fmt(ctx.spendAfterIncome)}</strong>.</p>
+      <br>
+      <p><strong>O padrão clássico é:</strong> entra dinheiro → sensação de alívio → compra reprimida → mês volta a apertar.</p>
+      <br>
+      <p><strong>Estratégia profissional:</strong></p>
+      <p>1. No dia da entrada, separar primeiro o dinheiro da meta principal.</p>
+      <p>2. Definir teto claro para os 5 primeiros dias.</p>
+      <p>3. Evitar decisões emocionais nesse intervalo.</p>
+      <p>4. Revisar se a maior perda vem de conforto imediato ou de custo fixo mal calibrado.</p>
+    `,
+    'goal-discipline': `
+      <p><strong>Meta sem rotina de aporte vira intenção emocional, não construção real.</strong></p>
+      <br>
+      <p><strong>Hoje você tem ${ctx.goalsCount} meta(s) ativa(s).</strong></p>
+      <br>
+      <p><strong>Transformação real:</strong></p>
+      <p>1. Cada meta precisa de prazo.</p>
+      <p>2. Cada prazo precisa de aporte recorrente.</p>
+      <p>3. Cada aporte precisa caber no seu fluxo atual.</p>
+      <p>4. Se a meta não recebe dinheiro, ela não está ativa de verdade.</p>
+      <br>
+      <p><strong>Regra simples:</strong> metas grandes só saem do papel quando entram no calendário e no orçamento.</p>
+    `,
+    'recurring-burden': `
+      <p><strong>Despesas recorrentes viram invisíveis porque deixam de doer. Mas continuam drenando caixa.</strong></p>
+      <br>
+      <p><strong>Você possui ${ctx.recurringCount} item(ns) recorrente(s) registrado(s).</strong></p>
+      <br>
+      <p><strong>Auditoria prática:</strong></p>
+      <p>1. Liste tudo que repete mensalmente.</p>
+      <p>2. Marque: essencial, útil ou descartável.</p>
+      <p>3. Corte o que não entrega valor proporcional.</p>
+      <p>4. Renegocie o que é necessário, mas está caro.</p>
+      <br>
+      <p><strong>Objetivo:</strong> diminuir peso fixo para aumentar margem de decisão.</p>
+    `,
+    'stability-before-investing': `
+      <p><strong>Investir antes de estabilizar o básico é construir em terreno frágil.</strong></p>
+      <br>
+      <p><strong>Seu saldo atual:</strong> <strong>${fmt(ctx.balance)}</strong>.</p>
+      <p><strong>Meses negativos nos últimos 6 meses:</strong> <strong>${ctx.negativeMonths}</strong>.</p>
+      <br>
+      <p><strong>Ordem profissional:</strong></p>
+      <p>1. Eliminar desorganização.</p>
+      <p>2. Construir folga.</p>
+      <p>3. Formar reserva.</p>
+      <p>4. Só então acelerar crescimento.</p>
+      <br>
+      <p><strong>Verdade importante:</strong> investir com caixa instável aumenta ansiedade e probabilidade de resgate errado.</p>
+    `,
+    'discipline-engine': `
+      <p><strong>Disciplina financeira não depende de “estar motivado”. Depende de sistema.</strong></p>
+      <br>
+      <p><strong>Sua consistência estimada hoje:</strong> <strong>${ctx.disciplineScore}/100</strong>.</p>
+      <br>
+      <p><strong>Motor de disciplina:</strong></p>
+      <p>1. Um ritual fixo de revisão semanal.</p>
+      <p>2. Uma prioridade financeira por vez.</p>
+      <p>3. Um teto claro para categoria de risco.</p>
+      <p>4. Uma meta que receba aporte automático.</p>
+      <br>
+      <p><strong>Quanto mais simples o sistema, maior a chance de repetição.</strong> O usuário evolui quando reduz atrito, não quando depende de força de vontade heroica.</p>
+    `
+  };
 
   return content[id] || `<p>Conteúdo em preparação.</p>`;
 }
@@ -4145,16 +4215,6 @@ function completeLesson(id, overlay) {
 
 function getEducationMissionExecutionPlan(missionId, ctx) {
   const plans = {
-     'mission-housing-review': {
-  title: 'Compressão estrutural de moradia',
-  badge: 'Revisão estrutural',
-  lessonId: 'cash-bleeding',
-  problem: `Moradia está em ${fmt(ctx.topExpenseValue || 0)} e já consome ${Number(ctx.concentrationPct || 0).toFixed(1)}% da sua renda do período. O problema aqui não é descontrole pequeno. É compressão estrutural.`,
-  whyNow: 'Quando o custo de moradia entra alto demais na estrutura, o resto do orçamento passa a viver espremido. Isso enfraquece retenção, reserva e sensação de controle.',
-  nextStep: 'Vou abrir sua revisão de transações para você identificar o que dentro da moradia é custo-base, custo agregado e possível alavanca de renegociação ou ajuste.',
-  expected: 'Ao enxergar a composição da moradia e separar o que realmente pode ser comprimido, você sai do sufoco difuso e entra em plano concreto de alívio estrutural.',
-  actionLabel: 'Revisar moradia agora'
-},
     'mission-food-cap': {
       title: 'Redução prática em alimentação',
       badge: 'Execução guiada',
