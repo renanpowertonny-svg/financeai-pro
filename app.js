@@ -3916,70 +3916,174 @@ function applyEducationAction(action) {
     saveUserData();
   };
 
-  if (action === 'review-transactions') {
-    navigate('transactions');
-    showToast(
-      'info',
-      'Auditoria aberta',
-      'Revise agora os lançamentos e identifique o que foi necessidade, impulso ou conforto repetido.'
-    );
-    return;
-  }
+if (action === 'review-transactions') {
+  pushEducationNotification(
+    'Auditoria tática iniciada',
+    'O FinanceAI abriu uma revisão guiada para separar gasto necessário, impulso e conforto repetido antes que o padrão continue se escondendo.',
+    'medium',
+    {
+      priority: 'medium',
+      category: 'education_audit',
+      source: 'phase3_quick_action',
+      score: Number(ctx?.score || 0),
+      actionLabel: 'Ver transações',
+      actionPage: 'transactions'
+    }
+  );
 
-  if (action === 'create-emergency-goal') {
-    navigate('goals');
-    setTimeout(() => {
-      if (typeof openGoalModal === 'function') openGoalModal();
-    }, 120);
+  registerEducationTouch({
+    lessonId: action,
+    diagnosisTitle: 'Auditoria tática de lançamentos',
+    currentPage: state.currentPage
+  });
 
-    showToast(
-      'warning',
-      'Blindagem iniciada',
-      'Sua reserva precisa sair do campo da intenção e virar meta ativa com primeiro aporte definido.'
-    );
-    return;
-  }
+  navigate('transactions');
 
-  if (action === 'set-food-limit') {
-    navigate('settings');
-    setTimeout(() => {
-      const input = document.querySelector('.limit-input[data-cat="Alimentação"]');
-      if (input) {
-        const suggestedLimit = Math.max(50, Math.round((Number(ctx.foodExpense || 0)) * 0.85));
-        input.focus();
-        input.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        input.value = suggestedLimit;
-        input.dispatchEvent(new Event('input', { bubbles: true }));
-      }
-    }, 120);
+  showToast(
+    'info',
+    'Auditoria tática aberta',
+    'Agora não é só revisão. Você entrou em um filtro para identificar o que está drenando sua margem sem parecer grave.'
+  );
+  return;
+}
 
-    showToast(
-      'warning',
-      'Limite sugerido preparado',
-      'Preenchemos um teto inicial para alimentação. Agora salve esse limite para conter o vazamento.'
-    );
-    return;
-  }
+if (action === 'create-emergency-goal') {
+  pushEducationNotification(
+    'Blindagem emergencial iniciada',
+    'O FinanceAI abriu a construção de uma reserva ativa para tirar sua proteção do campo da intenção e levar para execução prática.',
+    'high',
+    {
+      priority: 'high',
+      category: 'education_reserve',
+      source: 'phase3_quick_action',
+      score: Number(ctx?.score || 0),
+      actionLabel: 'Criar blindagem',
+      actionPage: 'goals'
+    }
+  );
 
-  if (action === 'open-goals') {
-    navigate('goals');
-    showToast(
-      'info',
-      'Plano de metas aberto',
-      'Agora transforme objetivo em estrutura: prazo, valor e aporte recorrente.'
-    );
-    return;
-  }
+  registerEducationTouch({
+    lessonId: action,
+    diagnosisTitle: 'Blindagem emergencial',
+    currentPage: state.currentPage
+  });
 
-  if (action === 'open-ai') {
-    navigate('ai');
-    showToast(
-      'info',
-      'Diagnóstico aprofundado',
-      'Abrindo a IA para detalhar causa, consequência e correção recomendada.'
-    );
-    return;
-  }
+  navigate('goals');
+  setTimeout(() => {
+    if (typeof openGoalModal === 'function') openGoalModal();
+  }, 120);
+
+  showToast(
+    'warning',
+    'Blindagem prática aberta',
+    'Sua correção agora saiu da teoria. O próximo passo é transformar proteção em meta ativa com aporte real.'
+  );
+  return;
+}
+
+if (action === 'set-food-limit') {
+  const suggestedLimit = Math.max(50, Math.round((Number(ctx.foodExpense || 0)) * 0.85));
+
+  pushEducationNotification(
+    'Contenção alimentar preparada',
+    `O FinanceAI calculou um teto inicial para alimentação e abriu uma contenção prática para interromper a erosão silenciosa da sua margem.`,
+    'high',
+    {
+      priority: 'high',
+      category: 'education_limit',
+      source: 'phase3_quick_action',
+      score: Number(ctx?.score || 0),
+      actionLabel: 'Definir limite',
+      actionPage: 'settings'
+    }
+  );
+
+  registerEducationTouch({
+    lessonId: action,
+    diagnosisTitle: 'Contenção alimentar',
+    currentPage: state.currentPage
+  });
+
+  navigate('settings');
+  setTimeout(() => {
+    const input = document.querySelector('.limit-input[data-cat="Alimentação"]');
+    if (input) {
+      input.focus();
+      input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      input.value = suggestedLimit;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  }, 120);
+
+  showToast(
+    'warning',
+    'Contenção alimentar aberta',
+    'O teto inicial já foi preparado. Agora salve esse limite para parar o vazamento repetitivo antes que ele pareça normal.'
+  );
+  return;
+}
+
+if (action === 'open-goals') {
+  pushEducationNotification(
+    'Estrutura de metas acionada',
+    'O FinanceAI abriu seu plano de metas para converter intenção difusa em prazo, valor e disciplina de aporte.',
+    'medium',
+    {
+      priority: 'medium',
+      category: 'education_goals',
+      source: 'phase3_quick_action',
+      score: Number(ctx?.score || 0),
+      actionLabel: 'Abrir metas',
+      actionPage: 'goals'
+    }
+  );
+
+  registerEducationTouch({
+    lessonId: action,
+    diagnosisTitle: 'Estruturação de metas',
+    currentPage: state.currentPage
+  });
+
+  navigate('goals');
+
+  showToast(
+    'info',
+    'Plano tático de metas aberto',
+    'Agora você vai estruturar direção, prazo e aporte. Meta sem estrutura vira desejo; com estrutura, vira execução.'
+  );
+  return;
+}
+
+if (action === 'open-ai') {
+  pushEducationNotification(
+    'Diagnóstico aprofundado aberto',
+    'O FinanceAI abriu uma leitura expandida para detalhar causa, consequência e correção recomendada a partir do seu padrão atual.',
+    'medium',
+    {
+      priority: 'medium',
+      category: 'education_ai',
+      source: 'phase3_quick_action',
+      score: Number(ctx?.score || 0),
+      actionLabel: 'Ver análise IA',
+      actionPage: 'ai'
+    }
+  );
+
+  registerEducationTouch({
+    lessonId: action,
+    diagnosisTitle: 'Diagnóstico aprofundado',
+    currentPage: state.currentPage
+  });
+
+  navigate('ai');
+
+  showToast(
+    'info',
+    'Leitura aprofundada aberta',
+    'A IA foi aberta para transformar sintoma em causa, risco em leitura e leitura em decisão prática.'
+  );
+  return;
+}
 
   if (action === 'complete-mission') {
     const mission = getEducationMission(ctx);
