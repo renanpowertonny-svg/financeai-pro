@@ -4034,32 +4034,50 @@ function applyEducationAction(action) {
 
   return;
 }
-  if (diagnosis && action === diagnosis.lessonId) {
-    pushEducationNotification(
-      'Correção iniciada',
-      `Sua dor dominante atual é: ${diagnosis.title}. O FinanceAI abriu a intervenção correspondente.`,
-      'high'
+ if (diagnosis && action === diagnosis.lessonId) {
+  const tacticalCopy = buildTacticalInterventionCopy(
+    {
+      mode: diagnosis.mode || diagnosis.diagnosis || diagnosis.lessonId,
+      diagnosisKey: diagnosis.diagnosis || diagnosis.lessonId,
+      diagnosisTitle: diagnosis.title || 'Correção tática prioritária',
+      severity: diagnosis.severity || 'high',
+      score: Number(ctx?.score || 0),
+      actionLabel: diagnosis.actionLabel || 'Abrir correção'
+    },
+    {
+      score: Number(ctx?.score || 0),
+      topExpenseCategory: ctx?.topExpenseCategory || '',
+      concentrationPct: Number(ctx?.concentrationPct || 0),
+      savingsRate: Number(ctx?.savingsRate || 0),
+      projectedBalance: Number(ctx?.projectedBalance || 0)
+    }
+  );
+
+  pushEducationNotification(
+    tacticalCopy.notificationTitle,
+    tacticalCopy.notificationText,
+    tacticalCopy.priority
+  );
+
+  registerEducationTouch({
+    lessonId: diagnosis.lessonId,
+    diagnosisTitle: diagnosis.title || tacticalCopy.title,
+    currentPage: state.currentPage
+  });
+
+  openLesson(diagnosis.lessonId);
+
+  setTimeout(() => {
+    showToast(
+      tacticalCopy.priority === 'critical' ? 'error' : tacticalCopy.priority === 'high' ? 'warning' : 'info',
+      tacticalCopy.toastTitle,
+      tacticalCopy.toastText
     );
+  }, 80);
 
-    registerEducationTouch({
-      lessonId: diagnosis.lessonId,
-      diagnosisTitle: diagnosis.title,
-      currentPage: state.currentPage
-    });
-
-    openLesson(diagnosis.lessonId);
-
-    setTimeout(() => {
-      showToast(
-        'warning',
-        'Dor dominante identificada',
-        `Abrimos a intervenção de ${diagnosis.title} com explicação prática, não só navegação.`
-      );
-    }, 80);
-
-    return;
-  }
+  return;
 }
+   
 function openLesson(id) {
   const lesson = EDUCATION_PROGRAMS.find(item => item.id === id);
   if (!lesson) return;
