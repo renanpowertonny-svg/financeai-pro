@@ -3992,31 +3992,48 @@ function applyEducationAction(action) {
   ];
 
   if (interventionIds.includes(action)) {
-    pushEducationNotification(
-      'Intervenção premium iniciada',
-      `O FinanceAI abriu uma intervenção guiada para atacar sua dor dominante: ${diagnosis.title}.`,
-      'high'
+  const tacticalCopy = buildTacticalInterventionCopy(
+    {
+      mode: action,
+      diagnosisKey: action,
+      diagnosisTitle: diagnosis?.title || 'Correção tática prioritária',
+      severity: diagnosis?.severity || 'high',
+      score: Number(ctx?.score || 0),
+      actionLabel: 'Abrir correção'
+    },
+    {
+      score: Number(ctx?.score || 0),
+      topExpenseCategory: ctx?.topExpenseCategory || '',
+      concentrationPct: Number(ctx?.concentrationPct || 0),
+      savingsRate: Number(ctx?.savingsRate || 0),
+      projectedBalance: Number(ctx?.projectedBalance || 0)
+    }
+  );
+
+  pushEducationNotification(
+    tacticalCopy.notificationTitle,
+    tacticalCopy.notificationText,
+    tacticalCopy.priority
+  );
+
+  registerEducationTouch({
+    lessonId: action,
+    diagnosisTitle: diagnosis?.title || tacticalCopy.title,
+    currentPage: state.currentPage
+  });
+
+  openLesson(action);
+
+  setTimeout(() => {
+    showToast(
+      tacticalCopy.priority === 'critical' ? 'error' : tacticalCopy.priority === 'high' ? 'warning' : 'info',
+      tacticalCopy.toastTitle,
+      tacticalCopy.toastText
     );
+  }, 80);
 
-    registerEducationTouch({
-      lessonId: action,
-      diagnosisTitle: diagnosis.title,
-      currentPage: state.currentPage
-    });
-
-    openLesson(action);
-
-    setTimeout(() => {
-      showToast(
-        'info',
-        'Intervenção guiada aberta',
-        'Agora você não foi jogado em uma tela genérica. O sistema abriu a explicação da causa, do erro e do próximo passo.'
-      );
-    }, 80);
-
-    return;
-  }
-
+  return;
+}
   if (diagnosis && action === diagnosis.lessonId) {
     pushEducationNotification(
       'Correção iniciada',
