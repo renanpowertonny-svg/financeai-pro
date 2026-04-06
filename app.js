@@ -3453,92 +3453,49 @@ function ensureEducationState() {
 }
 
 function getEducationContext() {
-  const txs = getFilteredTx('month');
-  const summary = calcSummary(txs);
-  const expenseTxs = txs.filter(t => t.type === 'expense');
-  const incomeTxs = txs.filter(t => t.type === 'income');
-  const now = new Date();
+  const transactions = Array.isArray(state.transactions)
+    ? state.transactions
+    : [];
 
-  const byCategory = {};
-  expenseTxs.forEach(tx => {
-    byCategory[tx.category] = (byCategory[tx.category] || 0) + tx.value;
-  });
+  const income = transactions
+    .filter(t => t.type === 'income')
+    .reduce((sum, t) => sum + Number(t.amount || 0), 0);
 
-  const sortedCategories = Object.entries(byCategory).sort((a, b) => b[1] - a[1]);
-  const topExpenseCategory = sortedCategories[0]?.[0] || '';
-  const topExpenseValue = sortedCategories[0]?.[1] || 0;
-  const foodExpense = (byCategory['Alimentação'] || 0) + expenseTxs
-    .filter(t => /ifood|delivery|lanche|restaurante|mercado|supermercado/i.test(t.desc || ''))
-    .reduce((sum, t) => sum + t.value, 0);
+  const expenses = transactions
+    .filter(t => t.type === 'expense')
+    .reduce((sum, t) => sum + Number(t.amount || 0), 0);
 
-  const recurringCount = state.transactions.filter(t => t.recurrence && t.recurrence !== 'once').length;
-  const goalsCount = state.goals.length;
-  const emergencyGoal = state.goals.find(g => /reserva|emerg[eê]ncia/i.test(g.name || ''));
-  const avgMonthlyExpense = getLast6Months()
-    .map(m => getMonthTotal(m.year, m.month, 'expense'))
-    .filter(v => v > 0);
+  const balance = income - expenses;
 
-  const expenseBase = avgMonthlyExpense.length
-    ? avgMonthlyExpense.reduce((a, b) => a + b, 0) / avgMonthlyExpense.length
-    : summary.expense;
+  const recurringExpenses = transactions.filter(t =>
+    String(t.category || '').toLowerCase().includes('assinatura') ||
+    String(t.description || '').toLowerCase().includes('mensal')
+  );
 
-  const emergencyTarget = Math.max(expenseBase * 6, 3000);
-  const emergencyCurrent = emergencyGoal ? (emergencyGoal.current || 0) : 0;
-  const emergencyCoveragePct = emergencyTarget > 0 ? Math.min((emergencyCurrent / emergencyTarget) * 100, 100) : 0;
+  const essentialExpenses = transactions.filter(t =>
+    ['moradia', 'alimentação', 'transporte'].includes(
+      String(t.category || '').toLowerCase()
+    )
+  );
 
-  const latestIncomeDate = incomeTxs
-    .map(t => new Date(t.date))
-    .sort((a, b) => b - a)[0] || null;
+  const nonEssentialExpenses = transactions.filter(t =>
+    !['moradia', 'alimentação', 'transporte'].includes(
+      String(t.category || '').toLowerCase()
+    )
+  );
 
-  let spendAfterIncome = 0;
-  if (latestIncomeDate) {
-    const start = new Date(latestIncomeDate);
-    const end = new Date(latestIncomeDate);
-    end.setDate(end.getDate() + 5);
-
-    spendAfterIncome = expenseTxs
-      .filter(t => {
-        const d = new Date(t.date);
-        return d >= start && d <= end;
-      })
-      .reduce((sum, t) => sum + t.value, 0);
-  }
-
-  const negativeMonths = getLast6Months().filter(m => {
-    const monthIncome = getMonthTotal(m.year, m.month, 'income');
-    const monthExpense = getMonthTotal(m.year, m.month, 'expense');
-    return monthIncome - monthExpense < 0;
-  }).length;
-
-  const concentrationPct = summary.income > 0 ? (topExpenseValue / summary.income) * 100 : 0;
-
-  let disciplineScore = 50;
-  if (summary.balance >= 0) disciplineScore += 15; else disciplineScore -= 20;
-  if (summary.savingsRate >= 20) disciplineScore += 20;
-  else if (summary.savingsRate >= 10) disciplineScore += 8;
-  else disciplineScore -= 10;
-  if (goalsCount > 0) disciplineScore += 8;
-  if (emergencyCoveragePct >= 50) disciplineScore += 10;
-  if (recurringCount <= 3) disciplineScore += 5;
-  if (negativeMonths >= 3) disciplineScore -= 10;
-  disciplineScore = Math.max(10, Math.min(100, Math.round(disciplineScore)));
+  const totalEssential = essentialExpenses.reduce((s, t) => s + t.amount, 0);
+  const totalNonEssential = nonEssentialExpenses.reduce((s, t) => s + t.amount, 0);
 
   return {
-    txs,
-    ...summary,
-    byCategory,
-    topExpenseCategory,
-    topExpenseValue,
-    foodExpense,
-    recurringCount,
-    goalsCount,
-    emergencyTarget,
-    emergencyCurrent,
-    emergencyCoveragePct,
-    spendAfterIncome,
-    concentrationPct,
-    negativeMonths,
-    disciplineScore
+    income,
+    expenses,
+    balance,
+    totalEssential,
+    totalNonEssential,
+    recurringCount: recurringExpenses.length,
+    transactionsCount: transactions.length,
+    savingsRate: income > 0 ? (balance / income) * 100 : 0
   };
 }
 
