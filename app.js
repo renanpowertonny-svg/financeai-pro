@@ -2227,10 +2227,16 @@ function buildBehaviorLanguagePack(snap) {
     consequenceText = 'o cenário ainda está controlado, mas o sistema segue monitorando risco de recaída';
   }
 
-  if (state.state === 'pre_collapse') {
+    if (state.state === 'pre_collapse') {
     return {
       headline: 'Diagnóstico crítico de ruptura',
-      body: `Seu risco crítico não nasce de um gasto isolado: ${causeText}, e ${consequenceText}.`,
+      body: `Você já comprometeu ${spendAfterIncomePct}% da sua renda logo após receber.
+
+Isso significa que sua saída de dinheiro já ultrapassou a capacidade saudável do ciclo atual.
+
+Se esse ritmo continuar, seu saldo não apenas enfraquece — ele fecha o período no negativo em ${fmt(projectedBalance)}.
+
+Em termos práticos: você perde margem de segurança, entra em pressão antes do fechamento do ciclo e aumenta o risco de cartão, atraso ou sufoco financeiro.`,
       tone: 'hard'
     };
   }
