@@ -3369,13 +3369,48 @@ function generateAIInsightBanner(txs, income, expense, savingsRate) {
   const insightEl = document.getElementById('aiInsightText');
   if (!insightEl) return;
 
-  const insights = [
-    savingsRate < 10 ? `Sua taxa de poupança é de apenas ${savingsRate.toFixed(1)}%. Reduza gastos para chegar a pelo menos 20%.` : null,
-    income > expense ? `Excelente! Você teve saldo positivo de ${fmt(income - expense)} este mês.` : null,
-    `Seu maior gasto do período é em: ${getTopCategory(txs)}. Monitore de perto.`,
-  ].filter(Boolean);
+  const snap = typeof getBehaviorEngineSnapshot === 'function'
+    ? getBehaviorEngineSnapshot()
+    : null;
 
-  insightEl.textContent = insights[Math.floor(Math.random() * insights.length)] || 'Continue monitorando suas finanças para receber insights personalizados.';
+  if (!snap) {
+    insightEl.textContent = 'Sem leitura comportamental suficiente ainda. Continue registrando movimentações para o FinanceAI detectar risco, padrão e pressão.';
+    return;
+  }
+
+  const projectedBalance = Number(snap.projectedBalance || 0);
+  const score = Number(snap.score || 0);
+  const behavior = snap.behavior || {};
+  const metrics = snap.metrics || {};
+  const behaviorState = snap.behaviorState || {};
+  const languagePack = snap.languagePack || {};
+  const topCategory = getTopCategory(txs);
+
+  let message = '';
+
+  if (behaviorState.state === 'pre_collapse' || projectedBalance < 0) {
+    const dailyBase = Math.max(Number(behavior.dailyAvgExpense || 0), 50);
+    const daysToPressure = Math.max(1, Math.round(Math.abs(projectedBalance) / dailyBase));
+    message = `Seu padrão atual está empurrando seu caixa para ruptura. Se nada mudar, a pressão pode estourar em cerca de ${daysToPressure} dias. Ação agora: interrompa o driver dominante ${behavior.primaryDriver || 'de risco'} antes que ele vire perda real.`;
+  } else if (behaviorState.state === 'sabotage_active') {
+    message = `O FinanceAI detectou sabotagem ativa no seu comportamento financeiro. O problema não é só gasto alto: é repetição de erro com impacto crescente. Ação agora: bloquear gastos variáveis e reduzir exposição ao padrão dominante.`;
+  } else if (Number(metrics.postIncomeVulnerability || 0) >= 55) {
+    message = `Sua vulnerabilidade sobe logo após entrada de renda. Isso comprime sua margem cedo demais e aumenta o risco de sufoco antes do fim do ciclo. Ação agora: travar consumo impulsivo nas próximas 48h após receber.`;
+  } else if (Number(metrics.silentRiskLoad || 0) >= 55) {
+    message = `Seu risco está se formando de maneira silenciosa. Ainda não parece colapso, mas sua consistência já começou a ceder. Ação agora: conter vazamentos antes que a pressão fique visível.`;
+  } else if ((behavior.impulseExpenseCount || 0) >= 3) {
+    message = `Seu controle está sendo corroído por decisões impulsivas recorrentes. Não é o valor isolado que pesa mais — é a repetição que drena sua margem. Ação agora: bloquear gastos não essenciais hoje.`;
+  } else if (savingsRate < 10) {
+    message = `Sua retenção está abaixo do necessário para estabilidade real. Hoje você poupa ${savingsRate.toFixed(1)}% e isso ainda deixa sua estrutura vulnerável. Ação agora: proteger margem e levar sua retenção para pelo menos 20%.`;
+  } else if (topCategory && topCategory !== 'N/A') {
+    message = `Seu maior centro de pressão atual está em ${topCategory}. O FinanceAI está acompanhando essa concentração para evitar que ela comprima sua margem sem você perceber.`;
+  } else {
+    message = languagePack.headline
+      ? `${languagePack.headline} ${languagePack.body || ''}`.trim()
+      : `Seu padrão financeiro está relativamente sob controle, mas ainda exige disciplina. Estabilidade não é ausência de risco — é repetição correta sob monitoramento.`;
+  }
+
+  insightEl.textContent = message;
 }
 
 function getTopCategory(txs) {
