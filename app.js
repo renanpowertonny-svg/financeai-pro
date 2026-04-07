@@ -3045,11 +3045,7 @@ function renderAIPage() {
 }
 
 function generateAIInsights(externalSnap = null)
-const snap = externalSnap || state._lastAISnapshot || (
-  typeof getBehaviorEngineSnapshot === 'function'
-    ? getBehaviorEngineSnapshot()
-    : null
-);
+
   const txs = getFilteredTx();
   const allTxs = state.transactions;
   const { income, expense, balance, savingsRate } = calcSummary(txs);
