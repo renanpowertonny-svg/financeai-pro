@@ -3250,10 +3250,10 @@ function updateAIScore(externalSnap = null) {
     }
 
     let consequenceText = 'Isso ainda não virou colapso, mas já iniciou deterioração estrutural.';
-    if (projectedBalance < 0) {
-      consequenceText = `Mantido esse ritmo, sua projeção fecha o ciclo negativa em ${fmt(projectedBalance)}.`;
-    } else if (spendAfterIncomePct >= 60) {
-      consequenceText = 'Esse padrão reduz sua margem antes do meio do ciclo e aumenta risco de sufoco nas próximas etapas do mês.';
+       if (projectedBalance < 0) {
+      consequenceText = `mantido esse ritmo, você termina o ciclo no negativo em ${fmt(projectedBalance)} — isso significa fechar o período sem margem e já em pressão financeira real`;
+       } else if (primaryDriver === 'cash_collapse_risk') {
+      driverText = `seu caixa já entrou em rota de fechamento negativo no ciclo atual`;
     } else if (sabotageIndex >= 60 || sabotagePattern === 'mission_resistance') {
       consequenceText = 'O dano não está só no valor gasto, mas na repetição do padrão que volta a desmontar sua disciplina.';
     } else if (silentRiskLoad >= 55) {
