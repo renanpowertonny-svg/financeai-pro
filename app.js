@@ -3114,16 +3114,18 @@ function updateAIScore() {
   const txs = getFilteredTx();
   const { income, expense, savingsRate } = calcSummary(txs);
 
-  let score = 50;
-  if (savingsRate >= 20) score += 20;
-  else if (savingsRate >= 10) score += 10;
-  else score -= 10;
-  if (income > expense) score += 15;
-  else score -= 20;
-  if (state.goals.length > 0) score += 10;
-  if (state.transactions.length > 10) score += 5;
+  const snap = typeof getBehaviorEngineSnapshot === 'function'
+    ? getBehaviorEngineSnapshot()
+    : null;
 
-  score = Math.max(10, Math.min(100, score));
+  const score = snap && typeof snap.score === 'number'
+    ? Math.max(0, Math.min(100, Math.round(snap.score)))
+    : 20;
+
+  const riskLevel = snap?.riskLevel || 'Baixo';
+  const behaviorState = snap?.behaviorState || null;
+  const languagePack = snap?.languagePack || {};
+  const metrics = snap?.metrics || {};
 
   const scoreEl = document.getElementById('scoreNum');
   if (scoreEl) scoreEl.textContent = score;
@@ -3135,27 +3137,44 @@ function updateAIScore() {
 
   const descEl = document.getElementById('scoreDescription');
   if (descEl) {
-    if (score >= 80) descEl.textContent = 'Excelente! Suas finanças estão muito bem controladas. Continue investindo e construindo seu patrimônio.';
-    else if (score >= 60) descEl.textContent = 'Bom progresso! Suas finanças estão razoavelmente controladas. Foque em aumentar a taxa de poupança.';
-    else if (score >= 40) descEl.textContent = 'Há oportunidade de melhora. Revise seus gastos e estabeleça metas claras de economia.';
-    else descEl.textContent = 'Situação crítica! Suas despesas superam receitas. Tome ação imediata para reequilibrar seu orçamento.';
+    if (languagePack.body) {
+      descEl.textContent = languagePack.body;
+    } else if (behaviorState?.state === 'pre_collapse' || score >= 85) {
+      descEl.textContent = 'Situação crítica! Seu padrão atual aponta ruptura iminente. Intervenção imediata é necessária.';
+    } else if (behaviorState?.state === 'sabotage_active' || score >= 70) {
+      descEl.textContent = 'Seu comportamento financeiro entrou em zona de dano ativo. O foco agora é interromper o padrão que acelera perdas.';
+    } else if (score >= 50) {
+      descEl.textContent = 'Você entrou em faixa de atenção. O sistema detecta fragilidade real, mesmo sem colapso total.';
+    } else if (score >= 30) {
+      descEl.textContent = 'Há sinais iniciais de instabilidade. Ajustes consistentes agora evitam deterioração mais profunda.';
+    } else {
+      descEl.textContent = 'Seu padrão está relativamente sob controle. Continue registrando dados para ampliar a precisão da leitura.';
+    }
   }
 
-  // Update bars
   const ctrl = Math.min(100, Math.max(0, 100 - (expense / (income || 1) * 100)));
-  const sav = Math.min(100, savingsRate * 5);
-  const goalPct = state.goals.length ? Math.min(100, state.goals.reduce((s, g) => s + (g.current / g.target), 0) / state.goals.length * 100) : 0;
-  const div = Math.min(100, new Set(txs.filter(t => t.type === 'expense').map(t => t.category)).size * 15);
+  const sav = Math.min(100, Math.max(0, savingsRate * 5));
+  const goalPct = state.goals.length
+    ? Math.min(100, state.goals.reduce((s, g) => s + (g.current / g.target), 0) / state.goals.length * 100)
+    : 0;
+
+  const canonicalDivers = metrics.silentRiskLoad != null
+    ? Math.max(0, Math.min(100, 100 - Number(metrics.silentRiskLoad || 0)))
+    : Math.min(100, new Set(txs.filter(t => t.type === 'expense').map(t => t.category)).size * 15);
 
   ['control', 'savings', 'goals', 'divers'].forEach((key, i) => {
-    const vals = [ctrl, sav, goalPct, div];
+    const vals = [ctrl, sav, goalPct, canonicalDivers];
     const barEl = document.getElementById(key + 'Bar');
     const pctEl = document.getElementById(key + 'Pct');
     if (barEl) barEl.style.width = vals[i].toFixed(0) + '%';
     if (pctEl) pctEl.textContent = vals[i].toFixed(0) + '%';
   });
-}
 
+  const healthTitle = document.querySelector('#page-ai .card-title, #page-ai h3');
+  if (healthTitle && healthTitle.textContent.trim() === 'Saúde Financeira') {
+    healthTitle.textContent = `Saúde Financeira — ${riskLevel}`;
+  }
+}
 function renderProjectionChart(scenario = 'moderate') {
   const ctx = document.getElementById('projectionChart');
   if (!ctx) return;
