@@ -3032,6 +3032,7 @@ function runSimulator() {
 // ==========================================
 // AI PAGE
 // ==========================================
+
 function renderAIPage() {
   const snap = typeof getBehaviorEngineSnapshot === 'function'
     ? getBehaviorEngineSnapshot()
@@ -3044,57 +3045,70 @@ function renderAIPage() {
   renderProjectionChart('moderate');
 }
 
-function generateAIInsights(externalSnap = null)
+function generateAIInsights(externalSnap = null) {
+  const snap = externalSnap || state._lastAISnapshot || (
+    typeof getBehaviorEngineSnapshot === 'function'
+      ? getBehaviorEngineSnapshot()
+      : null
+  );
 
   const txs = getFilteredTx();
-  const allTxs = state.transactions;
-  const { income, expense, balance, savingsRate } = calcSummary(txs);
-
-  const byCategory = {};
-  txs.filter(t => t.type === 'expense').forEach(t => { byCategory[t.category] = (byCategory[t.category] || 0) + t.value; });
+  const { income, expense, savingsRate } = calcSummary(txs);
 
   const insights = [];
-  const limits = state.settings.limits || {};
 
-  // Savings rate insight
-  if (savingsRate < 10) {
-    insights.push({ type: 'negative', icon: '📉', title: 'Taxa de poupança baixa', desc: `Você está poupando apenas ${savingsRate.toFixed(1)}% da sua renda. O ideal é poupar pelo menos 20% por mês. Reduza gastos com lazer e alimentação fora de casa.`, action: 'Criar meta de economia →' });
-  } else if (savingsRate >= 20) {
-    insights.push({ type: 'positive', icon: '🏆', title: 'Excelente taxa de poupança!', desc: `Parabéns! Você está poupando ${savingsRate.toFixed(1)}% da sua renda — acima da meta de 20%. Continue esse ritmo e considere investir o excedente.`, action: 'Ver opções de investimento →' });
+  if (snap?.behaviorState?.state === 'pre_collapse' || Number(snap?.score || 0) >= 85) {
+    insights.push({
+      type: 'negative',
+      icon: '🚨',
+      title: 'Risco estrutural elevado',
+      desc: 'Seu padrão atual aponta ruptura financeira iminente. O foco imediato é conter aceleração de dano.',
+      action: 'Executar contenção agora'
+    });
+  } else if (snap?.behaviorState?.state === 'sabotage_active' || Number(snap?.metrics?.sabotageIndex || 0) >= 60) {
+    insights.push({
+      type: 'warning',
+      icon: '⚠️',
+      title: 'Sabotagem financeira em curso',
+      desc: 'O sistema detecta repetição de comportamento que corrói sua margem mesmo sem colapso visível.',
+      action: 'Interromper padrão'
+    });
+  } else if (Number(savingsRate || 0) >= 20 && income > expense) {
+    insights.push({
+      type: 'positive',
+      icon: '🏆',
+      title: 'Excelente taxa de poupança!',
+      desc: `Parabéns! Você está poupando ${savingsRate.toFixed(1)}% da sua renda — acima da meta de 20%. Continue esse ritmo e considere investir o excedente.`,
+      action: 'Ver oportunidades'
+    });
+  } else if (Number(savingsRate || 0) < 10) {
+    insights.push({
+      type: 'negative',
+      icon: '📉',
+      title: 'Taxa de poupança baixa',
+      desc: `Você está poupando apenas ${savingsRate.toFixed(1)}% da sua renda. O ideal é avançar para pelo menos 20% com consistência.`,
+      action: 'Criar meta de economia'
+    });
   }
 
-  // Category excess
-  Object.entries(byCategory).forEach(([cat, val]) => {
-    const lim = limits[cat];
-    if (lim && val > lim) {
-      insights.push({ type: 'warning', icon: '⚠️', title: `Excesso em ${cat}`, desc: `Você gastou ${fmt(val)} em ${cat}, ultrapassando o limite de ${fmt(lim)} em ${fmt(val - lim)} (${(((val - lim) / lim) * 100).toFixed(0)}% acima).`, action: 'Ajustar limite →' });
-    }
-  });
-
-  // Top expense category
-  const topCat = Object.entries(byCategory).sort((a, b) => b[1] - a[1])[0];
-  if (topCat) {
-    const pctIncome = income > 0 ? (topCat[1] / income * 100).toFixed(1) : 0;
-    insights.push({ type: 'info', icon: '📊', title: `Maior gasto: ${topCat[0]}`, desc: `${topCat[0]} representa ${pctIncome}% da sua renda total (${fmt(topCat[1])}). ${pctIncome > 30 ? 'Considere reduzir esses gastos.' : 'Esse valor está dentro do esperado.'}`, action: 'Analisar detalhes →' });
+  if (state.goals.length === 0) {
+    insights.push({
+      type: 'info',
+      icon: '🎯',
+      title: 'Nenhuma meta ativa',
+      desc: 'Definir metas financeiras claras aumenta retenção de caixa e melhora disciplina de longo prazo.',
+      action: 'Criar primeira meta'
+    });
   }
 
-  // Balance check
-  if (balance < 0) {
-    insights.push({ type: 'negative', icon: '🔴', title: 'Saldo negativo!', desc: `Suas despesas (${fmt(expense)}) estão superando suas receitas (${fmt(income)}) em ${fmt(Math.abs(balance))}. Identifique e corte gastos não essenciais imediatamente.`, action: 'Ver despesas →' });
-  }
-
-  // Recurring expenses
-  const recurrings = state.transactions.filter(t => t.type === 'expense' && t.recurrence !== 'once');
-  if (recurrings.length > 0) {
-    const totalFixed = recurrings.reduce((s, t) => s + t.value, 0) / 6; // avg monthly
-    insights.push({ type: 'info', icon: '🔁', title: 'Gastos recorrentes', desc: `Você tem ${recurrings.length} despesas recorrentes, totalizando cerca de ${fmt(totalFixed)}/mês. Revise assinaturas e contratos periodicamente.`, action: 'Ver recorrentes →' });
-  }
-
-  // Positive: goals progress
-  const goalsWithProgress = state.goals.filter(g => g.current > 0 && g.current < g.target);
-  if (goalsWithProgress.length > 0) {
-    const avgProgress = goalsWithProgress.reduce((s, g) => s + (g.current / g.target), 0) / goalsWithProgress.length * 100;
-    insights.push({ type: 'positive', icon: '🎯', title: 'Metas em progresso', desc: `Você tem ${goalsWithProgress.length} meta(s) em andamento com progresso médio de ${avgProgress.toFixed(0)}%. Continue contribuindo regularmente!`, action: 'Ver metas →' });
+  if (txs.length === 0) {
+    insights.push({
+      type: 'info',
+      icon: '🧠',
+      title: 'Base ainda em formação',
+      desc: 'Adicione mais movimentações para aumentar a precisão da leitura comportamental.',
+      action: 'Adicionar transações'
+    });
   }
 
   state.aiInsights = insights;
@@ -3107,7 +3121,9 @@ function generateAIInsights(externalSnap = null)
       <div class="insight-header">
         <div class="insight-icon ${ins.type}"><span>${ins.icon}</span></div>
         <div>
-          <div class="insight-type ${ins.type}">${ins.type === 'positive' ? 'Positivo' : ins.type === 'negative' ? 'Atenção' : ins.type === 'warning' ? 'Alerta' : 'Informação'}</div>
+          <div class="insight-type ${ins.type}">
+            ${ins.type === 'positive' ? 'Positivo' : ins.type === 'negative' ? 'Atenção' : ins.type === 'warning' ? 'Alerta' : 'Informação'}
+          </div>
         </div>
       </div>
       <div class="insight-title">${ins.title}</div>
@@ -3122,12 +3138,10 @@ function updateAIScore(externalSnap = null) {
   const { income, expense, savingsRate } = calcSummary(txs);
 
   const snap = externalSnap || state._lastAISnapshot || (
-  typeof getBehaviorEngineSnapshot === 'function'
-    ? getBehaviorEngineSnapshot()
-    : null
-);
-    ? getBehaviorEngineSnapshot()
-    : null;
+    typeof getBehaviorEngineSnapshot === 'function'
+      ? getBehaviorEngineSnapshot()
+      : null
+  );
 
   const score = snap && typeof snap.score === 'number'
     ? Math.max(0, Math.min(100, Math.round(snap.score)))
@@ -3186,6 +3200,7 @@ function updateAIScore(externalSnap = null) {
     healthTitle.textContent = `Saúde Financeira — ${riskLevel}`;
   }
 }
+
 function renderProjectionChart(scenario = 'moderate') {
   const ctx = document.getElementById('projectionChart');
   if (!ctx) return;
