@@ -2331,32 +2331,7 @@ function renderDailyMission() {
   state.missionStatus.current = Math.max(0, target - todayExpenses);
 
 const missionTitle = state.missionStatus.title || 'Missão do dia';
-let missionText = '';
-
-const snap = typeof getBehaviorEngineSnapshot === 'function'
-  ? getBehaviorEngineSnapshot()
-  : null;
-
-if (snap && snap.behaviorState) {
-  const stateType = snap.behaviorState.state;
-
-  if (stateType === 'pre_collapse') {
-    missionText = 'Seu padrão atual está levando seu caixa para ruptura. Se você repetir o comportamento de hoje, o impacto será imediato.';
-  }
-  else if (stateType === 'sabotage_active') {
-    missionText = 'Você está repetindo decisões que sabotam sua estabilidade. O problema não é o valor — é a repetição.';
-  }
-  else if (stateType === 'recovery_fragile') {
-    missionText = 'Sua recuperação ainda é instável. Um erro agora pode anular o progresso recente.';
-  }
-  else {
-    missionText = 'Seu padrão ainda exige controle ativo para evitar regressão.';
-  }
-} else {
-  missionText = state.missionStatus.text || 'Hoje o FinanceAI está preparando sua missão.';
-}
-
-missionText += ' Ação agora: execute a missão sem exceção.';
+const missionText = state.missionStatus.text || 'Hoje o FinanceAI está preparando sua missão.';
 const severity = state.missionStatus.severity || 'stable';
 
 const severityLabelMap = {
