@@ -3576,25 +3576,25 @@ function getEducationCoreDirective(ctx) {
 
   const variablePressure = ctx.savingsRate < 10 && ctx.topExpenseCategory && !housingPressure;
 
-  if (ctx.emergencyMinimumCoveragePct < 100) {
+ if (ctx.emergencyMinimumCoveragePct < 100) {
   directives.push({
     priority: 95,
     mode: 'protection',
     level: 'Risco Alto',
-    title: 'Você está financeiramente exposto',
-    desc: `Sua proteção atual ainda não cobre o primeiro escudo contra imprevistos. Seu colchão mínimo recomendado é ${fmt(ctx.emergencyMinimumTarget)}, hoje você tem ${fmt(ctx.emergencyCurrent)} e faltam ${fmt(ctx.emergencyMinimumGap)} para sair da zona mais frágil.`,
-    gain: `Ao atingir a blindagem mínima, você reduz a chance de entrar em dívida por choque imediato. Depois disso, o próximo degrau é ${fmt(ctx.emergencyEssentialTarget)} e o alvo ideal completo é ${fmt(ctx.emergencyTarget)}.`,
+    title: 'Você está a um imprevisto de entrar em pressão financeira',
+    desc: `Hoje sua proteção ainda não cobre o primeiro escudo contra imprevistos. Seu colchão mínimo recomendado é ${fmt(ctx.emergencyMinimumTarget)}, você tem ${fmt(ctx.emergencyCurrent)} e faltam ${fmt(ctx.emergencyMinimumGap)} para sair da zona mais frágil.`,
+    gain: `O objetivo agora não é perseguir a blindagem ideal completa. É construir o primeiro escudo real que impede um imprevisto pequeno de virar cartão, atraso ou ansiedade. Depois disso, o próximo degrau sobe para ${fmt(ctx.emergencyEssentialTarget)}.`,
     lessonId: 'reserve-shield',
     mission: {
       id: 'mission-create-reserve',
-      title: 'Missão: ativar sua blindagem mínima',
-      desc: `Seu foco agora não é perseguir a reserva ideal inteira. É fechar primeiro o escudo mínimo de ${fmt(ctx.emergencyMinimumTarget)}. Hoje faltam ${fmt(ctx.emergencyMinimumGap)} para você sair da zona mais vulnerável.`,
+      title: 'Missão: construir seu primeiro escudo financeiro',
+      desc: `Seu foco agora é sair da zona vulnerável. Feche primeiro o escudo mínimo de ${fmt(ctx.emergencyMinimumTarget)} antes de pensar na blindagem ideal completa.`,
       reward: 100,
-      button: 'Ativar blindagem'
+      button: 'Construir escudo agora'
     },
     notification: {
-      title: 'Blindagem mínima ainda não construída',
-      text: `Sua proteção atual ainda não cobre o primeiro escudo contra imprevistos. O FinanceAI priorizou a construção da sua blindagem mínima antes do objetivo ideal.`,
+      title: 'Você segue sem escudo contra imprevisto',
+      text: `Seu caixa ainda não absorve nem um choque pequeno. O FinanceAI priorizou a construção do seu primeiro escudo financeiro antes que a pressão aumente.`,
       severity: 'high'
     }
   });
@@ -4237,12 +4237,15 @@ function openLesson(id) {
     duration: lesson.duration,
     difficulty: lesson.difficulty,
     problem: lesson.problem,
-    actionLabel: lesson.ctaLabel || 'Executar ação'
+    actionLabel: lesson.ctaLabel || 'Executar ação',
+    secondaryLabel: 'Ver lógica completa da correção'
   };
 
   const isHousingCompression =
     id === 'cash-bleeding' &&
     ['Moradia', 'Habitação', 'Aluguel'].includes(ctx.topExpenseCategory);
+
+  const isReserveShield = id === 'reserve-shield';
 
   if (isHousingCompression) {
     display.emoji = '🏠';
@@ -4251,44 +4254,86 @@ function openLesson(id) {
     display.duration = '8 min';
     display.difficulty = 'Prioridade Alta';
     display.problem = `Moradia já está em ${fmt(ctx.topExpenseValue || 0)} e consome ${Number(ctx.concentrationPct || 0).toFixed(1)}% da sua renda do período. O ponto crítico não é impulso. É custo estrutural acima da faixa saudável para o seu caixa.`;
-    display.actionLabel = 'Abrir revisão de moradia';
+    display.actionLabel = 'Abrir revisão estrutural';
+    display.secondaryLabel = 'Ver lógica completa da compressão';
   }
 
-  const modal = document.createElement('div');
-  modal.className = 'modal-overlay';
-  modal.innerHTML = `
-    <div class="modal" style="max-width:760px;">
+  if (isReserveShield) {
+    display.emoji = '🛡️';
+    display.title = 'Você está a um imprevisto de entrar em pressão financeira';
+    display.tag = 'Blindagem crítica';
+    display.duration = '8 min';
+    display.difficulty = 'Essencial';
+    display.problem = `Hoje seu caixa ainda não segura nem um choque pequeno. Você tem ${fmt(ctx.emergencyCurrent || 0)}, mas o primeiro escudo real começa em ${fmt(ctx.emergencyMinimumTarget || 0)}. Faltam ${fmt(ctx.emergencyMinimumGap || 0)} para sair da zona mais vulnerável.`;
+    display.actionLabel = 'Registrar primeiro aporte agora';
+    display.secondaryLabel = 'Ver lógica completa da blindagem';
+  }
+
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `
+    <div class="modal" style="max-width:820px;">
       <div class="modal-header">
         <h2>${display.emoji} ${display.title}</h2>
         <button onclick="this.closest('.modal-overlay').remove()">✕</button>
       </div>
 
-      <div class="modal-body" style="max-height:68vh;overflow-y:auto;">
-        <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
-          <span style="padding:8px 12px;border-radius:999px;background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.25);font-size:12px;color:#a5b4fc;">${display.tag}</span>
-          <span style="padding:8px 12px;border-radius:999px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);font-size:12px;color:var(--text-secondary);">${display.duration} · ${display.difficulty}</span>
+      <div class="modal-body" style="max-height:72vh;overflow-y:auto;">
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
+          <span class="chip">${display.tag}</span>
+          <span class="chip">${display.duration} · ${display.difficulty}</span>
         </div>
 
-        <div style="margin-bottom:16px;padding:14px;border-radius:16px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.05);">
-          <div style="font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">Diagnóstico conectado ao usuário</div>
-          <div style="font-size:15px;line-height:1.7;color:var(--text-secondary);">${display.problem}</div>
+        <div class="card" style="padding:18px;margin-bottom:16px;">
+          <div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;opacity:.7;margin-bottom:10px;">
+            Diagnóstico conectado ao usuário
+          </div>
+          <div style="font-size:17px;line-height:1.7;font-weight:600;">
+            ${display.problem}
+          </div>
+          <div style="margin-top:10px;font-size:14px;opacity:.82;line-height:1.6;">
+            Isso não é um aviso genérico. É o ponto de maior fragilidade detectado no seu cenário atual.
+          </div>
         </div>
 
-        <div style="font-size:15px;line-height:1.85;color:var(--text-secondary);">
+        ${
+          isReserveShield
+            ? `
+            <div class="card" style="padding:18px;margin-bottom:16px;border:1px solid rgba(255,80,80,.22);">
+              <div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#ff8f8f;margin-bottom:10px;">
+                O que está em jogo agora
+              </div>
+              <div style="font-size:16px;line-height:1.75;">
+                Sem esse escudo mínimo, qualquer imprevisto pequeno já pressiona cartão, atraso, ansiedade e decisão ruim sob sufoco.
+              </div>
+            </div>
+
+            <div class="card" style="padding:18px;margin-bottom:16px;border:1px solid rgba(111,91,255,.24);">
+              <div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#a9a0ff;margin-bottom:10px;">
+                Meta operacional desta intervenção
+              </div>
+              <div style="font-size:16px;line-height:1.75;">
+                Seu objetivo agora não é construir a blindagem ideal completa. É fechar o primeiro escudo de <strong>${fmt(ctx.emergencyMinimumTarget || 0)}</strong>, sair da zona frágil e depois avançar para a blindagem essencial de <strong>${fmt(ctx.emergencyEssentialTarget || 0)}</strong>.
+              </div>
+            </div>
+            `
+            : ''
+        }
+
+        <div style="line-height:1.85;font-size:15px;color:var(--text-secondary);">
           ${content}
         </div>
       </div>
 
-      <div class="modal-actions" style="display:flex;gap:12px;justify-content:space-between;flex-wrap:wrap;">
-        <button class="btn-ghost" onclick="applyEducationAction('${lesson.ctaAction}')">${display.actionLabel}</button>
-        <button class="btn-primary" onclick="completeLesson('${lesson.id}', this.closest('.modal-overlay'))">✓ Marcar como aplicada</button>
+      <div class="modal-footer" style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+        <button class="btn-ghost" onclick="this.closest('.modal-overlay').remove()">${display.secondaryLabel}</button>
+        <button class="btn-primary" onclick="completeLesson('${id}', this.closest('.modal-overlay'))">✓ ${display.actionLabel}</button>
       </div>
     </div>
   `;
 
-  document.body.appendChild(modal);
+  document.body.appendChild(overlay);
 }
-
 function getLessonContent(id, ctx) {
   const content = {
     'cash-bleeding': `
@@ -4367,12 +4412,14 @@ function completeLesson(id, overlay) {
   ensureEducationState();
 
   const completionMessages = {
+     'cash-bleeding': { ... },
+     
     'reserve-shield': {
-      successTitle: 'Blindagem registrada com intenção de execução',
-      successText: 'Você marcou a correção, mas a proteção só começa de verdade quando o primeiro aporte entra na meta.',
-      nextTitle: 'Próximo passo crítico',
-      nextText: 'Agora vá em Metas e registre o primeiro valor da sua blindagem. Sem aporte, a vulnerabilidade continua a mesma.'
-    },
+  successTitle: 'Consciência registrada. Execução ainda pendente.',
+  successText: 'Você reconheceu a fragilidade correta, mas a proteção só começa de verdade quando o primeiro aporte entra na meta.',
+  nextTitle: 'Próxima ação que muda o jogo',
+  nextText: 'Agora vá em Metas e registre o primeiro valor da blindagem. Sem aporte real, sua exposição continua exatamente a mesma.'
+},
     'cash-bleeding': {
       successTitle: 'Auditoria iniciada com foco real',
       successText: 'Agora o importante é transformar percepção em corte prático no centro do vazamento.',
@@ -4903,16 +4950,16 @@ function buildTacticalInterventionCopy(core, ctx = {}) {
   };
 
   if (mode === 'reserve-shield' || mode === 'reserve-insufficient') {
-    return {
-      ...base,
-      title: 'Blindagem financeira insuficiente',
-      notificationTitle: 'Blindagem insuficiente detectada',
-      notificationText: `Sua reserva ainda não protege seu caixa. O FinanceAI abriu uma intervenção para impedir que o próximo imprevisto vire pressão real.`,
-      toastTitle: 'Blindagem ativada',
-      toastText: `Sua dor principal agora é proteção. Abrimos a correção para começar a construir margem antes que a pressão aumente.`,
-      actionLabel: 'Ativar blindagem'
-    };
-  }
+  return {
+    ...base,
+    title: 'Você segue sem escudo contra imprevisto',
+    notificationTitle: 'Sua proteção ainda não segura um choque pequeno',
+    notificationText: `Seu caixa continua sem o primeiro escudo contra imprevistos. O FinanceAI abriu um protocolo de blindagem para impedir que a próxima pressão vire cartão, atraso ou sufoco.`,
+    toastTitle: 'Protocolo de blindagem aberto',
+    toastText: `O foco agora não é a reserva ideal inteira. É construir o primeiro escudo que impede um imprevisto pequeno de romper seu caixa.`,
+    actionLabel: 'Construir escudo agora'
+  };
+}
 
   if (mode === 'structural-compression' || mode === 'housing-review') {
     return {
