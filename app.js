@@ -3033,12 +3033,23 @@ function runSimulator() {
 // AI PAGE
 // ==========================================
 function renderAIPage() {
-  generateAIInsights();
-  updateAIScore();
+  const snap = typeof getBehaviorEngineSnapshot === 'function'
+    ? getBehaviorEngineSnapshot()
+    : null;
+
+  state._lastAISnapshot = snap;
+
+  generateAIInsights(snap);
+  updateAIScore(snap);
   renderProjectionChart('moderate');
 }
 
-function generateAIInsights() {
+function generateAIInsights(externalSnap = null)
+const snap = externalSnap || state._lastAISnapshot || (
+  typeof getBehaviorEngineSnapshot === 'function'
+    ? getBehaviorEngineSnapshot()
+    : null
+);
   const txs = getFilteredTx();
   const allTxs = state.transactions;
   const { income, expense, balance, savingsRate } = calcSummary(txs);
@@ -3110,11 +3121,15 @@ function generateAIInsights() {
   `).join('') || '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted);">Adicione transações para gerar insights.</div>';
 }
 
-function updateAIScore() {
+function updateAIScore(externalSnap = null) {
   const txs = getFilteredTx();
   const { income, expense, savingsRate } = calcSummary(txs);
 
-  const snap = typeof getBehaviorEngineSnapshot === 'function'
+  const snap = externalSnap || state._lastAISnapshot || (
+  typeof getBehaviorEngineSnapshot === 'function'
+    ? getBehaviorEngineSnapshot()
+    : null
+);
     ? getBehaviorEngineSnapshot()
     : null;
 
