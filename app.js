@@ -3160,21 +3160,65 @@ function updateAIScore(externalSnap = null) {
   const circle = document.getElementById('scoreCircle');
   if (circle) circle.setAttribute('stroke-dashoffset', offset);
 
-  const descEl = document.getElementById('scoreDescription');
+    const descEl = document.getElementById('scoreDescription');
   if (descEl) {
-    if (languagePack.body) {
-      descEl.textContent = languagePack.body;
-    } else if (behaviorState?.state === 'pre_collapse' || score >= 85) {
-      descEl.textContent = 'Situação crítica! Seu padrão atual aponta ruptura iminente. Intervenção imediata é necessária.';
-    } else if (behaviorState?.state === 'sabotage_active' || score >= 70) {
-      descEl.textContent = 'Seu comportamento financeiro entrou em zona de dano ativo. O foco agora é interromper o padrão que acelera perdas.';
-    } else if (score >= 50) {
-      descEl.textContent = 'Você entrou em faixa de atenção. O sistema detecta fragilidade real, mesmo sem colapso total.';
-    } else if (score >= 30) {
-      descEl.textContent = 'Há sinais iniciais de instabilidade. Ajustes consistentes agora evitam deterioração mais profunda.';
-    } else {
-      descEl.textContent = 'Seu padrão está relativamente sob controle. Continue registrando dados para ampliar a precisão da leitura.';
+    const spendAfterIncomePct = Math.round(Number(snap?.spendAfterIncomePct || 0));
+    const projectedBalance = Number(snap?.projectedBalance || 0);
+    const primaryDriver = snap?.behavior?.primaryDriver || 'stable_control';
+    const sabotagePattern = snap?.behavior?.sabotagePattern || 'none';
+    const impulseExpenseCount = Number(snap?.behavior?.impulseExpenseCount || 0);
+    const failStreak = Number(snap?.behavior?.failStreak || 0);
+    const silentRiskLoad = Math.round(Number(metrics?.silentRiskLoad || 0));
+    const sabotageIndex = Math.round(Number(metrics?.sabotageIndex || 0));
+
+    let driverText = 'seu padrão financeiro perdeu consistência';
+    if (primaryDriver === 'post_income_burn') {
+      driverText = `você comprometeu ${spendAfterIncomePct}% da renda após a entrada do dinheiro`;
+    } else if (primaryDriver === 'cash_collapse_risk') {
+      driverText = `sua projeção atual fecha o ciclo em ${fmt(projectedBalance)}`;
+    } else if (primaryDriver === 'non_essential_spike') {
+      driverText = 'seus gastos variáveis estão comprimindo sua margem cedo demais';
+    } else if (primaryDriver === 'retention_failure') {
+      driverText = 'sua retenção de caixa está fraca para o padrão atual de despesas';
+    } else if (primaryDriver === 'impulse_cluster') {
+      driverText = `o sistema detectou ${impulseExpenseCount} gastos de impulso no ciclo atual`;
+    } else if (primaryDriver === 'mission_resistance') {
+      driverText = `sua disciplina entrou em resistência, com ${failStreak} falha(s) recentes de execução`;
+    } else if (primaryDriver === 'compulsive_spending') {
+      driverText = 'o sistema detecta repetição de gasto compulsivo drenando sua margem';
+    } else if (primaryDriver === 'emotional_spending') {
+      driverText = 'há sinais de gasto emocional afetando sua estabilidade';
+    } else if (primaryDriver === 'impulse_drift') {
+      driverText = 'há deriva de impulso em pequenas saídas recorrentes';
     }
+
+    let consequenceText = 'Isso ainda não virou colapso, mas já iniciou deterioração estrutural.';
+    if (projectedBalance < 0) {
+      consequenceText = `Mantido esse ritmo, sua projeção fecha o ciclo negativa em ${fmt(projectedBalance)}.`;
+    } else if (spendAfterIncomePct >= 60) {
+      consequenceText = 'Esse padrão reduz sua margem antes do meio do ciclo e aumenta risco de sufoco nas próximas etapas do mês.';
+    } else if (sabotageIndex >= 60 || sabotagePattern === 'mission_resistance') {
+      consequenceText = 'O dano não está só no valor gasto, mas na repetição do padrão que volta a desmontar sua disciplina.';
+    } else if (silentRiskLoad >= 55) {
+      consequenceText = 'O risco está se formando de maneira silenciosa e tende a aparecer tarde demais se não houver correção agora.';
+    } else if (score <= 30) {
+      consequenceText = 'Seu padrão segue relativamente controlado, mas o sistema continua monitorando sinais de recaída.';
+    }
+
+    let diagnosisPrefix = 'Leitura comportamental:';
+    if (score >= 85 || behaviorState?.state === 'pre_collapse') {
+      diagnosisPrefix = 'Diagnóstico crítico:';
+    } else if (score >= 70 || behaviorState?.state === 'sabotage_active') {
+      diagnosisPrefix = 'Diagnóstico de dano ativo:';
+    } else if (score >= 50) {
+      diagnosisPrefix = 'Diagnóstico de atenção:';
+    } else if (score >= 30) {
+      diagnosisPrefix = 'Diagnóstico preventivo:';
+    } else if (score <= 30) {
+      diagnosisPrefix = 'Diagnóstico de estabilidade:';
+    }
+
+    descEl.textContent = `${diagnosisPrefix} ${driverText}. ${consequenceText}`;
   }
 
   const ctrl = Math.min(100, Math.max(0, 100 - (expense / (income || 1) * 100)));
