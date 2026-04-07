@@ -1049,131 +1049,24 @@ function renderPremiumRiskCard() {
 
   let radarTitle = plan.title || 'Radar FinanceAI ativo';
   let radarSummary = plan.summary || 'O sistema está lendo seu comportamento financeiro.';
- let masterAlert = '';
-let action = '';
-let objective = '';
+ let masterAlert = plan.masterAlert;
+let action = plan.action;
+let objective = plan.objective;
 
-if (behaviorState.state === 'pre_collapse') {
-  masterAlert = 'Seu padrão atual está acelerando um colapso financeiro.';
-  action = 'Interromper imediatamente o driver de risco dominante.';
-  objective = 'Evitar ruptura do caixa nos próximos dias.';
-}
-else if (behaviorState.state === 'sabotage_active') {
-  masterAlert = 'Seu comportamento está sabotando sua estabilidade.';
-  action = 'Bloquear gastos variáveis e cortar decisões impulsivas agora.';
-  objective = 'Recuperar controle antes da deterioração avançar.';
-}
-else if (behaviorState.state === 'recovery_fragile') {
-  masterAlert = 'Sua melhora ainda não é confiável.';
-  action = 'Manter contenção e evitar recaída nas próximas decisões.';
-  objective = 'Transformar recuperação em estabilidade real.';
-}
-else if (metrics.postIncomeVulnerability >= 55) {
-  masterAlert = 'Seu padrão de consumo pós-renda está comprimindo sua margem.';
-  action = 'Reduzir consumo imediato após entrada de dinheiro.';
-  objective = 'Proteger caixa no início do ciclo financeiro.';
-}
-else if (metrics.silentRiskLoad >= 55) {
-  masterAlert = 'Seu risco está crescendo de forma silenciosa.';
-  action = 'Eliminar vazamentos antes que se tornem visíveis.';
-  objective = 'Evitar pressão estrutural futura.';
-}
-else {
-  masterAlert = 'Seu padrão está sob controle, mas exige disciplina.';
-  action = 'Manter consistência e evitar decisões impulsivas.';
-  objective = 'Preservar estabilidade e evolução.';
-}
+// 🔒 fallback seguro com snap
+if (snap && snap.behaviorState && snap.metrics) {
+  const behaviorState = snap.behaviorState;
+  const metrics = snap.metrics;
 
-  if (overlay.recurringSabotage) {
-    radarTitle = 'Seu histórico mostra sabotagem recorrente';
-    radarSummary = `Seu score está em ${score}/100 e o sistema detectou repetição de autossabotagem financeira. Isso não é evento isolado; é padrão.`;
-    masterAlert = 'O risco atual está sendo amplificado por sabotagem recorrente no histórico.';
-    recommendedAction = 'Interrompa novas despesas variáveis hoje e reduza imediatamente o padrão impulsivo.';
-    tacticalObjective = 'Quebrar a repetição que antecede deterioração do caixa.';
-  } else if (overlay.recurringRelapse) {
-    radarTitle = 'Sua melhora ainda não é confiável';
-    radarSummary = `Seu score está em ${score}/100 e o histórico mostra melhora seguida de recaída. O problema não é só cair, mas repetir o ciclo.`;
-    masterAlert = 'O sistema detecta recaída recorrente após sinais de alívio.';
-    recommendedAction = 'Proteja a disciplina nas próximas horas e não trate alívio momentâneo como controle real.';
-    tacticalObjective = 'Transformar melhora pontual em estabilidade consistente.';
-  } else if (overlay.fragileRecoveryRecurring) {
-    radarTitle = 'Sua recuperação ainda está frágil';
-    radarSummary = `Seu score está em ${score}/100 e o histórico mostra recuperação instável. Ainda existe risco real de regressão.`;
-    masterAlert = 'A melhora recente ainda não consolidou segurança estrutural.';
-    recommendedAction = 'Reduza exposição a gasto impulsivo e preserve retenção nas próximas 24h.';
-    tacticalObjective = 'Consolidar recuperação antes de novo ciclo de pressão.';
-  } else if (behaviorState.state === 'pre_collapse') {
-    radarTitle = 'Seu risco financeiro está crítico';
-    radarSummary = `Seu score está em ${score}/100 e o sistema detecta deterioração acelerada do seu caixa.`;
-  } else if (behaviorState.state === 'sabotage_active') {
-    radarTitle = 'Seu comportamento entrou em sabotagem ativa';
-    radarSummary = `Seu score está em ${score}/100 e a sua disciplina está sendo rompida por padrão comportamental.`;
-  } else if (behaviorState.state === 'recovery_fragile') {
-    radarTitle = 'Sua melhora ainda está instável';
-    radarSummary = `Seu score está em ${score}/100 e o sistema detecta que sua recuperação ainda não virou estabilidade real.`;
-  } else if (metrics.silentRiskLoad >= 55) {
-    radarTitle = 'Seu risco está se formando em silêncio';
-    radarSummary = `Seu score está em ${score}/100 e a sua consistência começou a ceder antes do problema ficar óbvio.`;
+  if (behaviorState.state === 'pre_collapse') {
+    masterAlert = 'Seu padrão atual está acelerando um colapso financeiro.';
+    action = 'Interromper imediatamente o driver de risco dominante.';
+    objective = 'Evitar ruptura do caixa nos próximos dias.';
   }
-
-  const dominantPattern = String(
-    patterns.historicalDominantSignature ||
-    patterns.dominant ||
-    overlay.dominantPattern ||
-    'stable_support'
-  ).replaceAll('_', ' ');
-
-  const enrichedSummary =
-    `${radarSummary} Assinatura dominante: ${signatureLabel}. ` +
-    `Padrão principal: ${dominantPattern}. ` +
-    `Confiança histórica: ${recurrenceConfidence}%. ` +
-    `Pressão histórica: ${historicalPressure}. ` +
-    `Instabilidade acumulada: ${instabilityIndex}.`;
-
-  titleEl.textContent = radarTitle;
-  summaryEl.textContent = enrichedSummary;
-  masterAlertEl.textContent = masterAlert;
-  actionEl.textContent = recommendedAction;
-  objectiveEl.textContent = tacticalObjective;
-
-  scoreEl.textContent = `${score}/100`;
-  levelEl.textContent = `Risco ${snap.riskLevel}`;
-
-  const levelColor =
-    score >= 75 ? '#ef4444' :
-    score >= 50 ? '#f59e0b' :
-    score >= 25 ? '#facc15' :
-    '#10b981';
-
-  levelEl.style.color = levelColor;
-  scoreEl.style.color = levelColor;
-
-  if (score >= 75 || overlay.recurringSabotage) {
-    card.style.border = '1px solid rgba(239,68,68,0.35)';
-    card.style.background = 'linear-gradient(135deg, rgba(127,29,29,0.28), rgba(15,23,42,0.96))';
-  } else if (score >= 50 || overlay.recurringRelapse || overlay.fragileRecoveryRecurring) {
-    card.style.border = '1px solid rgba(245,158,11,0.30)';
-    card.style.background = 'linear-gradient(135deg, rgba(120,53,15,0.24), rgba(15,23,42,0.96))';
-  } else {
-    card.style.border = '1px solid rgba(16,185,129,0.22)';
-    card.style.background = 'linear-gradient(135deg, rgba(6,95,70,0.20), rgba(15,23,42,0.95))';
-  }
-
-  primaryBtn.textContent = plan.primaryLabel || 'Ver ação principal';
-  secondaryBtn.textContent = plan.secondaryLabel || 'Abrir análise completa';
-
-  primaryBtn.onclick = () => navigate(plan.primaryPage || 'transactions');
-  secondaryBtn.onclick = () => navigate(plan.secondaryPage || 'ai');
-
-  primaryBtn.style.boxShadow =
-    score >= 75 || overlay.recurringSabotage
-      ? '0 12px 24px rgba(239,68,68,0.22)'
-      : score >= 50 || overlay.recurringRelapse || overlay.fragileRecoveryRecurring
-      ? '0 12px 24px rgba(245,158,11,0.18)'
-      : '0 12px 24px rgba(16,185,129,0.18)';
-
-  if (summary.balance < 0) {
-    objectiveEl.textContent = 'Conter ruptura de caixa e recuperar margem de reação imediatamente.';
+  else if (behaviorState.state === 'sabotage_active') {
+    masterAlert = 'Seu comportamento está sabotando sua estabilidade.';
+    action = 'Bloquear gastos variáveis e cortar decisões impulsivas agora.';
+    objective = 'Recuperar controle antes da deterioração avançar.';
   }
 }
 
