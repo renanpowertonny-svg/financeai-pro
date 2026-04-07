@@ -4930,7 +4930,13 @@ state.behaviorProfile = {
   failStreak: 0,
   successStreak: 0,
   recentFailureTypes: [],
-  recentSuccessTypes: []
+  recentSuccessTypes: [],
+  lastMissionImpact: 0,
+  lastMissionOutcome: null,
+  behavioralPressure: 0,
+  impulseExpenseCount: 0,
+  todayNonEssentialTotal: 0,
+  dailyAvgExpense: 0
 };
 
 state.settings = {
