@@ -2361,8 +2361,24 @@ textEl.innerHTML = `
       <div style="font-size:13px;font-weight:800;letter-spacing:0.02em;color:${severityAccent};text-transform:uppercase;">
         ${missionTitle}
       </div>
-      <div style="font-size:15px;line-height:1.6;color:var(--text-primary);">
-  ${missionText}
+<div style="display:flex;flex-direction:column;gap:6px;">
+
+  <div style="font-size:14px;color:#fca5a5;font-weight:600;">
+    Seu padrão atual já está gerando risco real.
+  </div>
+
+  <div style="font-size:15px;line-height:1.6;color:var(--text-primary);">
+    Se você repetir o comportamento de hoje, a pressão sobre seu caixa aumenta imediatamente.
+  </div>
+
+  <div style="font-size:14px;font-weight:700;color:#fcd34d;">
+    Ação obrigatória: travar gastos variáveis hoje.
+  </div>
+
+  <div style="font-size:13px;color:var(--text-muted);">
+    Execução correta hoje evita deterioração nos próximos dias.
+  </div>
+
 </div>
 
 <div style="margin-top:6px;font-size:13px;font-weight:600;color:#fcd34d;">
