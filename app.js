@@ -2362,8 +2362,12 @@ textEl.innerHTML = `
         ${missionTitle}
       </div>
       <div style="font-size:15px;line-height:1.6;color:var(--text-primary);">
-        ${missionText}
-      </div>
+  ${missionText}
+</div>
+
+<div style="margin-top:6px;font-size:13px;font-weight:600;color:#fcd34d;">
+  Execução obrigatória hoje.
+</div>
     </div>
 
     <div style="display:flex;flex-wrap:wrap;gap:8px;">
