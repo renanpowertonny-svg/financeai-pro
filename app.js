@@ -4888,71 +4888,15 @@ function saveSettings() {
 function clearAllData() {
   if (!confirm('⚠️ ATENÇÃO: Todos os dados serão apagados. Esta ação é IRREVERSÍVEL!\n\nDigite "CONFIRMAR" para prosseguir.')) return;
   const k = state.user.email;
- [
-  'transactions',
-  'goals',
-  'settings',
-  'notifications',
-  'missionStatus',
-  'missionHistory',
-  'behaviorProfile',
-  'eduProgress',
-  'behaviorMemory'
-].forEach(key => localStorage.removeItem(`financeai_${key}_${k}`));
-
+ ['transactions', 'goals', 'settings', 'notifications', 'eduProgress', 'behaviorMemory'].forEach(key => localStorage.removeItem(`financeai_${key}_${k}`));
 state.transactions = [];
 state.goals = [];
+state.settings = { salary: 0, limits: {} };
 state.notifications = [];
-
-state.missionStatus = {
-  date: null,
-  type: 'discipline',
-  severity: 'stable',
-  diagnosis: 'controlled_growth',
-  title: '',
-  text: '',
-  actionLabel: 'Executar missão',
-  target: 0,
-  current: 0,
-  completed: false,
-  savedAmount: 0,
-  status: 'pending',
-  scoreDeltaSuccess: 2,
-  scoreDeltaFail: -3,
-  psychologicalTone: 'supportive'
-};
-
-state.missionHistory = [];
-
-state.behaviorProfile = {
-  dominantPain: 'controlled_growth',
-  severity: 'stable',
-  failStreak: 0,
-  successStreak: 0,
-  recentFailureTypes: [],
-  recentSuccessTypes: [],
-  lastMissionImpact: 0,
-  lastMissionOutcome: null,
-  behavioralPressure: 0,
-  impulseExpenseCount: 0,
-  todayNonEssentialTotal: 0,
-  dailyAvgExpense: 0
-};
-
-state.settings = {
-  salary: 0,
-  limits: {},
-  darkMode: true,
-  notif: true,
-  autoReport: true
-};
-
 state.eduProgress = { completed: [], streak: 0, points: 0 };
 state.behaviorMemory = [];
-
-saveUserData();
-navigate('dashboard');
-showToast('success', 'Reset estrutural concluído', 'O FinanceAI limpou transações, metas, missão, comportamento e progresso para reiniciar sem memória contaminada.');
+  navigate('dashboard');
+  showToast('success', 'Dados apagados', 'Todos os dados foram removidos.');
 }
 function normalizeTacticalSeverity(severity) {
   const map = {
