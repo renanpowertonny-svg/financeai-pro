@@ -2182,43 +2182,94 @@ function classifyBehaviorStateV2(snap, metrics, patterns) {
 function buildBehaviorLanguagePack(snap) {
   const metrics = snap?.metrics || {};
   const state = snap?.behaviorState || {};
-  const dominantPattern = snap?.patterns?.dominant || 'stable_control';
+  const behavior = snap?.behavior || {};
+  const summary = snap?.summary || {};
+  const projectedBalance = Number(snap?.projectedBalance || 0);
+  const spendAfterIncomePct = Math.round(Number(snap?.spendAfterIncomePct || 0));
+  const score = Math.round(Number(snap?.score || 0));
+  const primaryDriver = behavior.primaryDriver || 'stable_control';
+  const sabotageIndex = Math.round(Number(metrics?.sabotageIndex || 0));
+  const silentRiskLoad = Math.round(Number(metrics?.silentRiskLoad || 0));
+  const impulseExpenseCount = Number(behavior?.impulseExpenseCount || 0);
+  const failStreak = Number(behavior?.failStreak || 0);
+
+  let causeText = 'o sistema detectou perda de consistência no seu padrão financeiro';
+  if (primaryDriver === 'post_income_burn') {
+    causeText = `você já comprometeu ${spendAfterIncomePct}% da renda após a entrada do dinheiro`;
+  } else if (primaryDriver === 'cash_collapse_risk') {
+    causeText = `sua projeção atual fecha o ciclo em ${fmt(projectedBalance)}`;
+  } else if (primaryDriver === 'retention_failure') {
+    causeText = `sua retenção caiu para ${Number(summary?.savingsRate || 0).toFixed(1)}%`;
+  } else if (primaryDriver === 'non_essential_spike') {
+    causeText = 'seus gastos variáveis estão comprimindo sua margem cedo demais';
+  } else if (primaryDriver === 'impulse_cluster') {
+    causeText = `o sistema detectou ${impulseExpenseCount} saídas impulsivas no ciclo atual`;
+  } else if (primaryDriver === 'mission_resistance') {
+    causeText = `sua disciplina entrou em resistência com ${failStreak} falha(s) recentes de execução`;
+  } else if (primaryDriver === 'compulsive_spending') {
+    causeText = 'o sistema detecta repetição de consumo compulsivo';
+  } else if (primaryDriver === 'emotional_spending') {
+    causeText = 'há sinais de gasto emocional recorrente afetando sua estabilidade';
+  } else if (primaryDriver === 'impulse_drift') {
+    causeText = 'há deriva de consumo impulsivo corroendo sua margem';
+  }
+
+  let consequenceText = 'isso já começou a deteriorar sua estabilidade operacional';
+  if (projectedBalance < 0) {
+    consequenceText = `mantido esse ritmo, sua projeção fecha o ciclo negativa em ${fmt(projectedBalance)}`;
+  } else if (spendAfterIncomePct >= 60) {
+    consequenceText = 'isso comprime sua margem cedo demais no ciclo e aumenta risco de sufoco antes do fechamento do mês';
+  } else if (sabotageIndex >= 60) {
+    consequenceText = 'o dano não está só no valor, mas na repetição do padrão que acelera a perda de controle';
+  } else if (silentRiskLoad >= 55) {
+    consequenceText = 'o risco está se formando de maneira silenciosa e tende a aparecer tarde demais se não houver correção agora';
+  } else if (score <= 30) {
+    consequenceText = 'o cenário ainda está controlado, mas o sistema segue monitorando risco de recaída';
+  }
 
   if (state.state === 'pre_collapse') {
     return {
-      headline: 'Seu padrão atual já está empurrando seu sistema para ruptura.',
-      body: 'O risco aqui não é um gasto isolado. É a continuidade do padrão que está desmontando sua margem.',
+      headline: 'Diagnóstico crítico de ruptura',
+      body: `Seu risco crítico não nasce de um gasto isolado: ${causeText}, e ${consequenceText}.`,
       tone: 'hard'
     };
   }
 
   if (state.state === 'sabotage_active') {
     return {
-      headline: 'O sistema detectou sabotagem financeira ativa.',
-      body: 'Seu comportamento está abrindo dano mais rápido do que sua percepção consegue corrigir.',
+      headline: 'Diagnóstico de sabotagem ativa',
+      body: `O sistema detectou dano ativo porque ${causeText}, e ${consequenceText}.`,
+      tone: 'firm'
+    };
+  }
+
+  if (state.state === 'pressure_escalation') {
+    return {
+      headline: 'Diagnóstico de pressão crescente',
+      body: `Sua pressão atual aumenta porque ${causeText}, e ${consequenceText}.`,
       tone: 'firm'
     };
   }
 
   if (state.state === 'recovery_fragile') {
     return {
-      headline: 'Sua melhora existe, mas ainda não é estrutural.',
-      body: 'Se você relaxar agora, a tendência é repetir o ciclo que trouxe pressão antes.',
+      headline: 'Diagnóstico de recuperação frágil',
+      body: `Sua melhora existe, mas ainda não é estrutural: ${causeText}, e ${consequenceText}.`,
       tone: 'cautious'
     };
   }
 
-  if (dominantPattern === 'silent_deterioration' || metrics.silentRiskLoad >= 55) {
+  if (state.state === 'behavior_attention') {
     return {
-      headline: 'Seu risco principal é silencioso, não visível no valor isolado.',
-      body: 'O padrão está perdendo consistência antes de parecer grave. Esse é o melhor momento para intervenção.',
+      headline: 'Diagnóstico de atenção comportamental',
+      body: `O sistema entrou em atenção porque ${causeText}, e ${consequenceText}.`,
       tone: 'strategic'
     };
   }
 
   return {
-    headline: 'Seu comportamento ainda está controlado, mas o sistema continua monitorando fragilidade.',
-    body: 'O risco real não é o agora. É a velocidade com que pequenos desvios voltam a ganhar espaço.',
+    headline: 'Diagnóstico de estabilidade monitorada',
+    body: `Seu cenário está relativamente controlado, mas ${causeText}. Neste momento, ${consequenceText}.`,
     tone: 'supportive'
   };
 }
