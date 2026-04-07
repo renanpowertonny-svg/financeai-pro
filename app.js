@@ -4887,16 +4887,88 @@ function saveSettings() {
 
 function clearAllData() {
   if (!confirm('⚠️ ATENÇÃO: Todos os dados serão apagados. Esta ação é IRREVERSÍVEL!\n\nDigite "CONFIRMAR" para prosseguir.')) return;
+
+  const typed = prompt('Digite CONFIRMAR para apagar tudo:');
+  if (typed !== 'CONFIRMAR') {
+    showToast('info', 'Ação cancelada', 'Nenhum dado foi apagado.');
+    return;
+  }
+
+  if (!state.user || !state.user.email) {
+    showToast('error', 'Usuário inválido', 'Não foi possível identificar a conta ativa.');
+    return;
+  }
+
   const k = state.user.email;
- ['transactions', 'goals', 'settings', 'notifications', 'eduProgress', 'behaviorMemory'].forEach(key => localStorage.removeItem(`financeai_${key}_${k}`));
-state.transactions = [];
-state.goals = [];
-state.settings = { salary: 0, limits: {} };
-state.notifications = [];
-state.eduProgress = { completed: [], streak: 0, points: 0 };
-state.behaviorMemory = [];
+
+  [
+    'transactions',
+    'goals',
+    'settings',
+    'notifications',
+    'missionStatus',
+    'missionHistory',
+    'behaviorProfile',
+    'eduProgress',
+    'behaviorMemory'
+  ].forEach(key => {
+    localStorage.removeItem(`financeai_${key}_${k}`);
+  });
+
+  destroyAllCharts();
+  state.charts = {};
+
+  state.transactions = [];
+  state.goals = [];
+  state.notifications = [];
+
+  state.settings = {
+    salary: 0,
+    limits: {},
+    darkMode: true,
+    notif: true,
+    autoReport: true
+  };
+
+  state.missionStatus = {
+    date: null,
+    type: 'discipline',
+    severity: 'stable',
+    diagnosis: 'controlled_growth',
+    title: '',
+    text: '',
+    actionLabel: 'Executar missão',
+    target: 0,
+    current: 0,
+    completed: false,
+    savedAmount: 0,
+    status: 'pending',
+    scoreDeltaSuccess: 2,
+    scoreDeltaFail: -3,
+    psychologicalTone: 'supportive'
+  };
+
+  state.missionHistory = [];
+
+  state.behaviorProfile = {
+    dominantPain: 'controlled_growth',
+    severity: 'stable',
+    failStreak: 0,
+    successStreak: 0,
+    recentFailureTypes: [],
+    recentSuccessTypes: []
+  };
+
+  state.aiInsights = [];
+  state.eduProgress = { completed: [], streak: 0, points: 0 };
+  state.behaviorMemory = [];
+  state.period = 'month';
+
   navigate('dashboard');
-  showToast('success', 'Dados apagados', 'Todos os dados foram removidos.');
+  buildEducationCards();
+  renderNotifications();
+
+  showToast('success', 'Reset total concluído', 'Todos os dados operacionais e comportamentais da conta foram apagados com sucesso.');
 }
 function normalizeTacticalSeverity(severity) {
   const map = {
