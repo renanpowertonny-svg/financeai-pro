@@ -3529,16 +3529,21 @@ const emergencyIdealGap = Math.max(emergencyTarget - emergencyCurrent, 0);
 
   const concentrationPct = summary.income > 0 ? (topExpenseValue / summary.income) * 100 : 0;
 
-  let disciplineScore = 50;
-  if (summary.balance >= 0) disciplineScore += 15; else disciplineScore -= 20;
-  if (summary.savingsRate >= 20) disciplineScore += 20;
-  else if (summary.savingsRate >= 10) disciplineScore += 8;
-  else disciplineScore -= 10;
-  if (goalsCount > 0) disciplineScore += 8;
-  if (emergencyCoveragePct >= 50) disciplineScore += 10;
-  if (recurringCount <= 3) disciplineScore += 5;
-  if (negativeMonths >= 3) disciplineScore -= 10;
-  disciplineScore = Math.max(10, Math.min(100, Math.round(disciplineScore)));
+    const canonicalSnap = typeof getBehaviorEngineSnapshot === 'function'
+    ? getBehaviorEngineSnapshot()
+    : null;
+
+  const canonicalScore = canonicalSnap && typeof canonicalSnap.score === 'number'
+    ? Number(canonicalSnap.score)
+    : 20;
+
+  const canonicalRiskLevel = canonicalSnap?.riskLevel || 'Baixo';
+  const canonicalBehaviorState = canonicalSnap?.behaviorState || null;
+  const canonicalProjectedBalance = typeof canonicalSnap?.projectedBalance === 'number'
+    ? Number(canonicalSnap.projectedBalance)
+    : summary.balance;
+
+  const disciplineScore = canonicalScore;
 
   return {
     txs,
@@ -3559,9 +3564,13 @@ const emergencyIdealGap = Math.max(emergencyTarget - emergencyCurrent, 0);
     emergencyMinimumGap,
     emergencyEssentialGap,
     emergencyIdealGap,
-    spendAfterIncome,
+       spendAfterIncome,
     concentrationPct,
     negativeMonths,
+    score: canonicalScore,
+    riskLevel: canonicalRiskLevel,
+    behaviorState: canonicalBehaviorState,
+    projectedBalance: canonicalProjectedBalance,
     disciplineScore
   };
 }
