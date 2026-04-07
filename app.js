@@ -4412,8 +4412,6 @@ function completeLesson(id, overlay) {
   ensureEducationState();
 
   const completionMessages = {
-     'cash-bleeding': { ... },
-     
     'reserve-shield': {
   successTitle: 'Consciência registrada. Execução ainda pendente.',
   successText: 'Você reconheceu a fragilidade correta, mas a proteção só começa de verdade quando o primeiro aporte entra na meta.',
