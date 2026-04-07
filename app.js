@@ -1049,9 +1049,40 @@ function renderPremiumRiskCard() {
 
   let radarTitle = plan.title || 'Radar FinanceAI ativo';
   let radarSummary = plan.summary || 'O sistema está lendo seu comportamento financeiro.';
-  let masterAlert = plan.masterAlert || 'Sem alerta mestre disponível.';
-  let recommendedAction = plan.action || 'Sem ação recomendada.';
-  let tacticalObjective = plan.objective || 'Sem objetivo definido.';
+ let masterAlert = '';
+let action = '';
+let objective = '';
+
+if (behaviorState.state === 'pre_collapse') {
+  masterAlert = 'Seu padrão atual está acelerando um colapso financeiro.';
+  action = 'Interromper imediatamente o driver de risco dominante.';
+  objective = 'Evitar ruptura do caixa nos próximos dias.';
+}
+else if (behaviorState.state === 'sabotage_active') {
+  masterAlert = 'Seu comportamento está sabotando sua estabilidade.';
+  action = 'Bloquear gastos variáveis e cortar decisões impulsivas agora.';
+  objective = 'Recuperar controle antes da deterioração avançar.';
+}
+else if (behaviorState.state === 'recovery_fragile') {
+  masterAlert = 'Sua melhora ainda não é confiável.';
+  action = 'Manter contenção e evitar recaída nas próximas decisões.';
+  objective = 'Transformar recuperação em estabilidade real.';
+}
+else if (metrics.postIncomeVulnerability >= 55) {
+  masterAlert = 'Seu padrão de consumo pós-renda está comprimindo sua margem.';
+  action = 'Reduzir consumo imediato após entrada de dinheiro.';
+  objective = 'Proteger caixa no início do ciclo financeiro.';
+}
+else if (metrics.silentRiskLoad >= 55) {
+  masterAlert = 'Seu risco está crescendo de forma silenciosa.';
+  action = 'Eliminar vazamentos antes que se tornem visíveis.';
+  objective = 'Evitar pressão estrutural futura.';
+}
+else {
+  masterAlert = 'Seu padrão está sob controle, mas exige disciplina.';
+  action = 'Manter consistência e evitar decisões impulsivas.';
+  objective = 'Preservar estabilidade e evolução.';
+}
 
   if (overlay.recurringSabotage) {
     radarTitle = 'Seu histórico mostra sabotagem recorrente';
