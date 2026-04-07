@@ -2356,7 +2356,16 @@ const missionImpactLabel = state.missionStatus.status === 'completed'
   : fmt(Math.max(0, Number(state.missionStatus.current || 0)));
 
 textEl.innerHTML = `
-  <div style="display:flex;flex-direction:column;gap:10px;">
+ <div style="
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  padding:16px;
+  border-radius:16px;
+  background:linear-gradient(180deg, rgba(20,20,35,0.9), rgba(10,10,20,0.95));
+  border:1px solid rgba(239,68,68,0.25);
+  box-shadow:0 0 0 1px rgba(239,68,68,0.1), 0 10px 30px rgba(0,0,0,0.6);
+">
     <div style="display:flex;flex-direction:column;gap:6px;">
       <div style="font-size:13px;font-weight:800;letter-spacing:0.02em;color:${severityAccent};text-transform:uppercase;">
         ${missionTitle}
