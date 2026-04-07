@@ -1049,9 +1049,30 @@ function renderPremiumRiskCard() {
 
   let radarTitle = plan.title || 'Radar FinanceAI ativo';
   let radarSummary = plan.summary || 'O sistema está lendo seu comportamento financeiro.';
-  let masterAlert = plan.masterAlert || 'Sem alerta mestre disponível.';
-  let recommendedAction = plan.action || 'Sem ação recomendada.';
-  let tacticalObjective = plan.objective || 'Sem objetivo definido.';
+  let masterAlert = '';
+let action = '';
+let objective = '';
+
+const mission = state.missionStatus || {};
+
+if (mission && mission.title) {
+  masterAlert = 'Sua estabilidade financeira está sendo definida pela execução da missão atual.';
+
+  if (mission.status === 'completed') {
+    action = 'Você executou corretamente. Continue mantendo o padrão para estabilizar seu comportamento.';
+    objective = 'Consolidar consistência e reduzir risco progressivamente.';
+  } else if (mission.status === 'failed') {
+    action = 'Você quebrou o controle hoje. Retome imediatamente a execução para evitar deterioração.';
+    objective = 'Interromper o ciclo de erro antes de amplificar o impacto.';
+  } else {
+    action = 'A execução da missão hoje não é opcional. É o único fator que impede avanço do risco.';
+    objective = 'Reduzir pressão e impedir degradação do caixa.';
+  }
+} else {
+  masterAlert = plan.masterAlert;
+  action = plan.action;
+  objective = plan.objective;
+}
 
   if (overlay.recurringSabotage) {
     radarTitle = 'Seu histórico mostra sabotagem recorrente';
