@@ -2385,24 +2385,6 @@ textEl.innerHTML = `
   Execução obrigatória hoje.
 </div>
     </div>
-
-    <div style="display:flex;flex-wrap:wrap;gap:8px;">
-      <div style="padding:8px 10px;border-radius:12px;background:rgba(99,102,241,0.10);border:1px solid rgba(99,102,241,0.18);">
-        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;">Alvo do dia</div>
-        <div style="font-size:13px;font-weight:700;color:var(--text-primary);">${missionTargetLabel}</div>
-      </div>
-
-      <div style="padding:8px 10px;border-radius:12px;background:rgba(16,185,129,0.10);border:1px solid rgba(16,185,129,0.18);">
-        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;">Margem preservável</div>
-        <div style="font-size:13px;font-weight:700;color:var(--text-primary);">${missionImpactLabel}</div>
-      </div>
-
-      <div style="padding:8px 10px;border-radius:12px;background:rgba(245,158,11,0.10);border:1px solid rgba(245,158,11,0.18);">
-        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;">Estado tático</div>
-        <div style="font-size:13px;font-weight:700;color:${severityAccent};">${severityLabelMap[severity] || 'Execução em andamento'}</div>
-      </div>
-    </div>
-  </div>
 `;
 
   barEl.style.width = `${progressPct.toFixed(0)}%`;
