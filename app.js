@@ -2330,20 +2330,60 @@ function renderDailyMission() {
 
   state.missionStatus.current = Math.max(0, target - todayExpenses);
 
-  const missionTitle = state.missionStatus.title || 'Missão do dia';
-  const missionText = state.missionStatus.text || 'Hoje o FinanceAI está preparando sua missão.';
-  const severity = state.missionStatus.severity || 'stable';
+const missionTitle = state.missionStatus.title || 'Missão do dia';
+const missionText = state.missionStatus.text || 'Hoje o FinanceAI está preparando sua missão.';
+const severity = state.missionStatus.severity || 'stable';
 
-  textEl.innerHTML = `
+const severityLabelMap = {
+  critical: 'Risco crítico em curso',
+  containment: 'Contenção imediata',
+  pressure: 'Pressão crescente',
+  attention: 'Atenção ativa',
+  stable: 'Execução estratégica'
+};
+
+const severityAccent =
+  severity === 'critical'
+    ? '#fca5a5'
+    : severity === 'containment' || severity === 'pressure'
+    ? '#fcd34d'
+    : '#a5b4fc';
+
+const missionTargetLabel = target > 0 ? fmt(target) : 'R$ 0,00';
+const missionCurrentLabel = fmt(Math.max(0, Number(state.missionStatus.current || 0)));
+const missionImpactLabel = state.missionStatus.status === 'completed'
+  ? fmt(state.missionStatus.savedAmount || target || 0)
+  : fmt(Math.max(0, Number(state.missionStatus.current || 0)));
+
+textEl.innerHTML = `
+  <div style="display:flex;flex-direction:column;gap:10px;">
     <div style="display:flex;flex-direction:column;gap:6px;">
-      <div style="font-size:13px;font-weight:800;letter-spacing:0.02em;color:${severity === 'critical' ? '#fca5a5' : severity === 'containment' ? '#fcd34d' : '#a5b4fc'};text-transform:uppercase;">
+      <div style="font-size:13px;font-weight:800;letter-spacing:0.02em;color:${severityAccent};text-transform:uppercase;">
         ${missionTitle}
       </div>
       <div style="font-size:15px;line-height:1.6;color:var(--text-primary);">
         ${missionText}
       </div>
     </div>
-  `;
+
+    <div style="display:flex;flex-wrap:wrap;gap:8px;">
+      <div style="padding:8px 10px;border-radius:12px;background:rgba(99,102,241,0.10);border:1px solid rgba(99,102,241,0.18);">
+        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;">Alvo do dia</div>
+        <div style="font-size:13px;font-weight:700;color:var(--text-primary);">${missionTargetLabel}</div>
+      </div>
+
+      <div style="padding:8px 10px;border-radius:12px;background:rgba(16,185,129,0.10);border:1px solid rgba(16,185,129,0.18);">
+        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;">Margem preservável</div>
+        <div style="font-size:13px;font-weight:700;color:var(--text-primary);">${missionImpactLabel}</div>
+      </div>
+
+      <div style="padding:8px 10px;border-radius:12px;background:rgba(245,158,11,0.10);border:1px solid rgba(245,158,11,0.18);">
+        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;">Estado tático</div>
+        <div style="font-size:13px;font-weight:700;color:${severityAccent};">${severityLabelMap[severity] || 'Execução em andamento'}</div>
+      </div>
+    </div>
+  </div>
+`;
 
   barEl.style.width = `${progressPct.toFixed(0)}%`;
 
