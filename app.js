@@ -1730,7 +1730,16 @@ function buildUserFinancialIdentity({ score, failStreak, successStreak, sabotage
 
 function getBehaviorEngineSnapshot() {
   const base = typeof getRiskSnapshot === 'function' ? getRiskSnapshot() : null;
-  if (!base) return null;
+ if (!base) {
+  return {
+    score: 50,
+    riskLevel: 'Moderado',
+    summary: { savingsRate: 0 },
+    spendAfterIncomePct: 0,
+    dailyAvgExpense: 0,
+    projectedBalance: 0
+  };
+}
 
   updateBehaviorProfileFromMissionHistory();
 
