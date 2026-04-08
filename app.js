@@ -975,43 +975,175 @@ function renderPremiumRiskCard() {
   const primaryBtn = document.getElementById('premiumRiskPrimaryBtn');
   const secondaryBtn = document.getElementById('premiumRiskSecondaryBtn');
 
-  if (!titleEl || !summaryEl || !scoreEl || !levelEl || !masterAlertEl || !actionEl || !objectiveEl || !primaryBtn || !secondaryBtn) {
+  if (
+    !titleEl ||
+    !summaryEl ||
+    !scoreEl ||
+    !levelEl ||
+    !masterAlertEl ||
+    !actionEl ||
+    !objectiveEl ||
+    !primaryBtn ||
+    !secondaryBtn
+  ) {
     return;
   }
 
   const snap = getBehaviorEngineSnapshot();
-  const plan = getPremiumRiskActionPlan(snap);
+  const plan = {
+  title: 'Radar FinanceAI ativo',
+  summary: 'Leitura comportamental em execução.',
+  masterAlert: 'Sistema analisando seu padrão financeiro.',
+  action: 'Continue registrando movimentações para melhorar a precisão.',
+  objective: 'Gerar base comportamental consistente.',
+  primaryLabel: 'Ver transações',
+  secondaryLabel: 'Abrir IA',
+  primaryPage: 'transactions',
+  secondaryPage: 'ai'
+};
 
-  titleEl.textContent = plan.title;
-  summaryEl.textContent = plan.summary;
-  masterAlertEl.textContent = plan.masterAlert;
-  actionEl.textContent = plan.action;
-  objectiveEl.textContent = plan.objective;
-
-  if (snap) {
-    scoreEl.textContent = `${snap.score}/100`;
-    levelEl.textContent = `Risco ${snap.riskLevel}`;
-
-    const levelColor =
-      snap.score >= 75 ? '#ef4444' :
-      snap.score >= 50 ? '#f59e0b' :
-      snap.score >= 25 ? '#facc15' :
-      '#10b981';
-
-    levelEl.style.color = levelColor;
-    scoreEl.style.color = levelColor;
-  } else {
+  if (!snap) {
+    titleEl.textContent = 'Sem leitura suficiente';
+    summaryEl.textContent = 'Adicione mais movimentações para o FinanceAI consolidar sua leitura comportamental.';
     scoreEl.textContent = '--/100';
     levelEl.textContent = 'Sem leitura';
     levelEl.style.color = '#94a3b8';
     scoreEl.style.color = 'var(--text-primary)';
+    masterAlertEl.textContent = 'Ainda não há base suficiente para um alerta mestre.';
+    actionEl.textContent = 'Registrar receitas e despesas do mês atual.';
+    objectiveEl.textContent = 'Criar consistência de dados para leitura inteligente.';
+    primaryBtn.textContent = 'Ir para transações';
+    secondaryBtn.textContent = 'Abrir IA';
+    primaryBtn.onclick = () => navigate('transactions');
+    secondaryBtn.onclick = () => navigate('ai');
+    card.style.border = '1px solid rgba(99,102,241,0.22)';
+    card.style.background = 'linear-gradient(135deg, rgba(99,102,241,0.16), rgba(15,23,42,0.95))';
+    return;
   }
 
-  primaryBtn.textContent = plan.primaryLabel;
-  secondaryBtn.textContent = plan.secondaryLabel;
+  const overlay = snap.historicalOverlay || {};
+  const behaviorState = snap.behaviorState || {};
+  const metrics = snap.metrics || {};
+  const patterns = snap.patterns || {};
+  const summary = snap.summary || {};
+
+  const score = Number(snap.score || 0);
+  const recurrenceConfidence = Number(overlay.recurrenceConfidence || 0);
+  const historicalPressure = Number(overlay.historicalPressure || 0);
+  const instabilityIndex = Number(metrics.instabilityIndex || 0);
+
+  let signatureLabel = 'Histórico em formação';
+  if (overlay.dominantHistoricalSignature === 'recurring_sabotage') {
+    signatureLabel = 'Sabotagem recorrente';
+  } else if (overlay.dominantHistoricalSignature === 'relapse_cycle') {
+    signatureLabel = 'Ciclo de recaída';
+  } else if (overlay.dominantHistoricalSignature === 'fragile_recovery_loop') {
+    signatureLabel = 'Recuperação frágil recorrente';
+  } else if (overlay.dominantHistoricalSignature === 'persistent_high_risk') {
+    signatureLabel = 'Risco alto persistente';
+  } else if (overlay.dominantHistoricalSignature === 'disciplined_recovery') {
+    signatureLabel = 'Recuperação disciplinada';
+  } else if (overlay.dominantHistoricalSignature === 'historical_instability') {
+    signatureLabel = 'Instabilidade histórica';
+  }
+
+  let radarTitle = plan.title || 'Radar FinanceAI ativo';
+  let radarSummary = plan.summary || 'O sistema está lendo seu comportamento financeiro.';
+  let masterAlert = plan.masterAlert || 'Sem alerta mestre disponível.';
+  let recommendedAction = plan.action || 'Sem ação recomendada.';
+  let tacticalObjective = plan.objective || 'Sem objetivo definido.';
+
+  if (overlay.recurringSabotage) {
+    radarTitle = 'Seu histórico mostra sabotagem recorrente';
+    radarSummary = `Seu score está em ${score}/100 e o sistema detectou repetição de autossabotagem financeira. Isso não é evento isolado; é padrão.`;
+    masterAlert = 'O risco atual está sendo amplificado por sabotagem recorrente no histórico.';
+    recommendedAction = 'Interrompa novas despesas variáveis hoje e reduza imediatamente o padrão impulsivo.';
+    tacticalObjective = 'Quebrar a repetição que antecede deterioração do caixa.';
+  } else if (overlay.recurringRelapse) {
+    radarTitle = 'Sua melhora ainda não é confiável';
+    radarSummary = `Seu score está em ${score}/100 e o histórico mostra melhora seguida de recaída. O problema não é só cair, mas repetir o ciclo.`;
+    masterAlert = 'O sistema detecta recaída recorrente após sinais de alívio.';
+    recommendedAction = 'Proteja a disciplina nas próximas horas e não trate alívio momentâneo como controle real.';
+    tacticalObjective = 'Transformar melhora pontual em estabilidade consistente.';
+  } else if (overlay.fragileRecoveryRecurring) {
+    radarTitle = 'Sua recuperação ainda está frágil';
+    radarSummary = `Seu score está em ${score}/100 e o histórico mostra recuperação instável. Ainda existe risco real de regressão.`;
+    masterAlert = 'A melhora recente ainda não consolidou segurança estrutural.';
+    recommendedAction = 'Reduza exposição a gasto impulsivo e preserve retenção nas próximas 24h.';
+    tacticalObjective = 'Consolidar recuperação antes de novo ciclo de pressão.';
+  } else if (behaviorState.state === 'pre_collapse') {
+    radarTitle = 'Seu risco financeiro está crítico';
+    radarSummary = `Seu score está em ${score}/100 e o sistema detecta deterioração acelerada do seu caixa.`;
+  } else if (behaviorState.state === 'sabotage_active') {
+    radarTitle = 'Seu comportamento entrou em sabotagem ativa';
+    radarSummary = `Seu score está em ${score}/100 e a sua disciplina está sendo rompida por padrão comportamental.`;
+  } else if (behaviorState.state === 'recovery_fragile') {
+    radarTitle = 'Sua melhora ainda está instável';
+    radarSummary = `Seu score está em ${score}/100 e o sistema detecta que sua recuperação ainda não virou estabilidade real.`;
+  } else if (metrics.silentRiskLoad >= 55) {
+    radarTitle = 'Seu risco está se formando em silêncio';
+    radarSummary = `Seu score está em ${score}/100 e a sua consistência começou a ceder antes do problema ficar óbvio.`;
+  }
+
+  const dominantPattern = String(
+    patterns.historicalDominantSignature ||
+    patterns.dominant ||
+    overlay.dominantPattern ||
+    'stable_support'
+  ).replaceAll('_', ' ');
+
+  const enrichedSummary =
+    `${radarSummary} Assinatura dominante: ${signatureLabel}. ` +
+    `Padrão principal: ${dominantPattern}. ` +
+    `Confiança histórica: ${recurrenceConfidence}%. ` +
+    `Pressão histórica: ${historicalPressure}. ` +
+    `Instabilidade acumulada: ${instabilityIndex}.`;
+
+  titleEl.textContent = radarTitle;
+  summaryEl.textContent = enrichedSummary;
+  masterAlertEl.textContent = masterAlert;
+  actionEl.textContent = recommendedAction;
+  objectiveEl.textContent = tacticalObjective;
+
+  scoreEl.textContent = `${score}/100`;
+  levelEl.textContent = `Risco ${snap.riskLevel}`;
+
+  const levelColor =
+    score >= 75 ? '#ef4444' :
+    score >= 50 ? '#f59e0b' :
+    score >= 25 ? '#facc15' :
+    '#10b981';
+
+  levelEl.style.color = levelColor;
+  scoreEl.style.color = levelColor;
+
+  if (score >= 75 || overlay.recurringSabotage) {
+    card.style.border = '1px solid rgba(239,68,68,0.35)';
+    card.style.background = 'linear-gradient(135deg, rgba(127,29,29,0.28), rgba(15,23,42,0.96))';
+  } else if (score >= 50 || overlay.recurringRelapse || overlay.fragileRecoveryRecurring) {
+    card.style.border = '1px solid rgba(245,158,11,0.30)';
+    card.style.background = 'linear-gradient(135deg, rgba(120,53,15,0.24), rgba(15,23,42,0.96))';
+  } else {
+    card.style.border = '1px solid rgba(16,185,129,0.22)';
+    card.style.background = 'linear-gradient(135deg, rgba(6,95,70,0.20), rgba(15,23,42,0.95))';
+  }
+
+  primaryBtn.textContent = plan.primaryLabel || 'Ver ação principal';
+  secondaryBtn.textContent = plan.secondaryLabel || 'Abrir análise completa';
 
   primaryBtn.onclick = () => navigate(plan.primaryPage || 'transactions');
   secondaryBtn.onclick = () => navigate(plan.secondaryPage || 'ai');
+
+  primaryBtn.style.boxShadow =
+    score >= 75 || overlay.recurringSabotage
+      ? '0 12px 24px rgba(239,68,68,0.22)'
+      : score >= 50 || overlay.recurringRelapse || overlay.fragileRecoveryRecurring
+      ? '0 12px 24px rgba(245,158,11,0.18)'
+      : '0 12px 24px rgba(16,185,129,0.18)';
+
+  if (summary.balance < 0) {
+    objectiveEl.textContent = 'Conter ruptura de caixa e recuperar margem de reação imediatamente.';
+  }
 }
 
 function getMissionSeverityFromSnapshot(snap) {
@@ -1730,16 +1862,7 @@ function buildUserFinancialIdentity({ score, failStreak, successStreak, sabotage
 
 function getBehaviorEngineSnapshot() {
   const base = typeof getRiskSnapshot === 'function' ? getRiskSnapshot() : null;
- if (!base) {
-  return {
-    score: 50,
-    riskLevel: 'Moderado',
-    summary: { savingsRate: 0 },
-    spendAfterIncomePct: 0,
-    dailyAvgExpense: 0,
-    projectedBalance: 0
-  };
-}
+  if (!base) return null;
 
   updateBehaviorProfileFromMissionHistory();
 
@@ -2233,16 +2356,7 @@ const missionImpactLabel = state.missionStatus.status === 'completed'
   : fmt(Math.max(0, Number(state.missionStatus.current || 0)));
 
 textEl.innerHTML = `
- <div style="
-  display:flex;
-  flex-direction:column;
-  gap:12px;
-  padding:16px;
-  border-radius:16px;
-  background:linear-gradient(180deg, rgba(20,20,35,0.9), rgba(10,10,20,0.95));
-  border:1px solid rgba(239,68,68,0.25);
-  box-shadow:0 0 0 1px rgba(239,68,68,0.1), 0 10px 30px rgba(0,0,0,0.6);
-">
+  <div style="display:flex;flex-direction:column;gap:10px;">
     <div style="display:flex;flex-direction:column;gap:6px;">
       <div style="font-size:13px;font-weight:800;letter-spacing:0.02em;color:${severityAccent};text-transform:uppercase;">
         ${missionTitle}
@@ -2519,6 +2633,7 @@ renderDailyMission();
 renderPremiumRiskCard();
 analyzeAlertsSafe();
 analyzePredictiveAlerts();
+renderPremiumRiskCard();
 }
 
 function renderRecentTransactions(txs) {
