@@ -2505,7 +2505,6 @@ const urgency = ctx.diagnosis?.urgency || 'low';
     </div>
   ` : ''}
 </div>
-  </div>
 
   <div style="padding:12px 14px;border-radius:14px;background:${urgency === 'critical' ? 'rgba(239,68,68,0.10)' : urgency === 'high' ? 'rgba(245,158,11,0.10)' : 'rgba(16,185,129,0.10)'};border:1px solid ${urgency === 'critical' ? 'rgba(239,68,68,0.24)' : urgency === 'high' ? 'rgba(245,158,11,0.24)' : 'rgba(16,185,129,0.22)'};">
     <div style="font-size:11px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase;color:${urgency === 'critical' ? '#fca5a5' : urgency === 'high' ? '#fcd34d' : '#86efac'};">Ação imediata</div>
