@@ -2587,16 +2587,16 @@ ${(() => {
     <div style="display:flex;flex-direction:column;gap:6px;">
 
       <div style="font-size:14px;color:#fca5a5;font-weight:600;">
-        ${bridge.title}
-      </div>
+  ${bridge.text}
+</div>
 
       <div style="font-size:15px;line-height:1.6;color:var(--text-primary);">
         ${bridge.text}
       </div>
 
       <div style="font-size:14px;font-weight:700;color:#fcd34d;">
-        Ação recomendada: ${bridge.text}
-      </div>
+  Ação obrigatória: reduzir imediatamente novas despesas variáveis hoje.
+</div>
 
     </div>
 
