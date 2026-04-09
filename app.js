@@ -2430,7 +2430,13 @@ function renderFinancialDoctorPanel() {
 
   const behaviorScore = Number(ctx.behavior?.score || 0);
   const behaviorLevel = ctx.behavior?.riskLevel || 'Sem leitura';
-
+  const diagnosisTitle = ctx.diagnosis?.title || 'Sem diagnóstico disponível no momento.';
+const diagnosisSummary = ctx.diagnosis?.summary || 'Sem resumo operacional disponível.';
+const diagnosisAction = ctx.diagnosis?.recommendedAction || 'Sem ação recomendada no momento.';
+const safeDailyLimit = Number(ctx.diagnosis?.safeDailyLimit || 0);
+const averageDailyExpense = Number(ctx.diagnosis?.averageDailyExpense || 0);
+const projectedEndBalance = Number(ctx.diagnosis?.projectedEndBalance || 0);
+const urgency = ctx.diagnosis?.urgency || 'low';
   const panel = document.createElement('div');
   panel.id = 'financialDoctorPanel';
   panel.style.cssText = [
@@ -2479,12 +2485,35 @@ function renderFinancialDoctorPanel() {
       </div>
     </div>
 
-    <div style="margin-top:12px;padding:12px 14px;border-radius:14px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.14);">
-      <div style="font-size:13px;line-height:1.6;color:#cbd5e1;">
-        O Doutor Financeiro já está lendo sua base real. Taxa de poupança atual: <strong style="color:#fff;">${savingsRate.toFixed(1)}%</strong>.
-        Este bloco ainda é a leitura estrutural inicial e será conectado ao diagnóstico da missão no próximo ajuste.
-      </div>
-    </div>
+    <div style="margin-top:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;">
+  <div style="padding:12px 14px;border-radius:14px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.14);">
+    <div style="font-size:11px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase;color:#a5b4fc;">Diagnóstico do ciclo</div>
+    <div style="margin-top:6px;font-size:14px;font-weight:700;color:#ffffff;line-height:1.5;">${diagnosisTitle}</div>
+    <div style="margin-top:6px;font-size:13px;line-height:1.6;color:#cbd5e1;">${diagnosisSummary}</div>
+  </div>
+
+  <div style="padding:12px 14px;border-radius:14px;background:${urgency === 'critical' ? 'rgba(239,68,68,0.10)' : urgency === 'high' ? 'rgba(245,158,11,0.10)' : 'rgba(16,185,129,0.10)'};border:1px solid ${urgency === 'critical' ? 'rgba(239,68,68,0.24)' : urgency === 'high' ? 'rgba(245,158,11,0.24)' : 'rgba(16,185,129,0.22)'};">
+    <div style="font-size:11px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase;color:${urgency === 'critical' ? '#fca5a5' : urgency === 'high' ? '#fcd34d' : '#86efac'};">Ação imediata</div>
+    <div style="margin-top:6px;font-size:13px;line-height:1.6;color:#f8fafc;">${diagnosisAction}</div>
+  </div>
+</div>
+
+<div style="margin-top:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
+  <div style="padding:12px;border-radius:14px;background:rgba(15,23,42,0.62);border:1px solid rgba(255,255,255,0.05);">
+    <div style="font-size:11px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:#94a3b8;">Limite diário seguro</div>
+    <div style="margin-top:6px;font-size:20px;font-weight:800;color:#f8fafc;">${fmt(safeDailyLimit)}</div>
+  </div>
+
+  <div style="padding:12px;border-radius:14px;background:rgba(15,23,42,0.62);border:1px solid rgba(255,255,255,0.05);">
+    <div style="font-size:11px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:#94a3b8;">Média diária atual</div>
+    <div style="margin-top:6px;font-size:20px;font-weight:800;color:#f8fafc;">${fmt(averageDailyExpense)}</div>
+  </div>
+
+  <div style="padding:12px;border-radius:14px;background:rgba(15,23,42,0.62);border:1px solid rgba(255,255,255,0.05);">
+    <div style="font-size:11px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:#94a3b8;">Saldo projetado no fechamento</div>
+    <div style="margin-top:6px;font-size:20px;font-weight:800;color:${projectedEndBalance >= 0 ? '#34d399' : '#f87171'};">${fmt(projectedEndBalance)}</div>
+  </div>
+</div>
   `;
 
   missionTextEl.parentNode.insertBefore(panel, missionTextEl);
@@ -2578,25 +2607,21 @@ ${(() => {
   if (!bridge) {
     return `
       <div style="font-size:14px;color:#fca5a5;font-weight:600;">
-        Missão em carregamento.
-      </div>
+  ${bridge.title}
+</div>
+
+<div style="font-size:15px;line-height:1.6;color:var(--text-primary);">
+  ${bridge.text}
+</div>
+
+<div style="font-size:14px;font-weight:700;color:#fcd34d;">
+  ${state?.financialDoctor?.diagnosis?.recommendedAction || 'Ação obrigatória: proteger o caixa imediatamente.'}
+</div>
     `;
   }
 
   return `
     <div style="display:flex;flex-direction:column;gap:6px;">
-
-      <div style="font-size:14px;color:#fca5a5;font-weight:600;">
-  ${bridge.text}
-</div>
-
-      <div style="font-size:15px;line-height:1.6;color:var(--text-primary);">
-        ${bridge.text}
-      </div>
-
-      <div style="font-size:14px;font-weight:700;color:#fcd34d;">
-  Ação obrigatória: reduzir imediatamente novas despesas variáveis hoje.
-</div>
 
     </div>
 
