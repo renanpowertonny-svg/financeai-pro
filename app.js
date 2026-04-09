@@ -2295,23 +2295,116 @@ function buildFinancialDoctorContext(snap) {
     .filter(t => t && t.type === 'expense' && t.date === today)
     .reduce((sum, t) => sum + Number(t.value || 0), 0);
 
-  const doctorContext = {
-    generatedAt: new Date().toISOString(),
-    source: 'dashboard_pre_mission',
-    month: {
-      transactions: monthTxs,
-      income: Number(summary.income || 0),
-      expense: Number(summary.expense || 0),
-      balance: Number(summary.balance || 0),
-      savingsRate: Number(summary.savingsRate || 0)
-    },
-    today: {
-      expenses: Number(todayExpenses || 0)
-    },
-    behavior: snap || null,
-    diagnosis: null,
-    missionBridge: null
-  };
+ const now = new Date();
+const currentYear = now.getFullYear();
+const currentMonth = now.getMonth();
+
+const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+const currentDay = now.getDate();
+const daysRemainingInCycle = Math.max(0, lastDayOfMonth - currentDay);
+const daysElapsedInCycle = Math.max(1, currentDay);
+
+const monthIncome = Number(summary.income || 0);
+const monthExpense = Number(summary.expense || 0);
+const monthBalance = Number(summary.balance || 0);
+const savingsRate = Number(summary.savingsRate || 0);
+
+const averageDailyExpense = monthExpense > 0
+  ? monthExpense / daysElapsedInCycle
+  : 0;
+
+const safeDailyLimit = daysRemainingInCycle > 0
+  ? Math.max(0, monthBalance / daysRemainingInCycle)
+  : Math.max(0, monthBalance);
+
+const projectedAdditionalExpense = averageDailyExpense * daysRemainingInCycle;
+const projectedEndBalance = monthBalance - projectedAdditionalExpense;
+
+let operationalStatus = 'stable';
+let urgency = 'low';
+let recommendedAction = 'Manter disciplina financeira e monitorar execução diária.';
+let doctorTitle = 'Seu caixa está sob controle no ritmo atual.';
+let doctorSummary = 'A leitura inicial indica estabilidade operacional neste ciclo.';
+let missionType = 'discipline';
+let missionSeverity = 'stable';
+let missionTitle = 'Missão do dia';
+let missionText = 'Mantenha o controle das despesas variáveis para proteger seu saldo até o fim do ciclo.';
+let missionTarget = safeDailyLimit;
+
+if (projectedEndBalance < 0) {
+  operationalStatus = 'collapse_risk';
+  urgency = 'critical';
+  recommendedAction = 'Interrompa gastos variáveis hoje para evitar fechamento negativo do ciclo.';
+  doctorTitle = 'Seu caixa não sustenta o ritmo atual até o fim do ciclo.';
+  doctorSummary = 'Mantendo a média atual de gasto, seu saldo projetado termina negativo antes do fechamento.';
+  missionType = 'containment';
+  missionSeverity = 'critical';
+  missionTitle = 'Interrupção de ciclo financeiro';
+  missionText = 'Seu padrão atual está empurrando o caixa para ruptura. O foco hoje é conter novas saídas variáveis.';
+  missionTarget = safeDailyLimit;
+} else if (todayExpenses > safeDailyLimit && safeDailyLimit > 0) {
+  operationalStatus = 'daily_limit_broken';
+  urgency = 'high';
+  recommendedAction = 'Seu gasto de hoje ultrapassou o limite seguro. Congele novas despesas variáveis hoje.';
+  doctorTitle = 'Seu limite diário seguro foi rompido hoje.';
+  doctorSummary = 'O gasto de hoje já ficou acima do teto seguro para preservar o saldo até o fim do ciclo.';
+  missionType = 'containment';
+  missionSeverity = 'pressure';
+  missionTitle = 'Contenção imediata do dia';
+  missionText = 'Hoje o objetivo é encerrar o dia sem novas despesas variáveis para impedir ampliação da pressão.';
+  missionTarget = safeDailyLimit;
+} else if (safeDailyLimit > 0 && averageDailyExpense > safeDailyLimit) {
+  operationalStatus = 'structural_pressure';
+  urgency = 'medium';
+  recommendedAction = 'Reduza o ritmo médio diário para manter o saldo protegido até o fim do ciclo.';
+  doctorTitle = 'Seu ritmo médio diário está acima do nível seguro.';
+  doctorSummary = 'Mesmo sem ruptura hoje, a média diária do ciclo já pressiona o caixa mais do que deveria.';
+  missionType = 'retention';
+  missionSeverity = 'attention';
+  missionTitle = 'Correção de ritmo financeiro';
+  missionText = 'Ajuste o ritmo de gasto agora para evitar pressão acumulada nos próximos dias.';
+  missionTarget = safeDailyLimit;
+}
+
+const doctorContext = {
+  generatedAt: new Date().toISOString(),
+  source: 'dashboard_pre_mission',
+  month: {
+    transactions: monthTxs,
+    income: monthIncome,
+    expense: monthExpense,
+    balance: monthBalance,
+    savingsRate: savingsRate
+  },
+  today: {
+    expenses: Number(todayExpenses || 0),
+    currentDay,
+    daysElapsedInCycle
+  },
+  cycle: {
+    lastDayOfMonth,
+    daysRemainingInCycle
+  },
+  behavior: snap || null,
+  diagnosis: {
+    title: doctorTitle,
+    summary: doctorSummary,
+    operationalStatus,
+    urgency,
+    averageDailyExpense,
+    safeDailyLimit,
+    projectedAdditionalExpense,
+    projectedEndBalance,
+    recommendedAction
+  },
+  missionBridge: {
+    type: missionType,
+    severity: missionSeverity,
+    title: missionTitle,
+    text: missionText,
+    target: Number(missionTarget || 0)
+  }
+};
 
   if (typeof state === 'object' && state) {
     state.financialDoctor = doctorContext;
