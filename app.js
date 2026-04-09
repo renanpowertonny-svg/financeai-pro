@@ -2279,6 +2279,47 @@ Em termos práticos: você perde margem de segurança, entra em pressão antes d
     tone: 'supportive'
   };
 }
+function buildFinancialDoctorContext(snap) {
+  const monthTxs = typeof getFilteredTx === 'function' ? getFilteredTx('month') : [];
+  const summary = typeof calcSummary === 'function'
+    ? calcSummary(monthTxs)
+    : { income: 0, expense: 0, balance: 0, savingsRate: 0 };
+
+  const today = typeof fmtDate === 'function'
+    ? fmtDate(new Date())
+    : new Date().toISOString().slice(0, 10);
+
+  const allTransactions = Array.isArray(state?.transactions) ? state.transactions : [];
+
+  const todayExpenses = allTransactions
+    .filter(t => t && t.type === 'expense' && t.date === today)
+    .reduce((sum, t) => sum + Number(t.value || 0), 0);
+
+  const doctorContext = {
+    generatedAt: new Date().toISOString(),
+    source: 'dashboard_pre_mission',
+    month: {
+      transactions: monthTxs,
+      income: Number(summary.income || 0),
+      expense: Number(summary.expense || 0),
+      balance: Number(summary.balance || 0),
+      savingsRate: Number(summary.savingsRate || 0)
+    },
+    today: {
+      expenses: Number(todayExpenses || 0)
+    },
+    behavior: snap || null,
+    diagnosis: null,
+    missionBridge: null
+  };
+
+  if (typeof state === 'object' && state) {
+    state.financialDoctor = doctorContext;
+  }
+
+  return doctorContext;
+}
+
 function renderDailyMission() {
   const textEl = document.getElementById('missionText');
   const barEl = document.getElementById('missionProgressBar');
@@ -2628,6 +2669,7 @@ generateAIInsightBanner(txs, income, expense, savingsRate);
 
 const snap = getBehaviorEngineSnapshot();
 recordBehaviorMemorySnapshot(snap);
+buildFinancialDoctorContext(snap);
 
 renderDailyMission();
 renderPremiumRiskCard();
