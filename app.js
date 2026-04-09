@@ -2319,6 +2319,83 @@ function buildFinancialDoctorContext(snap) {
 
   return doctorContext;
 }
+function renderFinancialDoctorPanel() {
+  const missionTextEl = document.getElementById('missionText');
+  if (!missionTextEl) return;
+
+  const ctx = state && state.financialDoctor ? state.financialDoctor : null;
+  if (!ctx) return;
+
+  const existing = document.getElementById('financialDoctorPanel');
+  if (existing) existing.remove();
+
+  const monthIncome = Number(ctx.month?.income || 0);
+  const monthExpense = Number(ctx.month?.expense || 0);
+  const monthBalance = Number(ctx.month?.balance || 0);
+  const savingsRate = Number(ctx.month?.savingsRate || 0);
+  const todayExpenses = Number(ctx.today?.expenses || 0);
+
+  const behaviorScore = Number(ctx.behavior?.score || 0);
+  const behaviorLevel = ctx.behavior?.riskLevel || 'Sem leitura';
+
+  const panel = document.createElement('div');
+  panel.id = 'financialDoctorPanel';
+  panel.style.cssText = [
+    'margin-bottom:16px',
+    'padding:16px',
+    'border-radius:16px',
+    'border:1px solid rgba(99,102,241,0.22)',
+    'background:linear-gradient(135deg, rgba(15,23,42,0.96), rgba(30,41,59,0.92))',
+    'box-shadow:0 14px 34px rgba(0,0,0,0.22)'
+  ].join(';');
+
+  panel.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <div style="font-size:12px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#a5b4fc;">
+          Doutor Financeiro
+        </div>
+        <div style="font-size:18px;font-weight:800;color:#ffffff;">
+          Leitura inicial do seu caixa hoje
+        </div>
+      </div>
+      <div style="padding:8px 12px;border-radius:999px;background:rgba(99,102,241,0.12);color:#c7d2fe;font-size:12px;font-weight:700;">
+        Score comportamental: ${behaviorScore}/100 · ${behaviorLevel}
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;">
+      <div style="padding:12px;border-radius:14px;background:rgba(15,23,42,0.62);border:1px solid rgba(255,255,255,0.05);">
+        <div style="font-size:11px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:#94a3b8;">Receitas do mês</div>
+        <div style="margin-top:6px;font-size:22px;font-weight:800;color:#f8fafc;">${fmt(monthIncome)}</div>
+      </div>
+
+      <div style="padding:12px;border-radius:14px;background:rgba(15,23,42,0.62);border:1px solid rgba(255,255,255,0.05);">
+        <div style="font-size:11px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:#94a3b8;">Despesas do mês</div>
+        <div style="margin-top:6px;font-size:22px;font-weight:800;color:#f8fafc;">${fmt(monthExpense)}</div>
+      </div>
+
+      <div style="padding:12px;border-radius:14px;background:rgba(15,23,42,0.62);border:1px solid rgba(255,255,255,0.05);">
+        <div style="font-size:11px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:#94a3b8;">Saldo do mês</div>
+        <div style="margin-top:6px;font-size:22px;font-weight:800;color:${monthBalance >= 0 ? '#34d399' : '#f87171'};">${fmt(monthBalance)}</div>
+      </div>
+
+      <div style="padding:12px;border-radius:14px;background:rgba(15,23,42,0.62);border:1px solid rgba(255,255,255,0.05);">
+        <div style="font-size:11px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:#94a3b8;">Gasto de hoje</div>
+        <div style="margin-top:6px;font-size:22px;font-weight:800;color:#f8fafc;">${fmt(todayExpenses)}</div>
+      </div>
+    </div>
+
+    <div style="margin-top:12px;padding:12px 14px;border-radius:14px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.14);">
+      <div style="font-size:13px;line-height:1.6;color:#cbd5e1;">
+        O Doutor Financeiro já está lendo sua base real. Taxa de poupança atual: <strong style="color:#fff;">${savingsRate.toFixed(1)}%</strong>.
+        Este bloco ainda é a leitura estrutural inicial e será conectado ao diagnóstico da missão no próximo ajuste.
+      </div>
+    </div>
+  `;
+
+  missionTextEl.parentNode.insertBefore(panel, missionTextEl);
+}
 
 function renderDailyMission() {
   const textEl = document.getElementById('missionText');
@@ -2670,6 +2747,7 @@ generateAIInsightBanner(txs, income, expense, savingsRate);
 const snap = getBehaviorEngineSnapshot();
 recordBehaviorMemorySnapshot(snap);
 buildFinancialDoctorContext(snap);
+renderFinancialDoctorPanel();
 
 renderDailyMission();
 renderPremiumRiskCard();
