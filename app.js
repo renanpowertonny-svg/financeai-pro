@@ -2322,60 +2322,27 @@ const projectedEndBalance = monthBalance - projectedAdditionalExpense;
 
 let operationalStatus = 'stable';
 let urgency = 'low';
-
-const remainingSafeMarginToday = Math.max(0, safeDailyLimit - todayExpenses);
-const decisionPressureLevel =
-  projectedEndBalance < 0
-    ? 'critical'
-    : todayExpenses > safeDailyLimit && safeDailyLimit > 0
-    ? 'high'
-    : safeDailyLimit > 0 && averageDailyExpense > safeDailyLimit
-    ? 'medium'
-    : 'controlled';
-
-let recommendedAction = safeDailyLimit > 0
-  ? `Hoje seu limite seguro é ${fmt(safeDailyLimit)}. Preserve essa margem para não comprimir o fechamento do ciclo.`
-  : 'Hoje o foco é impedir novas saídas variáveis para proteger o restante do caixa.';
-
-let doctorTitle = safeDailyLimit > 0
-  ? `Sua próxima decisão financeira precisa respeitar o teto de ${fmt(safeDailyLimit)} hoje.`
-  : 'Seu caixa entrou em faixa sem margem segura para novas despesas hoje.';
-
-let doctorSummary = safeDailyLimit > 0
-  ? `Seu ritmo atual permite gastar até ${fmt(safeDailyLimit)} hoje sem deformar a proteção do restante do mês. Se você ultrapassar esse teto, começa a transferir pressão para os próximos dias do ciclo.`
-  : 'Hoje você já não tem margem segura distribuível. Qualquer nova despesa variável aumenta a pressão sobre o restante do ciclo.';
-
+let recommendedAction = 'Manter disciplina financeira e monitorar execução diária.';
+let doctorTitle = 'Seu caixa está sob controle no ritmo atual.';
+let doctorSummary = 'A leitura inicial indica estabilidade operacional neste ciclo.';
 let missionType = 'discipline';
 let missionSeverity = 'stable';
 let missionTitle = 'Missão do dia';
-let missionText = safeDailyLimit > 0
-  ? `Proteja a margem de ${fmt(safeDailyLimit)} hoje para manter o ciclo sob controle até o fechamento.`
-  : 'Passe o dia sem novas despesas variáveis para impedir agravamento do ciclo.';
+let missionText = 'Mantenha o controle das despesas variáveis para proteger seu saldo até o fim do ciclo.';
 let missionTarget = safeDailyLimit;
 
 if (projectedEndBalance < 0) {
   operationalStatus = 'collapse_risk';
   urgency = 'critical';
-  recommendedAction = `Interrompa novas despesas variáveis hoje. No ritmo atual, seu ciclo fecha em ${fmt(projectedEndBalance)}, o que significa entrar no fim do mês já sem proteção real de caixa.`;
-  doctorTitle = 'Seu padrão atual já está empurrando seu caixa para fechamento vulnerável.';
-  doctorSummary = `Sua média diária de ${fmt(averageDailyExpense)} está acima do que o seu ciclo suporta. Se esse ritmo continuar, o fechamento projeta ${fmt(projectedEndBalance)} e transforma pressão diária em deterioração real do caixa.`;
+  recommendedAction = 'Interrompa gastos variáveis hoje para evitar fechamento negativo do ciclo.';
+  doctorTitle = 'Seu caixa não sustenta o ritmo atual até o fim do ciclo.';
+  doctorSummary = 'Mantendo a média atual de gasto, seu saldo projetado termina negativo antes do fechamento.';
   missionType = 'containment';
   missionSeverity = 'critical';
-  missionTitle = 'Bloqueio de deterioração do ciclo';
-  missionText = `Hoje não é dia de flexibilizar. O objetivo é travar novas saídas variáveis para impedir que a pressão de agora vire fechamento negativo no restante do mês.`;
+  missionTitle = 'Interrupção de ciclo financeiro';
+  missionText = 'Seu padrão atual está empurrando o caixa para ruptura. O foco hoje é conter novas saídas variáveis.';
   missionTarget = safeDailyLimit;
 } else if (todayExpenses > safeDailyLimit && safeDailyLimit > 0) {
-  operationalStatus = 'daily_limit_broken';
-  urgency = 'high';
-  recommendedAction = `Você já ultrapassou o limite seguro de ${fmt(safeDailyLimit)} para hoje. A partir deste ponto, qualquer nova despesa variável comprime a margem dos próximos dias e reduz sua proteção até o fechamento.`;
-  doctorTitle = 'Hoje você já passou do teto que mantinha o ciclo protegido.';
-  doctorSummary = `Seu gasto de hoje chegou a ${fmt(todayExpenses)}, acima do limite seguro de ${fmt(safeDailyLimit)}. O erro não está só no valor gasto agora, mas na pressão que ele transfere para o restante do mês.`;
-  missionType = 'containment';
-  missionSeverity = 'pressure';
-  missionTitle = 'Contenção imediata do dia';
-  missionText = `O ciclo ainda pode ser preservado, mas sua margem de hoje já foi rompida. Sua missão agora é encerrar o dia sem novas despesas variáveis para impedir ampliação da pressão sobre o fechamento.`;
-  missionTarget = safeDailyLimit;
-}
   operationalStatus = 'daily_limit_broken';
   urgency = 'high';
   recommendedAction = 'Seu gasto de hoje ultrapassou o limite seguro. Congele novas despesas variáveis hoje.';
