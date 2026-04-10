@@ -2438,13 +2438,13 @@ function renderFinancialDoctorPanel() {
   const behaviorLevel = ctx.behavior?.riskLevel || 'Sem leitura';
   const diagnosisTitle = ctx.diagnosis?.title || 'Sem diagnóstico disponível no momento.';
   const diagnosisSummary = ctx.diagnosis?.summary || 'Sem resumo operacional disponível.';
-   daysUntilBreak = ctx.diagnosis?.daysUntilBreak;
+ const  daysUntilBreak = ctx.diagnosis?.daysUntilBreak;
 const diagnosisAction = ctx.diagnosis?.recommendedAction || 'Sem ação recomendada no momento.';
 const safeDailyLimit = Number(ctx.diagnosis?.safeDailyLimit || 0);
 const averageDailyExpense = Number(ctx.diagnosis?.averageDailyExpense || 0);
 const projectedEndBalance = Number(ctx.diagnosis?.projectedEndBalance || 0);
 const urgency = ctx.diagnosis?.urgency || 'low';
-  const daysUntilBreak = ctx.diagnosis?.daysUntilBreak;
+   daysUntilBreak = ctx.diagnosis?.daysUntilBreak;
   const panel = document.createElement('div');
   panel.id = 'financialDoctorPanel';
   panel.style.cssText = [
