@@ -2602,31 +2602,65 @@ textEl.innerHTML = `
         ${missionTitle}
       </div>
 ${(() => {
-  const bridge = state?.financialDoctor?.missionBridge;
+  const bridge = state?.financialDoctor?.missionBridge || null;
+  const diagnosis = state?.financialDoctor?.diagnosis || null;
 
-  if (!bridge) {
-    return `
-      <div style="font-size:14px;color:#fca5a5;font-weight:600;">
-  ${bridge.title}
-</div>
-
-<div style="font-size:15px;line-height:1.6;color:var(--text-primary);">
-  ${bridge.text}
-</div>
-
-<div style="font-size:14px;font-weight:700;color:#fcd34d;">
-  ${state?.financialDoctor?.diagnosis?.recommendedAction || 'Ação obrigatória: proteger o caixa imediatamente.'}
-</div>
-    `;
-  }
+  const bridgeTitle = bridge?.title || missionTitle;
+  const bridgeText = bridge?.text || missionText;
+  const diagnosisTitle = diagnosis?.title || 'Diagnóstico financeiro em atualização.';
+  const recommendedAction = diagnosis?.recommendedAction || 'Ação obrigatória: proteger o caixa imediatamente.';
 
   return `
-    <div style="display:flex;flex-direction:column;gap:6px;">
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div style="font-size:14px;font-weight:700;color:#ffffff;line-height:1.5;">
+        ${bridgeTitle}
+      </div>
 
-    </div>
+      <div style="font-size:14px;line-height:1.7;color:#cbd5e1;">
+        ${bridgeText}
+      </div>
 
-    <div style="margin-top:6px;font-size:13px;font-weight:600;color:#fcd34d;">
-      Execução obrigatória hoje.
+      <div style="padding:10px 12px;border-radius:12px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.18);">
+        <div style="font-size:11px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase;color:#fcd34d;">
+          Intervenção do Doutor
+        </div>
+        <div style="margin-top:6px;font-size:13px;line-height:1.6;color:#f8fafc;">
+          ${recommendedAction}
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;">
+        <div style="padding:10px 12px;border-radius:12px;background:rgba(15,23,42,0.55);border:1px solid rgba(255,255,255,0.05);">
+          <div style="font-size:11px;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;color:#94a3b8;">
+            Status clínico
+          </div>
+          <div style="margin-top:6px;font-size:13px;font-weight:700;color:${severityAccent};">
+            ${severityLabelMap[severity] || 'Execução estratégica'}
+          </div>
+        </div>
+
+        <div style="padding:10px 12px;border-radius:12px;background:rgba(15,23,42,0.55);border:1px solid rgba(255,255,255,0.05);">
+          <div style="font-size:11px;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;color:#94a3b8;">
+            Limite da missão
+          </div>
+          <div style="margin-top:6px;font-size:13px;font-weight:700;color:#f8fafc;">
+            ${missionTargetLabel}
+          </div>
+        </div>
+
+        <div style="padding:10px 12px;border-radius:12px;background:rgba(15,23,42,0.55);border:1px solid rgba(255,255,255,0.05);">
+          <div style="font-size:11px;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;color:#94a3b8;">
+            Margem protegida
+          </div>
+          <div style="margin-top:6px;font-size:13px;font-weight:700;color:#86efac;">
+            ${missionCurrentLabel}
+          </div>
+        </div>
+      </div>
+
+      <div style="font-size:12px;font-weight:600;color:#fcd34d;">
+        ${diagnosisTitle}
+      </div>
     </div>
   `;
 })()}
