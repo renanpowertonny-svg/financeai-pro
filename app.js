@@ -2322,13 +2322,35 @@ const projectedEndBalance = monthBalance - projectedAdditionalExpense;
 
 let operationalStatus = 'stable';
 let urgency = 'low';
-let recommendedAction = 'Manter disciplina financeira e monitorar execução diária.';
-let doctorTitle = 'Seu caixa está sob controle no ritmo atual.';
-let doctorSummary = 'A leitura inicial indica estabilidade operacional neste ciclo.';
+
+const remainingSafeMarginToday = Math.max(0, safeDailyLimit - todayExpenses);
+const decisionPressureLevel =
+  projectedEndBalance < 0
+    ? 'critical'
+    : todayExpenses > safeDailyLimit && safeDailyLimit > 0
+    ? 'high'
+    : safeDailyLimit > 0 && averageDailyExpense > safeDailyLimit
+    ? 'medium'
+    : 'controlled';
+
+let recommendedAction = safeDailyLimit > 0
+  ? `Hoje seu limite seguro é ${fmt(safeDailyLimit)}. Preserve essa margem para não comprimir o fechamento do ciclo.`
+  : 'Hoje o foco é impedir novas saídas variáveis para proteger o restante do caixa.';
+
+let doctorTitle = safeDailyLimit > 0
+  ? `Sua próxima decisão financeira precisa respeitar o teto de ${fmt(safeDailyLimit)} hoje.`
+  : 'Seu caixa entrou em faixa sem margem segura para novas despesas hoje.';
+
+let doctorSummary = safeDailyLimit > 0
+  ? `Seu ritmo atual permite gastar até ${fmt(safeDailyLimit)} hoje sem deformar a proteção do restante do mês. Se você ultrapassar esse teto, começa a transferir pressão para os próximos dias do ciclo.`
+  : 'Hoje você já não tem margem segura distribuível. Qualquer nova despesa variável aumenta a pressão sobre o restante do ciclo.';
+
 let missionType = 'discipline';
 let missionSeverity = 'stable';
 let missionTitle = 'Missão do dia';
-let missionText = 'Mantenha o controle das despesas variáveis para proteger seu saldo até o fim do ciclo.';
+let missionText = safeDailyLimit > 0
+  ? `Proteja a margem de ${fmt(safeDailyLimit)} hoje para manter o ciclo sob controle até o fechamento.`
+  : 'Passe o dia sem novas despesas variáveis para impedir agravamento do ciclo.';
 let missionTarget = safeDailyLimit;
 
 if (projectedEndBalance < 0) {
