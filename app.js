@@ -2319,11 +2319,6 @@ const safeDailyLimit = daysRemainingInCycle > 0
 
 const projectedAdditionalExpense = averageDailyExpense * daysRemainingInCycle;
 const projectedEndBalance = monthBalance - projectedAdditionalExpense;
-   let daysUntilBreak = null;
-
-if (averageDailyExpense > 0 && monthBalance > 0) {
-  daysUntilBreak = Math.floor(monthBalance / averageDailyExpense);
-}
 
 let operationalStatus = 'stable';
 let urgency = 'low';
@@ -2400,8 +2395,7 @@ const doctorContext = {
     safeDailyLimit,
     projectedAdditionalExpense,
     projectedEndBalance,
-    recommendedAction,
-    daysUntilBreak,
+    recommendedAction
   },
   missionBridge: {
     type: missionType,
@@ -2437,13 +2431,12 @@ function renderFinancialDoctorPanel() {
   const behaviorScore = Number(ctx.behavior?.score || 0);
   const behaviorLevel = ctx.behavior?.riskLevel || 'Sem leitura';
   const diagnosisTitle = ctx.diagnosis?.title || 'Sem diagnóstico disponível no momento.';
-  const diagnosisSummary = ctx.diagnosis?.summary || 'Sem resumo operacional disponível.';
+const diagnosisSummary = ctx.diagnosis?.summary || 'Sem resumo operacional disponível.';
 const diagnosisAction = ctx.diagnosis?.recommendedAction || 'Sem ação recomendada no momento.';
 const safeDailyLimit = Number(ctx.diagnosis?.safeDailyLimit || 0);
 const averageDailyExpense = Number(ctx.diagnosis?.averageDailyExpense || 0);
 const projectedEndBalance = Number(ctx.diagnosis?.projectedEndBalance || 0);
 const urgency = ctx.diagnosis?.urgency || 'low';
-   daysUntilBreak = ctx.diagnosis?.daysUntilBreak;
   const panel = document.createElement('div');
   panel.id = 'financialDoctorPanel';
   panel.style.cssText = [
@@ -2496,15 +2489,8 @@ const urgency = ctx.diagnosis?.urgency || 'low';
   <div style="padding:12px 14px;border-radius:14px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.14);">
     <div style="font-size:11px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase;color:#a5b4fc;">Diagnóstico do ciclo</div>
     <div style="margin-top:6px;font-size:14px;font-weight:700;color:#ffffff;line-height:1.5;">${diagnosisTitle}</div>
-    <div style="margin-top:6px;font-size:13px;line-height:1.6;color:#cbd5e1;">
-  ${diagnosisSummary}
-  ${daysUntilBreak !== null && daysUntilBreak >= 0 ? `
-    <div style="margin-top:6px;color:#fca5a5;font-weight:700;">
-      Se nada mudar, seu caixa entra em ruptura em aproximadamente ${daysUntilBreak} dias.
-    </div>
-  ` : ''}
- </div>
-</div>
+    <div style="margin-top:6px;font-size:13px;line-height:1.6;color:#cbd5e1;">${diagnosisSummary}</div>
+  </div>
 
   <div style="padding:12px 14px;border-radius:14px;background:${urgency === 'critical' ? 'rgba(239,68,68,0.10)' : urgency === 'high' ? 'rgba(245,158,11,0.10)' : 'rgba(16,185,129,0.10)'};border:1px solid ${urgency === 'critical' ? 'rgba(239,68,68,0.24)' : urgency === 'high' ? 'rgba(245,158,11,0.24)' : 'rgba(16,185,129,0.22)'};">
     <div style="font-size:11px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase;color:${urgency === 'critical' ? '#fca5a5' : urgency === 'high' ? '#fcd34d' : '#86efac'};">Ação imediata</div>
