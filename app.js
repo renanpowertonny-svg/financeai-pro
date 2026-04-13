@@ -2881,6 +2881,13 @@ renderDailyMission();
 renderPremiumRiskCard();
 analyzeAlertsSafe();
 analyzePredictiveAlerts();
+
+const missionCard = document.getElementById('dailyMissionCard');
+const riskCard = document.getElementById('premiumRiskCard');
+
+if (missionCard && riskCard && missionCard.parentNode) {
+  missionCard.parentNode.insertBefore(riskCard, missionCard);
+}
 }
 
 function renderRecentTransactions(txs) {
