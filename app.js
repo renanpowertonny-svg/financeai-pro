@@ -2517,7 +2517,14 @@ const urgency = ctx.diagnosis?.urgency || 'low';
   </div>
 </div>
   `;
-missionTextEl.parentNode.insertBefore(panel, missionTextEl);
+const parent = missionTextEl.parentNode;
+if (!parent) return;
+
+// insere antes do container inteiro da missão
+const missionCard = parent.closest('.card');
+if (!missionCard || !missionCard.parentNode) return;
+
+missionCard.parentNode.insertBefore(panel, missionCard);
    
 }
 
