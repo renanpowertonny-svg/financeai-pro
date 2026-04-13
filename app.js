@@ -2413,8 +2413,10 @@ const doctorContext = {
   return doctorContext;
 }
 function renderFinancialDoctorPanel() {
-  const missionTextEl = document.getElementById('missionText');
-  if (!missionTextEl) return;
+ const missionCard = document.getElementById('dailyMissionCard');
+if (!missionCard || !missionCard.parentNode) return;
+
+missionCard.parentNode.insertBefore(panel, missionCard);
 
   const ctx = state && state.financialDoctor ? state.financialDoctor : null;
   if (!ctx) return;
@@ -2516,7 +2518,6 @@ const urgency = ctx.diagnosis?.urgency || 'low';
 </div>
   `;
 
-  missionTextEl.parentNode.insertBefore(panel, missionTextEl);
 }
 
 function renderDailyMission() {
