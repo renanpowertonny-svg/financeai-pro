@@ -2349,7 +2349,6 @@ if (projectedEndBalance < 0) {
   missionTitle = 'Interrupção de ciclo financeiro';
   missionText = 'Hoje não existe espaço para gasto variável. Cada saída extra empurra seu caixa mais perto da ruptura. Sua missão é encerrar o dia em contenção total para impedir agravamento do rombo projetado.';
   missionTarget = safeDailyLimit;
-}
 } else if (todayExpenses > safeDailyLimit && safeDailyLimit > 0) {
   operationalStatus = 'daily_limit_broken';
   urgency = 'high';
