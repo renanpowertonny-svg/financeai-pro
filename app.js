@@ -2884,9 +2884,14 @@ analyzePredictiveAlerts();
 
 const missionCard = document.getElementById('dailyMissionCard');
 const riskCard = document.getElementById('premiumRiskCard');
+const doctorPanel = document.getElementById('financialDoctorPanel');
 
 if (missionCard && riskCard && missionCard.parentNode) {
   missionCard.parentNode.insertBefore(riskCard, missionCard);
+}
+
+if (missionCard && doctorPanel && missionCard.parentNode) {
+  missionCard.parentNode.insertBefore(doctorPanel, missionCard);
 }
 }
 
