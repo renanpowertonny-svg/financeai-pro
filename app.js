@@ -2508,15 +2508,10 @@ const urgency = ctx.diagnosis?.urgency || 'low';
   </div>
 </div>
 
-<div style="margin-top:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
+<div style="margin-top:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;">
   <div style="padding:12px;border-radius:14px;background:rgba(15,23,42,0.62);border:1px solid rgba(255,255,255,0.05);">
-    <div style="font-size:11px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:#94a3b8;">Limite diário seguro</div>
+    <div style="font-size:11px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:#94a3b8;">Limite diário que você pode usar hoje</div>
     <div style="margin-top:6px;font-size:20px;font-weight:800;color:#f8fafc;">${fmt(safeDailyLimit)}</div>
-  </div>
-
-  <div style="padding:12px;border-radius:14px;background:rgba(15,23,42,0.62);border:1px solid rgba(255,255,255,0.05);">
-    <div style="font-size:11px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:#94a3b8;">Média diária atual</div>
-    <div style="margin-top:6px;font-size:20px;font-weight:800;color:#f8fafc;">${fmt(averageDailyExpense)}</div>
   </div>
 
   <div style="padding:12px;border-radius:14px;background:rgba(15,23,42,0.62);border:1px solid rgba(255,255,255,0.05);">
