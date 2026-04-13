@@ -2517,7 +2517,8 @@ const urgency = ctx.diagnosis?.urgency || 'low';
   </div>
 </div>
   `;
-
+missionTextEl.parentNode.insertBefore(panel, missionTextEl);
+   
 }
 
 function renderDailyMission() {
