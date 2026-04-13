@@ -2341,14 +2341,15 @@ let missionTarget = safeDailyLimit;
 if (projectedEndBalance < 0) {
   operationalStatus = 'collapse_risk';
   urgency = 'critical';
-  recommendedAction = 'Interrompa gastos variáveis hoje para evitar fechamento negativo do ciclo.';
-  doctorTitle = 'Seu caixa não sustenta o ritmo atual até o fim do ciclo.';
-  doctorSummary = 'Mantendo a média atual de gasto, seu saldo projetado termina negativo antes do fechamento.';
+  recommendedAction = 'Pare hoje os gastos variáveis. Seu caixa já não suporta novas saídas sem aprofundar a ruptura. A regra é simples: quem gasta acima do que pode sustentar perde controle, entra em ansiedade e acaba recorrendo a cartão, atraso ou dívida. Sua obrigação agora é proteger o saldo restante.';
+  doctorTitle = 'Você está gastando em ritmo de ruptura financeira.';
+  doctorSummary = 'O erro real não é apenas gastar: é manter um ritmo que seu caixa já não consegue sustentar. Se isso continuar, seu saldo termina negativo antes do fechamento do ciclo e a pressão financeira vira pressão mental: ansiedade, culpa, sensação de sufoco e maior risco de decisões impulsivas para tentar aliviar o problema. A regra financeira é direta: se você ganha 100 e gasta mais do que consegue sustentar ao longo do ciclo, você quebra; se preserva parte do caixa, você mantém margem e recupera controle. A solução agora não é conforto, é contenção imediata.';
   missionType = 'containment';
   missionSeverity = 'critical';
   missionTitle = 'Interrupção de ciclo financeiro';
-  missionText = 'Seu padrão atual está empurrando o caixa para ruptura. O foco hoje é conter novas saídas variáveis.';
+  missionText = 'Hoje não existe espaço para gasto variável. Cada saída extra empurra seu caixa mais perto da ruptura. Sua missão é encerrar o dia em contenção total para impedir agravamento do rombo projetado.';
   missionTarget = safeDailyLimit;
+}
 } else if (todayExpenses > safeDailyLimit && safeDailyLimit > 0) {
   operationalStatus = 'daily_limit_broken';
   urgency = 'high';
