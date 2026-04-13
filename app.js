@@ -2881,7 +2881,6 @@ renderDailyMission();
 renderPremiumRiskCard();
 analyzeAlertsSafe();
 analyzePredictiveAlerts();
-renderPremiumRiskCard();
 }
 
 function renderRecentTransactions(txs) {
