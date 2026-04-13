@@ -2413,13 +2413,8 @@ const doctorContext = {
   return doctorContext;
 }
 function renderFinancialDoctorPanel() {
- const missionTextEl = document.getElementById('missionText');
-if (!missionTextEl || !missionTextEl.closest('.card-body')) return;
-
-const missionContainer = missionTextEl.closest('.card-body');
-const dashboardContainer = missionContainer.parentNode;
-
-dashboardContainer.insertBefore(panel, missionContainer);
+  const missionTextEl = document.getElementById('missionText');
+  if (!missionTextEl) return;
 
   const ctx = state && state.financialDoctor ? state.financialDoctor : null;
   if (!ctx) return;
@@ -2880,11 +2875,10 @@ generateAIInsightBanner(txs, income, expense, savingsRate);
 const snap = getBehaviorEngineSnapshot();
 recordBehaviorMemorySnapshot(snap);
 buildFinancialDoctorContext(snap);
-
-renderPremiumRiskCard();
 renderFinancialDoctorPanel();
-renderDailyMission();
 
+renderDailyMission();
+renderPremiumRiskCard();
 analyzeAlertsSafe();
 analyzePredictiveAlerts();
 renderPremiumRiskCard();
