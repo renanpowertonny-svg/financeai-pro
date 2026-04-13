@@ -2344,13 +2344,13 @@ let missionTarget = safeDailyLimit;
 if (projectedEndBalance < 0) {
   operationalStatus = 'collapse_risk';
   urgency = 'critical';
-  recommendedAction = 'Pare hoje os gastos variáveis. Seu caixa já não suporta novas saídas sem aprofundar a ruptura. A regra é simples: quem gasta acima do que pode sustentar perde controle, entra em ansiedade e acaba recorrendo a cartão, atraso ou dívida. Sua obrigação agora é proteger o saldo restante.';
+  recommendedAction = 'Pare hoje os gastos variáveis. Seu caixa já entrou em compressão e qualquer nova saída aprofunda a ruptura. A regra agora é contenção: proteger o saldo restante, evitar impulso e encerrar o dia sem ampliar o dano.';
   doctorTitle = 'Você está gastando em ritmo de ruptura financeira.';
-  doctorSummary = 'O erro real não é apenas gastar: é manter um ritmo que seu caixa já não consegue sustentar. Se isso continuar, seu saldo termina negativo antes do fechamento do ciclo e a pressão financeira vira pressão mental: ansiedade, culpa, sensação de sufoco e maior risco de decisões impulsivas para tentar aliviar o problema. A regra financeira é direta: se você ganha 100 e gasta mais do que consegue sustentar ao longo do ciclo, você quebra; se preserva parte do caixa, você mantém margem e recupera controle. A solução agora não é conforto, é contenção imediata.';
+  doctorSummary = 'O erro real não é só gastar. É manter um ritmo que o seu caixa já não comporta. Se isso continuar, o ciclo fecha no negativo e a pressão do dinheiro vira pressão mental: ansiedade, culpa, urgência e impulso. A regra financeira é simples: quando você consome mais do que consegue sustentar ao longo do ciclo, perde margem, perde controle e se aproxima da dívida. Sua correção agora é imediata: conter saídas, proteger o saldo e interromper a escalada.';
   missionType = 'containment';
   missionSeverity = 'critical';
   missionTitle = 'Interrupção de ciclo financeiro';
-  missionText = 'Hoje não existe espaço para gasto variável. Cada saída extra empurra seu caixa mais perto da ruptura. Sua missão é encerrar o dia em contenção total para impedir agravamento do rombo projetado.';
+  missionText = 'Hoje não existe espaço para gasto variável. Cada saída extra amplia a ruptura projetada. Sua missão é encerrar o dia em contenção total e proteger o saldo que ainda resta.';
   missionTarget = safeDailyLimit;
 } else if (todayExpenses > safeDailyLimit && safeDailyLimit > 0) {
   operationalStatus = 'daily_limit_broken';
