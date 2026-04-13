@@ -2413,10 +2413,8 @@ const doctorContext = {
   return doctorContext;
 }
 function renderFinancialDoctorPanel() {
- const missionCard = document.getElementById('dailyMissionCard');
-if (!missionCard || !missionCard.parentNode) return;
-
-missionCard.parentNode.insertBefore(panel, missionCard);
+  const missionTextEl = document.getElementById('missionText');
+  if (!missionTextEl) return;
 
   const ctx = state && state.financialDoctor ? state.financialDoctor : null;
   if (!ctx) return;
@@ -2517,15 +2515,8 @@ const urgency = ctx.diagnosis?.urgency || 'low';
   </div>
 </div>
   `;
-const parent = missionTextEl.parentNode;
-if (!parent) return;
 
-// insere antes do container inteiro da missão
-const missionCard = parent.closest('.card');
-if (!missionCard || !missionCard.parentNode) return;
-
-missionCard.parentNode.insertBefore(panel, missionCard);
-   
+  missionTextEl.parentNode.insertBefore(panel, missionTextEl);
 }
 
 function renderDailyMission() {
@@ -2884,21 +2875,12 @@ generateAIInsightBanner(txs, income, expense, savingsRate);
 const snap = getBehaviorEngineSnapshot();
 recordBehaviorMemorySnapshot(snap);
 buildFinancialDoctorContext(snap);
-
-// 1. Radar primeiro
-renderPremiumRiskCard();
-
-// 2. Doutor depois
 renderFinancialDoctorPanel();
 
-// 3. Missão por último
 renderDailyMission();
-
-// mantém análises
+renderPremiumRiskCard();
 analyzeAlertsSafe();
 analyzePredictiveAlerts();
-
-// atualização final do radar
 renderPremiumRiskCard();
 }
 
