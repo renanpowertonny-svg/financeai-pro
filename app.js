@@ -2875,12 +2875,21 @@ generateAIInsightBanner(txs, income, expense, savingsRate);
 const snap = getBehaviorEngineSnapshot();
 recordBehaviorMemorySnapshot(snap);
 buildFinancialDoctorContext(snap);
+
+// 1. Radar primeiro
+renderPremiumRiskCard();
+
+// 2. Doutor depois
 renderFinancialDoctorPanel();
 
+// 3. Missão por último
 renderDailyMission();
-renderPremiumRiskCard();
+
+// mantém análises
 analyzeAlertsSafe();
 analyzePredictiveAlerts();
+
+// atualização final do radar
 renderPremiumRiskCard();
 }
 
