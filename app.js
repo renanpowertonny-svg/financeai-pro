@@ -2352,13 +2352,13 @@ if (projectedEndBalance < 0) {
 } else if (todayExpenses > safeDailyLimit && safeDailyLimit > 0) {
   operationalStatus = 'daily_limit_broken';
   urgency = 'high';
-  recommendedAction = 'Seu gasto de hoje ultrapassou o limite seguro. Congele novas despesas variáveis hoje.';
-  doctorTitle = 'Seu limite diário seguro foi rompido hoje.';
-  doctorSummary = 'O gasto de hoje já ficou acima do teto seguro para preservar o saldo até o fim do ciclo.';
+  recommendedAction = 'Pare agora novas despesas variáveis. Você já gastou acima do que este dia podia sustentar com segurança. Quando rompe o teto diário, você reduz margem, aumenta pressão nos próximos dias e abre espaço para ansiedade, culpa e reação impulsiva. A regra é simples: quem estoura o limite do dia precisa encerrar o restante dele em contenção.';
+  doctorTitle = 'Você acelerou o gasto acima do que o seu dia podia suportar.';
+  doctorSummary = 'O erro real de hoje foi romper o limite que protegia seu saldo até o fim do ciclo. Isso não atinge só o caixa: atinge sua disciplina, normaliza excesso e enfraquece seu controle. Se repetir esse padrão, a pressão deixa de ser pontual e vira sequência de desgaste financeiro e mental. A regra financeira é direta: quando o dia pede contenção e você acelera, o resto do mês perde estabilidade. Sua correção agora é travar novas saídas e fechar o dia sem ampliar o dano.';
   missionType = 'containment';
   missionSeverity = 'pressure';
   missionTitle = 'Contenção imediata do dia';
-  missionText = 'Hoje o objetivo é encerrar o dia sem novas despesas variáveis para impedir ampliação da pressão.';
+  missionText = 'Hoje você já passou do limite seguro. A partir de agora, qualquer gasto variável deixa de ser detalhe e vira agravamento. Sua missão é encerrar o dia em contenção total para impedir que um excesso de hoje contamine os próximos dias.';
   missionTarget = safeDailyLimit;
 } else if (safeDailyLimit > 0 && averageDailyExpense > safeDailyLimit) {
   operationalStatus = 'structural_pressure';
