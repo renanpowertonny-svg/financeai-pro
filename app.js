@@ -2322,13 +2322,20 @@ const projectedEndBalance = monthBalance - projectedAdditionalExpense;
 
 let operationalStatus = 'stable';
 let urgency = 'low';
-let recommendedAction = 'Manter disciplina financeira e monitorar execução diária.';
-let doctorTitle = 'Seu caixa está sob controle no ritmo atual.';
-let doctorSummary = 'A leitura inicial indica estabilidade operacional neste ciclo.';
+
+let recommendedAction = 'Continue operando com disciplina. Se quebrar esse padrão, você perde margem e volta a pressionar seu próprio caixa.';
+
+let doctorTitle = 'Seu comportamento está sob controle — por enquanto.';
+
+let doctorSummary = 'Você está mantendo o equilíbrio entre o que entra e o que sai. Se começar a gastar sem controle, perde margem e entra em pressão rapidamente. Crescimento financeiro depende de manter retenção, não apenas evitar erro.';
+
 let missionType = 'discipline';
 let missionSeverity = 'stable';
-let missionTitle = 'Missão do dia';
-let missionText = 'Mantenha o controle das despesas variáveis para proteger seu saldo até o fim do ciclo.';
+
+let missionTitle = 'Execução disciplinada do dia';
+
+let missionText = 'Hoje o objetivo é simples: não romper seu controle atual. Qualquer gasto desnecessário reduz sua margem e aproxima você de instabilidade.';
+
 let missionTarget = safeDailyLimit;
 
 if (projectedEndBalance < 0) {
