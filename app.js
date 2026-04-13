@@ -1071,9 +1071,12 @@ function renderPremiumRiskCard() {
     masterAlert = 'A melhora recente ainda não consolidou segurança estrutural.';
     recommendedAction = 'Reduza exposição a gasto impulsivo e preserve retenção nas próximas 24h.';
     tacticalObjective = 'Consolidar recuperação antes de novo ciclo de pressão.';
-  } else if (behaviorState.state === 'pre_collapse') {
-    radarTitle = 'Seu risco financeiro está crítico';
-    radarSummary = `Seu score está em ${score}/100 e o sistema detecta deterioração acelerada do seu caixa.`;
+   } else if (behaviorState.state === 'pre_collapse') {
+    radarTitle = 'Seu risco financeiro está em aceleração de ruptura';
+    radarSummary = `Seu score está em ${score}/100 e o sistema detecta deterioração acelerada do seu caixa. O problema não é pontual: sua margem está cedendo e o risco já saiu da zona de conforto.`;
+    masterAlert = 'Seu caixa entrou em zona de compressão. Se você mantiver esse ritmo, a pressão financeira deixa de ser alerta e vira perda real de controle.';
+    recommendedAction = 'Interrompa agora gastos variáveis e proteja o saldo restante. Hoje não é dia de flexibilidade: é dia de contenção para impedir agravamento.';
+    tacticalObjective = 'Reduzir a velocidade da ruptura antes que ela contamine os próximos dias do ciclo.';
   } else if (behaviorState.state === 'sabotage_active') {
     radarTitle = 'Seu comportamento entrou em sabotagem ativa';
     radarSummary = `Seu score está em ${score}/100 e a sua disciplina está sendo rompida por padrão comportamental.`;
