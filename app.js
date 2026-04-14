@@ -2494,17 +2494,34 @@ const urgency = ctx.diagnosis?.urgency || 'low';
       </div>
     </div>
 
-    <div style="margin-top:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;">
-  <div style="padding:12px 14px;border-radius:14px;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.14);">
-    <div style="font-size:11px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase;color:#a5b4fc;">Diagnóstico do ciclo</div>
-    <div style="margin-top:6px;font-size:14px;font-weight:700;color:#ffffff;line-height:1.5;">${diagnosisTitle}</div>
-    <div style="margin-top:6px;font-size:13px;line-height:1.6;color:#cbd5e1;">${diagnosisSummary}</div>
+<div style="margin-top:12px;display:grid;grid-template-columns:1.2fr 0.8fr;gap:10px;align-items:stretch;">
+
+  <div style="padding:12px;border-radius:12px;background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.12);display:flex;flex-direction:column;gap:6px;">
+    <div style="font-size:10px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;color:#818cf8;">
+      Diagnóstico
+    </div>
+
+    <div style="font-size:13px;font-weight:700;color:#ffffff;line-height:1.4;">
+      ${diagnosisTitle}
+    </div>
+
+    <div style="font-size:12px;line-height:1.5;color:#cbd5e1;">
+      ${diagnosisSummary}
+    </div>
   </div>
 
-  <div style="padding:12px 14px;border-radius:14px;background:${urgency === 'critical' ? 'rgba(239,68,68,0.10)' : urgency === 'high' ? 'rgba(245,158,11,0.10)' : 'rgba(16,185,129,0.10)'};border:1px solid ${urgency === 'critical' ? 'rgba(239,68,68,0.24)' : urgency === 'high' ? 'rgba(245,158,11,0.24)' : 'rgba(16,185,129,0.22)'};">
-    <div style="font-size:11px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase;color:${urgency === 'critical' ? '#fca5a5' : urgency === 'high' ? '#fcd34d' : '#86efac'};">Ação imediata</div>
-    <div style="margin-top:6px;font-size:13px;line-height:1.6;color:#f8fafc;">${diagnosisAction}</div>
+  <div style="padding:12px;border-radius:12px;background:${urgency === 'critical' ? 'rgba(239,68,68,0.12)' : urgency === 'high' ? 'rgba(245,158,11,0.12)' : 'rgba(16,185,129,0.12)'};border:1px solid ${urgency === 'critical' ? 'rgba(239,68,68,0.26)' : urgency === 'high' ? 'rgba(245,158,11,0.26)' : 'rgba(16,185,129,0.24)'};display:flex;flex-direction:column;gap:6px;">
+
+    <div style="font-size:10px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;color:${urgency === 'critical' ? '#f87171' : urgency === 'high' ? '#facc15' : '#4ade80'};">
+      Ação
+    </div>
+
+    <div style="font-size:12px;line-height:1.5;color:#f8fafc;">
+      ${diagnosisAction}
+    </div>
+
   </div>
+
 </div>
 
 <div style="margin-top:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;">
