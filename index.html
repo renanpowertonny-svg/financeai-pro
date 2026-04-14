@@ -357,63 +357,70 @@
     pointer-events:none;
   "></div>
 
-  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:20px;flex-wrap:wrap;">
-    <div style="flex:1;min-width:280px;">
+   <div style="
+    display:grid;
+    grid-template-columns: minmax(0, 1.35fr) auto;
+    gap:12px;
+    align-items:center;
+  ">
+    <div style="min-width:0;">
       <div style="
         display:inline-flex;
         align-items:center;
         gap:8px;
-        padding:8px 14px;
+        padding:6px 10px;
         border-radius:999px;
-        background: rgba(99,102,241,0.14);
-        color: #a5b4fc;
-        font-size:12px;
-        font-weight:700;
-        letter-spacing:0.04em;
+        background: rgba(99,102,241,0.12);
+        color:#a5b4fc;
+        font-size:10px;
+        font-weight:800;
+        letter-spacing:0.08em;
         text-transform:uppercase;
       ">
         <span>Radar FinanceAI</span>
       </div>
 
       <h3 id="premiumRiskTitle" style="
-        margin:16px 0 8px;
-        font-size:28px;
-        line-height:1.1;
-        color: var(--text-primary);
+        margin:8px 0 4px;
+        font-size:20px;
+        line-height:1.05;
+        color:var(--text-primary);
         font-weight:800;
       ">Seu risco financeiro está sob análise</h3>
 
       <p id="premiumRiskSummary" style="
         margin:0;
-        font-size:15px;
-        line-height:1.7;
-        color: var(--text-secondary);
+        font-size:13px;
+        line-height:1.45;
+        color:var(--text-secondary);
         max-width:760px;
       ">
         O FinanceAI está consolidando sua leitura de risco e ação recomendada.
       </p>
     </div>
 
-    <div style="min-width:220px;display:flex;justify-content:flex-end;">
+    <div style="display:flex;justify-content:flex-end;">
       <div style="
-        min-width:200px;
-        padding:18px;
-        border-radius:20px;
-        background: rgba(2,6,23,0.46);
-        border: 1px solid rgba(255,255,255,0.08);
+        min-width:150px;
+        padding:10px 12px;
+        border-radius:14px;
+        background: rgba(2,6,23,0.42);
+        border:1px solid rgba(255,255,255,0.08);
+        text-align:right;
       ">
-        <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">Score atual</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-bottom:4px;letter-spacing:0.04em;text-transform:uppercase;">Score</div>
         <div id="premiumRiskScore" style="
-          font-size:34px;
+          font-size:24px;
           font-weight:800;
-          color: var(--text-primary);
+          color:var(--text-primary);
           line-height:1;
         ">--/100</div>
         <div id="premiumRiskLevel" style="
-          margin-top:8px;
-          font-size:13px;
+          margin-top:4px;
+          font-size:11px;
           font-weight:700;
           color:#f59e0b;
+          line-height:1.2;
         ">Calculando risco...</div>
       </div>
     </div>
@@ -421,42 +428,64 @@
 
   <div style="
     display:grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap:16px;
-    margin-top:22px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap:8px;
+    margin-top:12px;
+    padding:8px;
+    border-radius:14px;
+    background: rgba(2,6,23,0.34);
+    border:1px solid rgba(255,255,255,0.06);
   ">
     <div style="
-      padding:18px;
-      border-radius:18px;
-      background: rgba(2,6,23,0.42);
-      border: 1px solid rgba(255,255,255,0.07);
+      min-width:0;
+      padding:8px 10px;
+      border-radius:10px;
+      background: rgba(255,255,255,0.02);
+      border:1px solid rgba(255,255,255,0.05);
     ">
-      <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">Alerta mestre</div>
-      <div id="premiumRiskMasterAlert" style="font-size:15px;font-weight:700;color:var(--text-primary);line-height:1.5;">
+      <div style="font-size:10px;color:var(--text-muted);margin-bottom:4px;letter-spacing:0.04em;text-transform:uppercase;">Alerta mestre</div>
+      <div id="premiumRiskMasterAlert" style="
+        font-size:13px;
+        font-weight:700;
+        color:var(--text-primary);
+        line-height:1.35;
+      ">
         Aguardando leitura...
       </div>
     </div>
 
     <div style="
-      padding:18px;
-      border-radius:18px;
-      background: rgba(2,6,23,0.42);
-      border: 1px solid rgba(255,255,255,0.07);
+      min-width:0;
+      padding:8px 10px;
+      border-radius:10px;
+      background: rgba(255,255,255,0.02);
+      border:1px solid rgba(255,255,255,0.05);
     ">
-      <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">Ação recomendada hoje</div>
-      <div id="premiumRiskAction" style="font-size:15px;font-weight:700;color:var(--text-primary);line-height:1.5;">
+      <div style="font-size:10px;color:var(--text-muted);margin-bottom:4px;letter-spacing:0.04em;text-transform:uppercase;">Ação hoje</div>
+      <div id="premiumRiskAction" style="
+        font-size:13px;
+        font-weight:700;
+        color:var(--text-primary);
+        line-height:1.35;
+      ">
         Aguardando recomendação...
       </div>
     </div>
 
     <div style="
-      padding:18px;
-      border-radius:18px;
-      background: rgba(2,6,23,0.42);
-      border: 1px solid rgba(255,255,255,0.07);
+      min-width:0;
+      padding:8px 10px;
+      border-radius:10px;
+      background: rgba(255,255,255,0.02);
+      border:1px solid rgba(255,255,255,0.05);
     ">
-      <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">Objetivo tático</div>
-      <div id="premiumRiskObjective" style="font-size:15px;font-weight:700;color:var(--text-primary);line-height:1.5;">
+      <div style="font-size:10px;color:var(--text-muted);margin-bottom:4px;letter-spacing:0.04em;text-transform:uppercase;">Objetivo tático</div>
+      <div id="premiumRiskObjective" style="
+        font-size:13px;
+        font-weight:700;
+        color:var(--text-primary);
+        line-height:1.35;
+      ">
         Definir prioridade do dia.
       </div>
     </div>
@@ -464,29 +493,29 @@
 
   <div style="
     display:flex;
-    gap:12px;
+    gap:8px;
     flex-wrap:wrap;
-    margin-top:22px;
+    margin-top:12px;
   ">
     <button id="premiumRiskPrimaryBtn" type="button" style="
       border:none;
-      border-radius:14px;
-      padding:12px 18px;
+      border-radius:10px;
+      padding:10px 14px;
       background: linear-gradient(135deg, #6366f1, #8b5cf6);
       color:white;
       font-weight:700;
       cursor:pointer;
-      box-shadow: 0 12px 24px rgba(99,102,241,0.28);
+      box-shadow: 0 8px 16px rgba(99,102,241,0.20);
     ">
       Ver ação principal
     </button>
 
     <button id="premiumRiskSecondaryBtn" type="button" style="
       border:1px solid rgba(255,255,255,0.10);
-      border-radius:14px;
-      padding:12px 18px;
+      border-radius:10px;
+      padding:10px 14px;
       background: rgba(255,255,255,0.03);
-      color: var(--text-primary);
+      color:var(--text-primary);
       font-weight:700;
       cursor:pointer;
     ">
