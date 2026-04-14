@@ -2343,7 +2343,7 @@ let missionTarget = safeDailyLimit;
 if (projectedEndBalance < 0) {
   operationalStatus = 'collapse_risk';
   urgency = 'critical';
-  recommendedAction = 'Pare hoje os gastos variáveis. Seu caixa já entrou em compressão e qualquer nova saída aprofunda a ruptura. A regra agora é contenção: proteger o saldo restante, evitar impulso e encerrar o dia sem ampliar o dano.';
+  recommendedAction = 'Interrompa agora qualquer gasto que não seja essencial. Neste ponto, cada saída extra reduz a proteção financeira dos próximos dias e empurra o restante do ciclo para mais escassez, mais pressão e menos margem de resposta. Se você ignorar esse corte hoje, o caixa perde capacidade de sustentar o mês e você perde controle sobre o que ainda poderia preservar. A contenção agora é patrimonial: travar novas saídas, proteger o saldo restante e encerrar o dia sem transformar pressão em perda real de cobertura do ciclo.';
   doctorTitle = 'Seu caixa já entrou em trajetória de ruptura.';
   doctorSummary = 'O problema agora não é percepção. É matemática. Seu ritmo de saída já ultrapassou o que o seu caixa consegue suportar até o fechamento do ciclo. Se isso continuar, você não perde só saldo: perde margem, clareza e poder de decisão. Quando o dinheiro entra em colapso projetado, a mente tende a entrar junto: urgência, culpa, ansiedade e impulso começam a comandar escolhas ruins. A regra financeira aqui é dura e simples: quem mantém um padrão acima da própria sustentação deixa de administrar o caixa e passa a ser pressionado por ele. Sua prioridade imediata é interromper a escalada, preservar o que ainda existe e impedir que a ruptura vire dano maior.';
   missionType = 'containment';
