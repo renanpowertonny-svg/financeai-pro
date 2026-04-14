@@ -2344,8 +2344,8 @@ if (projectedEndBalance < 0) {
   operationalStatus = 'collapse_risk';
   urgency = 'critical';
   recommendedAction = 'Pare hoje os gastos variáveis. Seu caixa já entrou em compressão e qualquer nova saída aprofunda a ruptura. A regra agora é contenção: proteger o saldo restante, evitar impulso e encerrar o dia sem ampliar o dano.';
-  doctorTitle = 'Você está gastando em ritmo de ruptura financeira.';
-  doctorSummary = 'O erro real não é só gastar. É manter um ritmo que o seu caixa já não comporta. Se isso continuar, o ciclo fecha no negativo e a pressão do dinheiro vira pressão mental: ansiedade, culpa, urgência e impulso. A regra financeira é simples: quando você consome mais do que consegue sustentar ao longo do ciclo, perde margem, perde controle e se aproxima da dívida. Sua correção agora é imediata: conter saídas, proteger o saldo e interromper a escalada.';
+  doctorTitle = 'Seu caixa já entrou em trajetória de ruptura.';
+  doctorSummary = 'O problema agora não é percepção. É matemática. Seu ritmo de saída já ultrapassou o que o seu caixa consegue suportar até o fechamento do ciclo. Se isso continuar, você não perde só saldo: perde margem, clareza e poder de decisão. Quando o dinheiro entra em colapso projetado, a mente tende a entrar junto: urgência, culpa, ansiedade e impulso começam a comandar escolhas ruins. A regra financeira aqui é dura e simples: quem mantém um padrão acima da própria sustentação deixa de administrar o caixa e passa a ser pressionado por ele. Sua prioridade imediata é interromper a escalada, preservar o que ainda existe e impedir que a ruptura vire dano maior.';
   missionType = 'containment';
   missionSeverity = 'critical';
   missionTitle = 'Interrupção de ciclo financeiro';
