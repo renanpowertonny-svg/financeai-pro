@@ -2328,10 +2328,9 @@ let urgency = 'low';
 
 let recommendedAction = 'Continue operando com disciplina. Se quebrar esse padrão, você perde margem e volta a pressionar seu próprio caixa.';
 
-let doctorTitle = 'Seu comportamento está sob controle — por enquanto.';
+let doctorTitle = 'Seu caixa está estável, mas ainda não está protegido.';
 
-let doctorSummary = 'Você está mantendo o equilíbrio entre o que entra e o que sai. Se começar a gastar sem controle, perde margem e entra em pressão rapidamente. Crescimento financeiro depende de manter retenção, não apenas evitar erro.';
-
+let doctorSummary = 'Você não está em ruptura, mas também não está em posição de relaxar. Quando o dinheiro entra e sai sem retenção real, a sensação de controle pode enganar. Patrimônio não nasce de ausência de erro. Nasce da capacidade de preservar margem com consistência. Se você afrouxar agora, o que hoje parece equilíbrio vira pressão nos próximos dias.';
 let missionType = 'discipline';
 let missionSeverity = 'stable';
 
