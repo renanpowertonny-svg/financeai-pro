@@ -1136,6 +1136,32 @@ function renderPremiumRiskCard() {
 
   primaryBtn.onclick = () => navigate(plan.primaryPage || 'transactions');
   secondaryBtn.onclick = () => navigate(plan.secondaryPage || 'ai');
+   let doctorBtn = document.getElementById('premiumRiskDoctorBtn');
+
+if (!doctorBtn) {
+  doctorBtn = document.createElement('button');
+  doctorBtn.id = 'premiumRiskDoctorBtn';
+  doctorBtn.textContent = 'Falar com o Doutor';
+
+  doctorBtn.style.marginTop = '10px';
+  doctorBtn.style.width = '100%';
+  doctorBtn.style.padding = '10px';
+  doctorBtn.style.borderRadius = '10px';
+  doctorBtn.style.border = '1px solid rgba(99,102,241,0.3)';
+  doctorBtn.style.background = 'rgba(99,102,241,0.1)';
+  doctorBtn.style.color = '#c7d2fe';
+  doctorBtn.style.fontWeight = '700';
+  doctorBtn.style.cursor = 'pointer';
+
+  doctorBtn.onclick = () => {
+    const doctorPanel = document.getElementById('financialDoctorPanel');
+    if (doctorPanel) {
+      doctorPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  primaryBtn.parentNode.appendChild(doctorBtn);
+}
 
   primaryBtn.style.boxShadow =
     score >= 75 || overlay.recurringSabotage
