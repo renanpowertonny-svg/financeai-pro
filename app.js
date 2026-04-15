@@ -1216,64 +1216,276 @@ panel.innerHTML = `
 
   overlay.appendChild(panel);
   document.body.appendChild(overlay);
-    document.getElementById('doctorAskBtn').onclick = () => {
-  const input = document.getElementById('doctorInput').value.toLowerCase();
+   document.getElementById('doctorAskBtn').onclick = () => {
+  const rawInput = document.getElementById('doctorInput').value.trim();
   const responseEl = document.getElementById('doctorResponse');
+  const ctx = state.financialDoctor || {};
 
-  const ctx = state.financialDoctor;
-  const limit = ctx?.diagnosis?.safeDailyLimit || 0;
-  const remainingDays = ctx?.cycle?.daysRemainingInCycle || 0;
-  const balance = ctx?.month?.balance || 0;
+  const safeDailyLimit = Number(ctx?.diagnosis?.safeDailyLimit || 0);
+  const averageDailyExpense = Number(ctx?.diagnosis?.averageDailyExpense || 0);
+  const projectedEndBalance = Number(ctx?.diagnosis?.projectedEndBalance || 0);
+  const currentBalance = Number(ctx?.month?.balance || 0);
+  const todayExpenses = Number(ctx?.today?.expenses || 0);
+  const currentDay = Number(ctx?.today?.currentDay || new Date().getDate());
+  const daysRemainingInCycle = Number(ctx?.cycle?.daysRemainingInCycle || 0);
+  const behaviorScore = Number(ctx?.behavior?.score || 0);
+  const riskLevel = ctx?.behavior?.riskLevel || 'Sem leitura';
+  const operationalStatus = ctx?.diagnosis?.operationalStatus || 'stable';
+  const recommendedAction = ctx?.diagnosis?.recommendedAction || 'Proteja o caixa hoje.';
 
-  if (!input) return;
+  const normalizedInput = rawInput
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
 
-  if (input.includes('gastar')) {
-    const match = input.match(/\d+/);
-    if (match) {
-      const value = Number(match[0]);
+  const numberMatch = rawInput.match(/(\d+[.,]?\d*)/);
+  const askedValue = numberMatch ? Number(numberMatch[1].replace(',', '.')) : null;
 
-     const today = new Date();
-const currentDay = today.getDate();
-const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
-const daysRemainingReal = lastDay - currentDay + 1;
+  const formatMoney = (value) => fmt(Number(value || 0));
 
-const totalNeeded = value * daysRemainingReal;
+  const cycleText = daysRemainingInCycle > 0
+    ? `Restam ${daysRemainingInCycle} dia${daysRemainingInCycle > 1 ? 's' : ''} até o fechamento do ciclo, sem contar o dia de hoje.`
+    : 'Hoje é o fechamento do ciclo.';
 
-let daysSupported;
-let deficitDays;
+  const renderScenarioResponse = (dailyValue) => {
+    const supportedDays = dailyValue > 0 ? Math.floor(currentBalance / dailyValue) : 0;
+    const uncoveredDays = Math.max(0, daysRemainingInCycle - supportedDays);
+    const simulatedEndBalance = currentBalance - (dailyValue * daysRemainingInCycle);
+    const gapVsSafe = dailyValue - safeDailyLimit;
 
-if (balance >= totalNeeded) {
-  daysSupported = daysRemainingReal;
-  deficitDays = 0;
-} else {
-  daysSupported = Math.floor(balance / value);
-  deficitDays = daysRemainingReal - daysSupported;
-}
+    responseEl.innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="font-size:14px;line-height:1.6;color:#e2e8f0;">
+          ${cycleText}
+        </div>
 
-      responseEl.innerHTML = `
-  Hoje é dia ${currentDay} e faltam ${daysRemainingReal} dias para fechar o ciclo.<br><br>
+        <div style="font-size:14px;line-height:1.6;color:#e2e8f0;">
+          Se você sustentar <strong>${formatMoney(dailyValue)} por dia</strong> no restante do ciclo, esse ritmo será suportado por <strong>${supportedDays} dia${supportedDays !== 1 ? 's' : ''}</strong>.
+        </div>
 
-  Se você gastar R$${value} por dia, você consegue sustentar esse ritmo por ${daysSupported} dias.<br><br>
+        <div style="font-size:14px;line-height:1.6;color:${uncoveredDays > 0 ? '#fca5a5' : '#cbd5e1'};">
+          ${uncoveredDays > 0
+            ? `Nesse cenário, seu caixa acaba antes do fechamento e você fica ${uncoveredDays} dia${uncoveredDays !== 1 ? 's' : ''} sem cobertura financeira.`
+            : `Nesse cenário, seu caixa ainda sustenta o restante do ciclo, mas sem folga relevante.`}
+        </div>
 
-  ${deficitDays > 0 
-    ? `Seu dinheiro acaba antes do fim do mês e você ficará ${deficitDays} dias sem saldo.` 
-    : `Seu saldo é suficiente para sustentar esse ritmo até o fim do mês.`}
-  <br><br>
+        <div style="font-size:14px;line-height:1.6;color:${simulatedEndBalance < 0 ? '#fca5a5' : '#cbd5e1'};">
+          O fechamento projetado fica em <strong>${formatMoney(simulatedEndBalance)}</strong>.
+        </div>
 
-  ${deficitDays > 0 
-    ? `Isso significa entrar em pressão financeira real e depender de crédito ou corte forçado.` 
-    : `Mas isso não cria margem de segurança. Qualquer variação pode te colocar em risco.`}
-  <br><br>
+        <div style="font-size:14px;font-weight:700;color:${gapVsSafe > 0 ? '#f87171' : '#4ade80'};">
+          ${gapVsSafe > 0
+            ? `Esse valor está ${formatMoney(gapVsSafe)} acima do seu limite seguro de ${formatMoney(safeDailyLimit)} por dia.`
+            : `Esse valor respeita o seu limite seguro atual de ${formatMoney(safeDailyLimit)} por dia.`}
+        </div>
 
-  <strong>Seu limite seguro hoje é R$${limit.toFixed(2)} por dia.</strong>
-`;
-      return;
-    }
+        <div style="font-size:14px;line-height:1.6;color:#f8fafc;">
+          ${recommendedAction}
+        </div>
+
+        <div style="margin-top:4px;font-size:13px;font-weight:700;color:#a5b4fc;">
+          Quer que eu compare esse valor com o seu ritmo atual de ${formatMoney(averageDailyExpense)} por dia?
+        </div>
+      </div>
+    `;
+  };
+
+  if (!rawInput) {
+    responseEl.innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="font-size:14px;line-height:1.6;color:#e2e8f0;">
+          Eu respondo melhor quando você me diz exatamente o que quer analisar.
+        </div>
+
+        <div style="font-size:14px;line-height:1.6;color:#cbd5e1;">
+          Você pode perguntar, por exemplo:
+        </div>
+
+        <div style="font-size:14px;line-height:1.7;color:#f8fafc;">
+          • quanto posso gastar hoje?<br>
+          • se eu gastar 50 por dia, como fecha meu mês?<br>
+          • se eu continuar assim, o que acontece?<br>
+          • o que eu faço agora?
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  if (
+    askedValue !== null &&
+    (
+      normalizedInput.includes('gastar') ||
+      normalizedInput.includes('gastando') ||
+      normalizedInput.includes('gasto') ||
+      normalizedInput.includes('usar') ||
+      normalizedInput.includes('usando') ||
+      normalizedInput.includes('por dia') ||
+      normalizedInput.includes('ao dia') ||
+      normalizedInput.includes('diario') ||
+      normalizedInput.includes('dia')
+    )
+  ) {
+    renderScenarioResponse(askedValue);
+    return;
+  }
+
+  if (
+    normalizedInput.includes('quanto posso gastar') ||
+    normalizedInput.includes('qual meu limite') ||
+    normalizedInput.includes('qual e meu limite') ||
+    normalizedInput.includes('limite seguro') ||
+    normalizedInput.includes('ate quanto posso') ||
+    normalizedInput.includes('posso gastar hoje')
+  ) {
+    responseEl.innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="font-size:14px;line-height:1.6;color:#e2e8f0;">
+          Seu limite seguro atual é <strong>${formatMoney(safeDailyLimit)} por dia</strong>.
+        </div>
+
+        <div style="font-size:14px;line-height:1.6;color:#cbd5e1;">
+          Hoje você já gastou <strong>${formatMoney(todayExpenses)}</strong>.
+        </div>
+
+        <div style="font-size:14px;line-height:1.6;color:${todayExpenses > safeDailyLimit ? '#fca5a5' : '#cbd5e1'};">
+          ${todayExpenses > safeDailyLimit
+            ? 'Você já rompeu o teto seguro do dia. A partir daqui, qualquer gasto variável amplia a pressão.'
+            : 'Você ainda não rompeu o teto seguro do dia. O foco agora é fechar o dia sem acelerar consumo.'}
+        </div>
+
+        <div style="font-size:13px;font-weight:700;color:#a5b4fc;">
+          Quer que eu simule um valor específico por dia para te mostrar como o mês fecha?
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  if (
+    normalizedInput.includes('continuar assim') ||
+    normalizedInput.includes('nesse ritmo') ||
+    normalizedInput.includes('neste ritmo') ||
+    normalizedInput.includes('do jeito que estou') ||
+    normalizedInput.includes('no ritmo atual') ||
+    normalizedInput.includes('media diaria') ||
+    normalizedInput.includes('media por dia')
+  ) {
+    responseEl.innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="font-size:14px;line-height:1.6;color:#e2e8f0;">
+          Seu ritmo médio atual está em <strong>${formatMoney(averageDailyExpense)} por dia</strong>.
+        </div>
+
+        <div style="font-size:14px;line-height:1.6;color:${averageDailyExpense > safeDailyLimit ? '#fca5a5' : '#cbd5e1'};">
+          ${averageDailyExpense > safeDailyLimit
+            ? `Esse ritmo está acima do seu limite seguro de ${formatMoney(safeDailyLimit)} por dia.`
+            : `Esse ritmo ainda está dentro do seu limite seguro de ${formatMoney(safeDailyLimit)} por dia.`}
+        </div>
+
+        <div style="font-size:14px;line-height:1.6;color:${projectedEndBalance < 0 ? '#fca5a5' : '#cbd5e1'};">
+          Mantido o padrão atual, o fechamento projetado do ciclo fica em <strong>${formatMoney(projectedEndBalance)}</strong>.
+        </div>
+
+        <div style="font-size:14px;line-height:1.6;color:#f8fafc;">
+          ${recommendedAction}
+        </div>
+
+        <div style="font-size:13px;font-weight:700;color:#a5b4fc;">
+          Quer que eu compare o seu ritmo atual com um valor menor por dia para te mostrar a diferença?
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  if (
+    normalizedInput.includes('como estou') ||
+    normalizedInput.includes('minha situacao') ||
+    normalizedInput.includes('minha situação') ||
+    normalizedInput.includes('qual meu risco') ||
+    normalizedInput.includes('estou em risco') ||
+    normalizedInput.includes('estou mal') ||
+    normalizedInput.includes('estou bem') ||
+    normalizedInput.includes('meu caixa') ||
+    normalizedInput.includes('me explica')
+  ) {
+    responseEl.innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="font-size:14px;line-height:1.6;color:#e2e8f0;">
+          Seu score comportamental atual é <strong>${behaviorScore}/100</strong> e o nível de risco está em <strong>${riskLevel}</strong>.
+        </div>
+
+        <div style="font-size:14px;line-height:1.6;color:${operationalStatus === 'collapse_risk' ? '#fca5a5' : operationalStatus === 'daily_limit_broken' ? '#fcd34d' : '#cbd5e1'};">
+          ${ctx?.diagnosis?.summary || 'Sem resumo disponível no momento.'}
+        </div>
+
+        <div style="font-size:14px;line-height:1.6;color:#cbd5e1;">
+          Seu saldo atual no mês está em <strong>${formatMoney(currentBalance)}</strong> e o fechamento projetado está em <strong>${formatMoney(projectedEndBalance)}</strong>.
+        </div>
+
+        <div style="font-size:13px;font-weight:700;color:#a5b4fc;">
+          Quer que eu traduza isso em uma ação prática para hoje?
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  if (
+    normalizedInput.includes('o que eu faco') ||
+    normalizedInput.includes('o que fazer') ||
+    normalizedInput.includes('como melhorar') ||
+    normalizedInput.includes('como saio') ||
+    normalizedInput.includes('qual a prioridade') ||
+    normalizedInput.includes('o que devo fazer') ||
+    normalizedInput.includes('qual missao') ||
+    normalizedInput.includes('qual missão')
+  ) {
+    responseEl.innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="font-size:14px;line-height:1.6;color:#f8fafc;">
+          Sua prioridade agora é esta: <strong>${recommendedAction}</strong>
+        </div>
+
+        <div style="font-size:14px;line-height:1.6;color:#cbd5e1;">
+          Seu limite seguro atual é <strong>${formatMoney(safeDailyLimit)} por dia</strong> e seu gasto de hoje está em <strong>${formatMoney(todayExpenses)}</strong>.
+        </div>
+
+        <div style="font-size:14px;line-height:1.6;color:#cbd5e1;">
+          A execução correta hoje não é “melhorar depois”. É proteger o que ainda resta do seu caixa agora.
+        </div>
+
+        <div style="font-size:13px;font-weight:700;color:#a5b4fc;">
+          Quer que eu te diga exatamente qual comportamento precisa ser evitado até o fim do dia?
+        </div>
+      </div>
+    `;
+    return;
   }
 
   responseEl.innerHTML = `
-    Pergunte algo como:<br>
-    "Se eu gastar 50 por dia, o que acontece?"
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div style="font-size:14px;line-height:1.6;color:#e2e8f0;">
+        Eu entendi que você quer orientação, mas sua pergunta ainda não apontou com clareza qual decisão precisa ser analisada.
+      </div>
+
+      <div style="font-size:14px;line-height:1.7;color:#f8fafc;">
+        Você pode seguir por qualquer um destes caminhos:
+      </div>
+
+      <div style="font-size:14px;line-height:1.7;color:#cbd5e1;">
+        • “quanto posso gastar hoje?”<br>
+        • “se eu gastar 50 por dia, como fecha meu mês?”<br>
+        • “se eu continuar assim, o que acontece?”<br>
+        • “como está minha situação?”<br>
+        • “o que eu faço agora?”
+      </div>
+
+      <div style="font-size:13px;font-weight:700;color:#a5b4fc;">
+        Me diga qual desses caminhos você quer que eu analise primeiro.
+      </div>
+    </div>
   `;
 };
 
