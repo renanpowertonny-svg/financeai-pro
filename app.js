@@ -1153,12 +1153,62 @@ if (!doctorBtn) {
   doctorBtn.style.fontWeight = '700';
   doctorBtn.style.cursor = 'pointer';
 
-  doctorBtn.onclick = () => {
-    const doctorPanel = document.getElementById('financialDoctorPanel');
-    if (doctorPanel) {
-      doctorPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+ doctorBtn.onclick = () => {
+  const existing = document.getElementById('doctorOverlay');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'doctorOverlay';
+
+  overlay.style.position = 'fixed';
+  overlay.style.top = '0';
+  overlay.style.left = '0';
+  overlay.style.width = '100%';
+  overlay.style.height = '100%';
+  overlay.style.background = 'rgba(2,6,23,0.85)';
+  overlay.style.backdropFilter = 'blur(6px)';
+  overlay.style.zIndex = '9999';
+  overlay.style.display = 'flex';
+  overlay.style.alignItems = 'center';
+  overlay.style.justifyContent = 'center';
+
+  const panel = document.createElement('div');
+  panel.style.width = '90%';
+  panel.style.maxWidth = '600px';
+  panel.style.borderRadius = '16px';
+  panel.style.padding = '20px';
+  panel.style.background = 'linear-gradient(135deg, #020617, #0f172a)';
+  panel.style.border = '1px solid rgba(99,102,241,0.25)';
+  panel.style.color = '#fff';
+
+  const ctx = state.financialDoctor;
+
+  panel.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <div style="font-weight:800;">Doutor Financeiro</div>
+      <button id="closeDoctor" style="background:none;border:none;color:#aaa;font-size:18px;cursor:pointer;">✕</button>
+    </div>
+
+    <div style="font-size:16px;font-weight:700;margin-bottom:8px;">
+      ${ctx?.diagnosis?.title || ''}
+    </div>
+
+    <div style="font-size:14px;line-height:1.6;color:#cbd5e1;margin-bottom:12px;">
+      ${ctx?.diagnosis?.summary || ''}
+    </div>
+
+    <div style="font-size:14px;font-weight:700;color:#f87171;">
+      ${ctx?.diagnosis?.recommendedAction || ''}
+    </div>
+  `;
+
+  overlay.appendChild(panel);
+  document.body.appendChild(overlay);
+
+  document.getElementById('closeDoctor').onclick = () => {
+    overlay.remove();
   };
+};
 
   primaryBtn.parentNode.appendChild(doctorBtn);
 }
