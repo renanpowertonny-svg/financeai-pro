@@ -1183,27 +1183,73 @@ if (!doctorBtn) {
 
   const ctx = state.financialDoctor;
 
-  panel.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-      <div style="font-weight:800;">Doutor Financeiro</div>
-      <button id="closeDoctor" style="background:none;border:none;color:#aaa;font-size:18px;cursor:pointer;">✕</button>
-    </div>
+panel.innerHTML = `
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+    <div style="font-weight:800;">Doutor Financeiro</div>
+    <button id="closeDoctor" style="background:none;border:none;color:#aaa;font-size:18px;cursor:pointer;">✕</button>
+  </div>
 
-    <div style="font-size:16px;font-weight:700;margin-bottom:8px;">
-      ${ctx?.diagnosis?.title || ''}
-    </div>
+  <div style="font-size:16px;font-weight:700;margin-bottom:8px;">
+    ${ctx?.diagnosis?.title || ''}
+  </div>
 
-    <div style="font-size:14px;line-height:1.6;color:#cbd5e1;margin-bottom:12px;">
-      ${ctx?.diagnosis?.summary || ''}
-    </div>
+  <div style="font-size:14px;line-height:1.6;color:#cbd5e1;margin-bottom:12px;">
+    ${ctx?.diagnosis?.summary || ''}
+  </div>
 
-    <div style="font-size:14px;font-weight:700;color:#f87171;">
-      ${ctx?.diagnosis?.recommendedAction || ''}
-    </div>
-  `;
+  <div style="font-size:14px;font-weight:700;color:#f87171;margin-bottom:16px;">
+    ${ctx?.diagnosis?.recommendedAction || ''}
+  </div>
+
+  <div style="margin-top:10px;">
+    <input id="doctorInput" placeholder="Pergunte ao Doutor..." 
+      style="width:100%;padding:10px;border-radius:8px;border:none;background:#020617;color:#fff;margin-bottom:10px;">
+    
+    <button id="doctorAskBtn" 
+      style="width:100%;padding:10px;border-radius:8px;background:#6366f1;color:#fff;font-weight:700;cursor:pointer;">
+      Perguntar
+    </button>
+  </div>
+
+  <div id="doctorResponse" style="margin-top:15px;font-size:14px;color:#e2e8f0;"></div>
+`;
 
   overlay.appendChild(panel);
   document.body.appendChild(overlay);
+    document.getElementById('doctorAskBtn').onclick = () => {
+  const input = document.getElementById('doctorInput').value.toLowerCase();
+  const responseEl = document.getElementById('doctorResponse');
+
+  const ctx = state.financialDoctor;
+  const limit = ctx?.diagnosis?.safeDailyLimit || 0;
+  const remainingDays = ctx?.cycle?.daysRemainingInCycle || 0;
+  const balance = ctx?.month?.balance || 0;
+
+  if (!input) return;
+
+  if (input.includes('gastar')) {
+    const match = input.match(/\d+/);
+    if (match) {
+      const value = Number(match[0]);
+
+      const daysSupported = value > 0 ? Math.floor(balance / value) : 0;
+      const deficitDays = Math.max(0, remainingDays - daysSupported);
+
+      responseEl.innerHTML = `
+        Se você gastar R$${value} por dia, seu dinheiro acaba em ${daysSupported} dias.<br><br>
+        Você ficará ${deficitDays} dias sem dinheiro até o fim do ciclo.<br><br>
+        Isso significa entrar em pressão financeira e depender de crédito.<br><br>
+        <strong>Reduza para R$${limit.toFixed(2)} por dia para manter o controle.</strong>
+      `;
+      return;
+    }
+  }
+
+  responseEl.innerHTML = `
+    Pergunte algo como:<br>
+    "Se eu gastar 50 por dia, o que acontece?"
+  `;
+};
 
   document.getElementById('closeDoctor').onclick = () => {
     overlay.remove();
