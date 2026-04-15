@@ -1232,15 +1232,41 @@ panel.innerHTML = `
     if (match) {
       const value = Number(match[0]);
 
-      const daysSupported = value > 0 ? Math.floor(balance / value) : 0;
-      const deficitDays = Math.max(0, remainingDays - daysSupported);
+     const today = new Date();
+const currentDay = today.getDate();
+const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+const daysRemainingReal = lastDay - currentDay + 1;
+
+const totalNeeded = value * daysRemainingReal;
+
+let daysSupported;
+let deficitDays;
+
+if (balance >= totalNeeded) {
+  daysSupported = daysRemainingReal;
+  deficitDays = 0;
+} else {
+  daysSupported = Math.floor(balance / value);
+  deficitDays = daysRemainingReal - daysSupported;
+}
 
       responseEl.innerHTML = `
-        Se você gastar R$${value} por dia, seu dinheiro acaba em ${daysSupported} dias.<br><br>
-        Você ficará ${deficitDays} dias sem dinheiro até o fim do ciclo.<br><br>
-        Isso significa entrar em pressão financeira e depender de crédito.<br><br>
-        <strong>Reduza para R$${limit.toFixed(2)} por dia para manter o controle.</strong>
-      `;
+  Hoje é dia ${currentDay} e faltam ${daysRemainingReal} dias para fechar o ciclo.<br><br>
+
+  Se você gastar R$${value} por dia, você consegue sustentar esse ritmo por ${daysSupported} dias.<br><br>
+
+  ${deficitDays > 0 
+    ? `Seu dinheiro acaba antes do fim do mês e você ficará ${deficitDays} dias sem saldo.` 
+    : `Seu saldo é suficiente para sustentar esse ritmo até o fim do mês.`}
+  <br><br>
+
+  ${deficitDays > 0 
+    ? `Isso significa entrar em pressão financeira real e depender de crédito ou corte forçado.` 
+    : `Mas isso não cria margem de segurança. Qualquer variação pode te colocar em risco.`}
+  <br><br>
+
+  <strong>Seu limite seguro hoje é R$${limit.toFixed(2)} por dia.</strong>
+`;
       return;
     }
   }
