@@ -1455,7 +1455,42 @@ renderQuickActions([
       ]);
       return;
     }
+if (normalizedInput.includes('sair') || normalizedInput.includes('melhorar') || normalizedInput.includes('resolver') || normalizedInput.includes('ajuda')) {
+   doctorResponseEl.innerHTML = `
+  <div style="display:flex;flex-direction:column;gap:10px;">
 
+    <div style="font-size:14px;color:#e2e8f0;">
+      Você quer sair da pressão atual. Então vamos direto ao ponto.
+    </div>
+
+    <div style="font-size:14px;color:#cbd5e1;">
+      Hoje seu saldo é <strong>${formatMoney(currentBalance)}</strong> e seu limite seguro é <strong>${formatMoney(safeDailyLimit)} por dia</strong>.
+    </div>
+
+    <div style="font-size:14px;color:#f87171;font-weight:700;">
+      Se você não reduzir agora, seu fechamento será <strong>${formatMoney(projectedEndBalance)}</strong>.
+    </div>
+
+    <div style="font-size:14px;color:#f8fafc;">
+      ${recommendedAction}
+    </div>
+
+    <div style="font-size:14px;color:#cbd5e1;">
+      Me diz uma coisa: você quer cortar gasto agora ou tentar equilibrar aos poucos?
+    </div>
+
+  </div>
+`;
+
+renderQuickActions([
+  'cortar tudo agora',
+  'tentar reduzir aos poucos',
+  'quanto posso gastar hoje?',
+  'simular outro valor por dia'
+]);
+
+return;
+}
     if (
       normalizedInput.includes('o que eu faco') ||
       normalizedInput.includes('o que fazer') ||
