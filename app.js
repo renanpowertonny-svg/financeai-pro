@@ -1185,9 +1185,6 @@ if (!doctorBtn) {
   panel.style.boxSizing = 'border-box';
 
   const ctx = state.financialDoctor || {};
-    const behaviorProfile = state.behaviorProfile || {};
-const failStreak = Number(behaviorProfile.failStreak || 0);
-const successStreak = Number(behaviorProfile.successStreak || 0);
 
   panel.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
@@ -1280,23 +1277,6 @@ const successStreak = Number(behaviorProfile.successStreak || 0);
     const cycleText = daysRemainingInCycle > 0
       ? `Restam ${daysRemainingInCycle} dia${daysRemainingInCycle > 1 ? 's' : ''} até o fechamento do ciclo, sem contar o dia de hoje.`
       : 'Hoje é o fechamento do ciclo.';
-     let behavioralPressureText = '';
-
-if (failStreak >= 2) {
-  behavioralPressureText = `
-    <div style="color:#f87171;font-weight:700;margin-top:10px;">
-      Você já vem repetindo esse padrão de erro há ${failStreak} ciclo${failStreak > 1 ? 's' : ''}.
-      Se continuar assim, isso deixa de ser um erro pontual e vira um comportamento automático.
-    </div>
-  `;
-} else if (successStreak >= 2) {
-  behavioralPressureText = `
-    <div style="color:#4ade80;font-weight:700;margin-top:10px;">
-      Você vem mantendo consistência recente.
-      O risco agora não é errar. É relaxar e perder o controle que começou a construir.
-    </div>
-  `;
-}
 
     const renderScenarioResponse = (dailyValue) => {
       const supportedDays = dailyValue > 0 ? Math.floor(currentBalance / dailyValue) : 0;
@@ -1330,11 +1310,9 @@ if (failStreak >= 2) {
               : `Esse valor respeita o seu limite seguro atual de ${formatMoney(safeDailyLimit)} por dia.`}
           </div>
 
-                    <div style="font-size:14px;line-height:1.6;color:#f8fafc;">
+          <div style="font-size:14px;line-height:1.6;color:#f8fafc;">
             ${recommendedAction}
           </div>
-
-         
         </div>
       `;
 
@@ -1346,20 +1324,18 @@ if (failStreak >= 2) {
       ]);
     };
 
-   if (!rawInput) {
-  doctorResponseEl.innerHTML = `
-    <div style="display:flex;flex-direction:column;gap:10px;">
-      <div style="font-size:14px;line-height:1.6;color:#e2e8f0;">
-        Eu respondo melhor quando você me diz exatamente o que quer analisar.
-      </div>
+    if (!rawInput) {
+      doctorResponseEl.innerHTML = `
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div style="font-size:14px;line-height:1.6;color:#e2e8f0;">
+            Eu respondo melhor quando você me diz exatamente o que quer analisar.
+          </div>
 
-      <div style="font-size:14px;line-height:1.6;color:#cbd5e1;">
-        Use um dos botões abaixo para começar.
-      </div>
-
-     
-    </div>
-  `;
+          <div style="font-size:14px;line-height:1.6;color:#cbd5e1;">
+            Use um dos botões abaixo para começar.
+          </div>
+        </div>
+      `;
 
       renderQuickActions([
         'quanto posso gastar hoje?',
@@ -1406,14 +1382,13 @@ if (failStreak >= 2) {
             Hoje você já gastou <strong>${formatMoney(todayExpenses)}</strong>.
           </div>
 
-                    <div style="font-size:14px;line-height:1.6;color:${todayExpenses > safeDailyLimit ? '#fca5a5' : '#cbd5e1'};">
+          <div style="font-size:14px;line-height:1.6;color:${todayExpenses > safeDailyLimit ? '#fca5a5' : '#cbd5e1'};">
             ${todayExpenses > safeDailyLimit
               ? 'Você já rompeu o teto seguro do dia. A partir daqui, qualquer gasto variável amplia a pressão.'
               : 'Você ainda não rompeu o teto seguro do dia. O foco agora é fechar o dia sem acelerar consumo.'}
           </div>
-
-         
         </div>
+      `;
 
       renderQuickActions([
         'se eu gastar 40 por dia, como fecha meu mês?',
@@ -1485,12 +1460,11 @@ if (failStreak >= 2) {
             ${ctx?.diagnosis?.summary || 'Sem resumo disponível no momento.'}
           </div>
 
-               <div style="font-size:14px;line-height:1.6;color:#cbd5e1;">
+          <div style="font-size:14px;line-height:1.6;color:#cbd5e1;">
             Seu saldo atual no mês está em <strong>${formatMoney(currentBalance)}</strong> e o fechamento projetado está em <strong>${formatMoney(projectedEndBalance)}</strong>.
           </div>
-
-         
         </div>
+      `;
 
       renderQuickActions([
         'quanto posso gastar hoje?',
@@ -1521,12 +1495,11 @@ if (failStreak >= 2) {
             Seu limite seguro atual é <strong>${formatMoney(safeDailyLimit)} por dia</strong> e seu gasto de hoje está em <strong>${formatMoney(todayExpenses)}</strong>.
           </div>
 
-                <div style="font-size:14px;line-height:1.6;color:#cbd5e1;">
+          <div style="font-size:14px;line-height:1.6;color:#cbd5e1;">
             A execução correta hoje não é “melhorar depois”. É proteger o que ainda resta do seu caixa agora.
           </div>
-
-          
         </div>
+      `;
 
       renderQuickActions([
         'quanto posso gastar hoje?',
