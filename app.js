@@ -1284,58 +1284,39 @@ if (!doctorBtn) {
       const simulatedEndBalance = currentBalance - (dailyValue * daysRemainingInCycle);
       const gapVsSafe = dailyValue - safeDailyLimit;
 
-      doctorResponseEl.innerHTML = `
-        <div style="display:flex;flex-direction:column;gap:10px;">
-          <div style="font-size:14px;line-height:1.6;color:#e2e8f0;">
-            ${cycleText}
-          </div>
+  doctorResponseEl.innerHTML = `
+  <div style="display:flex;flex-direction:column;gap:10px;">
+    
+    <div style="font-size:14px;line-height:1.6;color:#e2e8f0;">
+      Entendi sua pergunta.
+    </div>
 
-          <div style="font-size:14px;line-height:1.6;color:#e2e8f0;">
-            Se você sustentar <strong>${formatMoney(dailyValue)} por dia</strong> no restante do ciclo, esse ritmo será suportado por <strong>${supportedDays} dia${supportedDays !== 1 ? 's' : ''}</strong>.
-          </div>
+    <div style="font-size:14px;line-height:1.6;color:#cbd5e1;">
+      Vou te responder com base no seu cenário atual.
+    </div>
 
-          <div style="font-size:14px;line-height:1.6;color:${uncoveredDays > 0 ? '#fca5a5' : '#cbd5e1'};">
-            ${uncoveredDays > 0
-              ? `Nesse cenário, seu caixa acaba antes do fechamento e você fica ${uncoveredDays} dia${uncoveredDays !== 1 ? 's' : ''} sem cobertura financeira.`
-              : 'Nesse cenário, seu caixa ainda sustenta o restante do ciclo, mas sem folga relevante.'}
-          </div>
+    <div style="font-size:14px;line-height:1.6;color:#f8fafc;">
+      Hoje você tem <strong>${formatMoney(currentBalance)}</strong> no ciclo,
+      com um limite seguro de <strong>${formatMoney(safeDailyLimit)} por dia</strong>.
+    </div>
 
-          <div style="font-size:14px;line-height:1.6;color:${simulatedEndBalance < 0 ? '#fca5a5' : '#cbd5e1'};">
-            O fechamento projetado fica em <strong>${formatMoney(simulatedEndBalance)}</strong>.
-          </div>
+    <div style="font-size:14px;line-height:1.6;color:${projectedEndBalance < 0 ? '#fca5a5' : '#cbd5e1'};">
+      Mantendo seu padrão atual, o fechamento do mês tende a ficar em <strong>${formatMoney(projectedEndBalance)}</strong>.
+    </div>
 
-          <div style="font-size:14px;font-weight:700;color:${gapVsSafe > 0 ? '#f87171' : '#4ade80'};">
-            ${gapVsSafe > 0
-              ? `Esse valor está ${formatMoney(gapVsSafe)} acima do seu limite seguro de ${formatMoney(safeDailyLimit)} por dia.`
-              : `Esse valor respeita o seu limite seguro atual de ${formatMoney(safeDailyLimit)} por dia.`}
-          </div>
+    <div style="font-size:14px;font-weight:700;color:#f87171;">
+      ${recommendedAction}
+    </div>
 
-          <div style="font-size:14px;line-height:1.6;color:#f8fafc;">
-            ${recommendedAction}
-          </div>
-        </div>
-      `;
+  </div>
+`;
 
-      renderQuickActions([
-        'se eu gastar 40 por dia, como fecha meu mês?',
-        'se eu gastar 50 por dia, como fecha meu mês?',
-        'se eu gastar 60 por dia, como fecha meu mês?',
-        'o que eu faço agora?'
-      ]);
-    };
-
-    if (!rawInput) {
-      doctorResponseEl.innerHTML = `
-        <div style="display:flex;flex-direction:column;gap:10px;">
-          <div style="font-size:14px;line-height:1.6;color:#e2e8f0;">
-            Eu respondo melhor quando você me diz exatamente o que quer analisar.
-          </div>
-
-          <div style="font-size:14px;line-height:1.6;color:#cbd5e1;">
-            Use um dos botões abaixo para começar.
-          </div>
-        </div>
-      `;
+renderQuickActions([
+  'quanto posso gastar hoje?',
+  'se eu gastar 50 por dia, como fecha meu mês?',
+  'se eu continuar assim, o que acontece?',
+  'o que eu faço agora?'
+]);
 
       renderQuickActions([
         'quanto posso gastar hoje?',
