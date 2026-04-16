@@ -1564,12 +1564,6 @@ return;
         </div>
       `;
 
-      renderQuickActions([
-        'quanto posso gastar hoje?',
-        'se eu gastar 40 por dia, como fecha meu mês?',
-        'se eu continuar assim, o que acontece?',
-        'como está minha situação?'
-      ]);
       return;
     }
 
