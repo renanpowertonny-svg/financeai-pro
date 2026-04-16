@@ -1334,7 +1334,7 @@ if (failStreak >= 2) {
             ${recommendedAction}
           </div>
 
-          ${behavioralPressureText}
+         
         </div>
       `;
 
@@ -1357,7 +1357,7 @@ if (failStreak >= 2) {
         Use um dos botões abaixo para começar.
       </div>
 
-      ${behavioralPressureText}
+     
     </div>
   `;
 
@@ -1412,7 +1412,7 @@ if (failStreak >= 2) {
               : 'Você ainda não rompeu o teto seguro do dia. O foco agora é fechar o dia sem acelerar consumo.'}
           </div>
 
-          ${behavioralPressureText}
+         
         </div>
 
       renderQuickActions([
@@ -1489,7 +1489,7 @@ if (failStreak >= 2) {
             Seu saldo atual no mês está em <strong>${formatMoney(currentBalance)}</strong> e o fechamento projetado está em <strong>${formatMoney(projectedEndBalance)}</strong>.
           </div>
 
-          ${behavioralPressureText}
+         
         </div>
 
       renderQuickActions([
@@ -1525,7 +1525,7 @@ if (failStreak >= 2) {
             A execução correta hoje não é “melhorar depois”. É proteger o que ainda resta do seu caixa agora.
           </div>
 
-          ${behavioralPressureText}
+          
         </div>
 
       renderQuickActions([
