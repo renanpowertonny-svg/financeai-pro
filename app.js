@@ -1326,7 +1326,54 @@ renderQuickActions([
       ]);
       return;
     }
+// 🔥 PRIORIDADE MÁXIMA — INTENÇÃO HUMANA
+if (
+  normalizedInput.includes('ajuda') ||
+  normalizedInput.includes('socorro') ||
+  normalizedInput.includes('perdido') ||
+  normalizedInput.includes('melhorar') ||
+  normalizedInput.includes('sair') ||
+  normalizedInput.includes('resolver')
+) {
+  doctorResponseEl.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      
+      <div style="font-size:14px;color:#e2e8f0;">
+        Você não está sem saída. Você está sem controle do fluxo.
+      </div>
 
+      <div style="font-size:14px;color:#cbd5e1;">
+        Hoje seu caixa é <strong>${formatMoney(currentBalance)}</strong>.
+      </div>
+
+      <div style="font-size:14px;color:#cbd5e1;">
+        Seu limite seguro é <strong>${formatMoney(safeDailyLimit)} por dia</strong>.
+      </div>
+
+      <div style="font-size:14px;color:#f87171;font-weight:700;">
+        Mantendo esse padrão, seu mês fecha em <strong>${formatMoney(projectedEndBalance)}</strong>.
+      </div>
+
+      <div style="font-size:14px;color:#f8fafc;">
+        ${recommendedAction}
+      </div>
+
+      <div style="font-size:14px;color:#cbd5e1;">
+        Me diz: você quer sair disso rápido ou tentar ajustar aos poucos?
+      </div>
+
+    </div>
+  `;
+
+  renderQuickActions([
+    'quero sair disso rápido',
+    'quero ajustar aos poucos',
+    'quanto posso gastar hoje?',
+    'simular outro valor'
+  ]);
+
+  return;
+}
     if (
       askedValue !== null &&
       (
