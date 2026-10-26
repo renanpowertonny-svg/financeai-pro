@@ -2117,3 +2117,347 @@ textarea:focus-visible,
 }
 
 .sidebar-overlay.active { display: block; }
+
+
+/* ========================================
+   FINANCEAI — SIGNATURE & COMPACT EXPERIENCE
+   Presentation-only refinement, layered over the
+   approved visual foundation. No content or hooks removed.
+   ======================================== */
+.sidebar {
+  background: linear-gradient(180deg, #111923 0%, var(--bg-card) 38%, #101720 100%);
+}
+
+.sidebar-header {
+  position: relative;
+  min-height: 82px;
+  padding: 17px 18px 25px !important;
+  gap: 11px;
+  background: linear-gradient(110deg, rgba(154, 140, 255, 0.055), transparent 78%);
+}
+
+.sidebar-header::after {
+  content: "FINANCEAI · INTELIGÊNCIA FINANCEIRA";
+  position: absolute;
+  left: 62px;
+  bottom: 8px;
+  color: var(--text-muted);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  white-space: nowrap;
+}
+
+.sidebar-header .brand-logo {
+  flex: 0 0 auto;
+  filter: drop-shadow(0 4px 10px rgba(119, 103, 215, 0.2));
+}
+
+.sidebar-header .brand-name {
+  font-size: 16px;
+  font-weight: 750;
+  letter-spacing: -0.045em;
+}
+
+.nav-item {
+  position: relative;
+  min-height: 44px;
+  padding-left: 12px;
+  letter-spacing: -0.01em;
+}
+
+.nav-item.active {
+  box-shadow: inset 2px 0 0 var(--accent-hover), inset 0 0 0 1px rgba(154, 140, 255, 0.06);
+}
+
+#page-dashboard .page-header > div:first-child::before {
+  content: "FINANCEAI  /  VISÃO EXECUTIVA";
+  display: block;
+  margin-bottom: 7px;
+  color: var(--accent-hover);
+  font-size: 9px;
+  font-weight: 750;
+  letter-spacing: 0.15em;
+}
+
+#page-dashboard .page-header h1 {
+  font-weight: 760;
+  letter-spacing: -0.052em;
+}
+
+#page-dashboard .page-subtitle {
+  max-width: 58ch;
+  line-height: 1.55;
+}
+
+#page-dashboard .kpi-card {
+  position: relative;
+  overflow: hidden;
+  min-height: 128px;
+  background: linear-gradient(145deg, rgba(21, 30, 41, 0.98), var(--bg-card) 75%);
+}
+
+#page-dashboard .kpi-card.balance {
+  border-color: rgba(154, 140, 255, 0.27);
+  background: linear-gradient(145deg, rgba(80, 68, 139, 0.2), var(--bg-card) 76%);
+}
+
+#page-dashboard .kpi-card.balance .kpi-value {
+  color: #f4f1ff;
+  font-size: clamp(1.2rem, 1.7vw, 1.52rem);
+}
+
+#page-dashboard .kpi-label {
+  color: #b5c0cc;
+  font-size: 11px;
+  letter-spacing: 0.065em;
+}
+
+#page-dashboard .kpi-change {
+  min-height: 1.35em;
+  color: #a5b1bf;
+}
+
+#page-dashboard .ai-insight-banner {
+  border-left: 2px solid rgba(176, 154, 255, 0.74);
+  background: linear-gradient(100deg, rgba(154, 140, 255, 0.12), rgba(154, 140, 255, 0.035) 72%, transparent);
+}
+
+#page-dashboard .chart-card {
+  overflow: hidden;
+  background: linear-gradient(155deg, rgba(20, 29, 40, 0.98), var(--bg-card) 64%);
+}
+
+#page-dashboard .chart-header {
+  align-items: flex-start;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+#page-dashboard .chart-header h3::after {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.025em;
+}
+
+#page-dashboard .chart-card.wide .chart-header h3::after {
+  content: "Comparativo mensal de receitas e despesas";
+}
+
+#page-dashboard .charts-grid .chart-card:not(.wide) .chart-header h3::after {
+  content: "Distribuição por categoria";
+}
+
+#page-dashboard .chart-body {
+  height: 246px;
+}
+
+#page-dashboard .transaction-list:empty,
+#page-dashboard .goals-mini-list:empty {
+  display: grid;
+  min-height: 100px;
+  place-items: center;
+  padding: 16px;
+  border: 1px dashed var(--border-hover);
+  border-radius: 12px;
+  background: linear-gradient(145deg, rgba(154, 140, 255, 0.035), transparent 72%);
+  text-align: center;
+}
+
+#page-dashboard .transaction-list:empty::before {
+  content: "Suas movimentações recentes aparecerão aqui quando houver lançamentos.";
+  max-width: 34ch;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+#page-dashboard .goals-mini-list:empty::before {
+  content: "Crie uma meta para acompanhar seu progresso neste painel.";
+  max-width: 32ch;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+#financialDoctorPanel > div:nth-child(2) > div > div:first-child,
+#financialDoctorPanel > div:nth-child(4) > div > div:first-child {
+  font-size: 10px !important;
+  letter-spacing: 0.075em !important;
+}
+
+#financialDoctorPanel > div:nth-child(3) > div > div:first-child {
+  font-size: 10px !important;
+}
+
+#premiumRiskCard > div:nth-child(3) > div > div:first-child {
+  color: #9eabba !important;
+  font-size: 10px !important;
+  letter-spacing: 0.065em !important;
+}
+
+@media (max-width: 768px) {
+  #financialDoctorPanel > div:nth-child(2) {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .sidebar-header { min-height: 82px; }
+
+  #page-dashboard .page-header > div:first-child::before {
+    margin-bottom: 5px;
+    font-size: 8px;
+    letter-spacing: 0.13em;
+  }
+
+  #page-dashboard .page-header { gap: 10px; margin-bottom: 14px; }
+  #page-dashboard .page-subtitle { margin-top: 5px; }
+
+  #page-dashboard .kpi-grid {
+    gap: 8px;
+    margin-bottom: 11px;
+  }
+
+  #page-dashboard .kpi-card {
+    min-height: 98px;
+    padding: 11px 10px;
+    gap: 8px;
+    flex-direction: row;
+    align-items: center;
+  }
+
+  #page-dashboard .kpi-card::before { top: 12px; bottom: 12px; }
+  #page-dashboard .kpi-icon { width: 29px; height: 29px; border-radius: 9px; }
+  #page-dashboard .kpi-icon svg { width: 16px; height: 16px; }
+  #page-dashboard .kpi-info { min-width: 0; }
+  #page-dashboard .kpi-label { margin-bottom: 4px; font-size: 9.5px; line-height: 1.3; letter-spacing: 0.035em; }
+  #page-dashboard .kpi-value { margin-bottom: 3px; font-size: clamp(12px, 3.4vw, 14px); }
+  #page-dashboard .kpi-card.balance .kpi-value { font-size: clamp(12px, 3.4vw, 14px); }
+  #page-dashboard .kpi-change { font-size: 9.5px; line-height: 1.3; }
+
+  #page-dashboard .ai-insight-banner { gap: 8px; margin-bottom: 12px; padding: 11px 12px; }
+  #page-dashboard .ai-insight-banner p { font-size: 11.5px; line-height: 1.45; }
+  #page-dashboard .ai-insight-banner .btn-ghost { min-height: 30px; padding-left: 0; }
+
+  #premiumRiskCard {
+    margin-bottom: 12px !important;
+    padding: 13px !important;
+  }
+
+  #premiumRiskCard > div:nth-child(2) {
+    grid-template-columns: minmax(0, 1fr) 96px !important;
+    align-items: start !important;
+    gap: 8px !important;
+  }
+
+  #premiumRiskTitle { margin: 7px 0 4px !important; font-size: 16px !important; line-height: 1.2 !important; }
+  #premiumRiskSummary { font-size: 11px !important; line-height: 1.4 !important; }
+
+  #premiumRiskCard > div:nth-child(2) > div:last-child > div {
+    width: auto !important;
+    min-width: 0 !important;
+    padding: 8px !important;
+    text-align: center !important;
+  }
+
+  #premiumRiskScore { font-size: 21px !important; }
+  #premiumRiskLevel { font-size: 10px !important; }
+
+  #premiumRiskCard > div:nth-child(3) {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 7px !important;
+    margin-top: 10px !important;
+    padding: 7px !important;
+  }
+
+  #premiumRiskCard > div:nth-child(3) > div { padding: 8px !important; }
+  #premiumRiskCard > div:nth-child(3) > div:last-child { grid-column: 1 / -1; }
+  #premiumRiskMasterAlert, #premiumRiskAction, #premiumRiskObjective { font-size: 11px !important; line-height: 1.35 !important; }
+
+  #premiumRiskCard > div:nth-child(4) { gap: 7px !important; margin-top: 10px !important; }
+  #premiumRiskCard > div:nth-child(4) > button {
+    flex: 1 1 128px !important;
+    min-width: 0 !important;
+    min-height: 38px !important;
+    padding: 8px 7px !important;
+    font-size: 10.5px !important;
+  }
+
+  #financialDoctorPanel {
+    margin-bottom: 12px !important;
+    padding: 13px !important;
+  }
+
+  #financialDoctorPanel > div:first-child { margin-bottom: 10px !important; }
+  #financialDoctorPanel > div:first-child > div:last-child { max-width: 48%; }
+  #financialDoctorPanel > div:nth-child(2) {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 7px !important;
+  }
+
+  #financialDoctorPanel > div:nth-child(2) > div,
+  #financialDoctorPanel > div:nth-child(4) > div { padding: 9px !important; }
+
+  #financialDoctorPanel > div:nth-child(2) > div > div:last-child,
+  #financialDoctorPanel > div:nth-child(4) > div > div:last-child { font-size: 16px !important; }
+
+  #financialDoctorPanel > div:nth-child(3) {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 7px !important;
+    margin-top: 9px !important;
+  }
+
+  #financialDoctorPanel > div:nth-child(3) > div { padding: 9px !important; }
+  #financialDoctorPanel > div:nth-child(3) > div > div:nth-child(2) { font-size: 11.5px !important; line-height: 1.35 !important; }
+  #financialDoctorPanel > div:nth-child(3) > div > div:nth-child(3) { font-size: 10px !important; line-height: 1.4 !important; }
+
+  #financialDoctorPanel > div:nth-child(4) {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 7px !important;
+    margin-top: 8px !important;
+  }
+
+  #dailyMissionCard.card { margin-bottom: 12px !important; padding: 13px !important; }
+  #dailyMissionCard .card-body { padding-top: 0; }
+  #dailyMissionCard #missionText { font-size: 12px; line-height: 1.4; }
+  #dailyMissionCard #missionCompleteBtn,
+  #dailyMissionCard #missionSkipBtn {
+    flex: 1 1 138px !important;
+    min-width: 0;
+    min-height: 38px !important;
+    padding: 8px 7px !important;
+    font-size: 10.5px !important;
+  }
+
+  #page-dashboard .charts-grid { gap: 10px !important; margin-bottom: 11px !important; }
+  #page-dashboard .chart-card { padding: 13px !important; }
+  #page-dashboard .chart-header { gap: 8px; margin-bottom: 9px; padding-bottom: 8px; }
+  #page-dashboard .chart-header h3 { font-size: 13px; }
+  #page-dashboard .chart-header h3::after { margin-top: 3px; font-size: 9px; }
+  #page-dashboard .chart-body { height: 174px; }
+  #page-dashboard .chart-legend { gap: 7px; font-size: 9px; }
+  #page-dashboard .legend-dot { width: 7px; height: 7px; }
+
+  #page-dashboard .bottom-grid { gap: 10px !important; }
+  #page-dashboard .bottom-grid > .card { padding: 13px !important; }
+  #page-dashboard .card-header { margin-bottom: 9px !important; }
+  #page-dashboard .tx-item { gap: 7px; padding-top: 7px !important; padding-bottom: 7px !important; }
+  #page-dashboard .tx-icon { width: 30px; height: 30px; flex: 0 0 30px; font-size: 13px; }
+  #page-dashboard .tx-desc { font-size: 11px; }
+  #page-dashboard .tx-meta { font-size: 9.5px; }
+  #page-dashboard .tx-amount { font-size: 10px; }
+  #page-dashboard .goal-mini-item { gap: 7px; padding: 8px 0; }
+}
+
+@media (max-width: 370px) {
+  #premiumRiskCard > div:nth-child(2) { grid-template-columns: minmax(0, 1fr) 88px !important; }
+  #premiumRiskTitle { font-size: 15px !important; }
+  #page-dashboard .kpi-card { padding-right: 8px; padding-left: 9px; gap: 7px; }
+  #page-dashboard .kpi-icon { width: 26px; height: 26px; }
+  #page-dashboard .kpi-label { font-size: 9px; }
+}
