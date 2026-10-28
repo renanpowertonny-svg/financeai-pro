@@ -494,7 +494,7 @@ function setGreeting() {
   const h = new Date().getHours();
   const g = h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite';
   const name = state.user ? state.user.name.split(' ')[0] : '';
-  document.getElementById('dashGreeting').textContent = `${g}, ${name}! 👋`;
+  document.getElementById('dashGreeting').textContent = `${g}, ${name}!`;
 }
 
 // ==========================================
@@ -1002,22 +1002,23 @@ function renderPremiumRiskCard() {
   secondaryPage: 'ai'
 };
 
-  if (!snap) {
-    titleEl.textContent = 'Sem leitura suficiente';
-    summaryEl.textContent = 'Adicione mais movimentações para o FinanceAI consolidar sua leitura comportamental.';
+  const hasFinancialData = Array.isArray(state?.transactions) && state.transactions.length > 0;
+  if (!snap || !hasFinancialData) {
+    card.dataset.riskState = 'unknown';
+    card.style.setProperty('--risk-progress', '0%');
+    titleEl.textContent = 'Aguardando movimentações';
+    summaryEl.textContent = 'Registre suas movimentações para que o Radar apresente uma leitura baseada nos seus dados.';
     scoreEl.textContent = '--/100';
     levelEl.textContent = 'Sem leitura';
-    levelEl.style.color = '#94a3b8';
-    scoreEl.style.color = 'var(--text-primary)';
-    masterAlertEl.textContent = 'Ainda não há base suficiente para um alerta mestre.';
-    actionEl.textContent = 'Registrar receitas e despesas do mês atual.';
-    objectiveEl.textContent = 'Criar consistência de dados para leitura inteligente.';
-    primaryBtn.textContent = 'Ir para transações';
-    secondaryBtn.textContent = 'Abrir IA';
+    scoreEl.dataset.riskState = 'unknown';
+    levelEl.dataset.riskState = 'unknown';
+    masterAlertEl.textContent = 'Sem base suficiente para um alerta.';
+    actionEl.textContent = 'Registre receitas e despesas.';
+    objectiveEl.textContent = 'Construir uma base financeira.';
+    primaryBtn.textContent = 'Registrar movimentações';
+    secondaryBtn.textContent = 'Abrir assistente';
     primaryBtn.onclick = () => navigate('transactions');
     secondaryBtn.onclick = () => navigate('ai');
-    card.style.border = '1px solid rgba(99,102,241,0.22)';
-    card.style.background = 'linear-gradient(135deg, rgba(99,102,241,0.16), rgba(15,23,42,0.95))';
     return;
   }
 
@@ -1111,25 +1112,17 @@ function renderPremiumRiskCard() {
   scoreEl.textContent = `${score}/100`;
   levelEl.textContent = `Risco ${snap.riskLevel}`;
 
-  const levelColor =
-    score >= 75 ? '#ef4444' :
-    score >= 50 ? '#f59e0b' :
-    score >= 25 ? '#facc15' :
-    '#10b981';
-
-  levelEl.style.color = levelColor;
-  scoreEl.style.color = levelColor;
-
-  if (score >= 75 || overlay.recurringSabotage) {
-    card.style.border = '1px solid rgba(239,68,68,0.35)';
-    card.style.background = 'linear-gradient(135deg, rgba(127,29,29,0.28), rgba(15,23,42,0.96))';
-  } else if (score >= 50 || overlay.recurringRelapse || overlay.fragileRecoveryRecurring) {
-    card.style.border = '1px solid rgba(245,158,11,0.30)';
-    card.style.background = 'linear-gradient(135deg, rgba(120,53,15,0.24), rgba(15,23,42,0.96))';
-  } else {
-    card.style.border = '1px solid rgba(16,185,129,0.22)';
-    card.style.background = 'linear-gradient(135deg, rgba(6,95,70,0.20), rgba(15,23,42,0.95))';
-  }
+  const riskState = score >= 75 || overlay.recurringSabotage
+    ? 'critical'
+    : score >= 50 || overlay.recurringRelapse || overlay.fragileRecoveryRecurring
+    ? 'attention'
+    : score >= 25
+    ? 'watch'
+    : 'stable';
+  card.dataset.riskState = riskState;
+  card.style.setProperty('--risk-progress', `${Math.max(0, Math.min(100, score))}%`);
+  scoreEl.dataset.riskState = riskState;
+  levelEl.dataset.riskState = riskState;
 
   primaryBtn.textContent = plan.primaryLabel || 'Ver ação principal';
   secondaryBtn.textContent = plan.secondaryLabel || 'Abrir análise completa';
@@ -1143,15 +1136,7 @@ if (!doctorBtn) {
   doctorBtn.id = 'premiumRiskDoctorBtn';
   doctorBtn.textContent = 'Falar com o Doutor';
 
-  doctorBtn.style.marginTop = '10px';
-  doctorBtn.style.width = '100%';
-  doctorBtn.style.padding = '10px';
-  doctorBtn.style.borderRadius = '10px';
-  doctorBtn.style.border = '1px solid rgba(99,102,241,0.3)';
-  doctorBtn.style.background = 'rgba(99,102,241,0.1)';
-  doctorBtn.style.color = '#c7d2fe';
-  doctorBtn.style.fontWeight = '700';
-  doctorBtn.style.cursor = 'pointer';
+  doctorBtn.className = 'doctor-chat-button';
 
  doctorBtn.onclick = () => {
   const existing = document.getElementById('doctorOverlay');
@@ -1618,15 +1603,15 @@ return;
   ]);
 };
 
-  primaryBtn.parentNode.appendChild(doctorBtn);
 }
 
-  primaryBtn.style.boxShadow =
-    score >= 75 || overlay.recurringSabotage
-      ? '0 12px 24px rgba(239,68,68,0.22)'
-      : score >= 50 || overlay.recurringRelapse || overlay.fragileRecoveryRecurring
-      ? '0 12px 24px rgba(245,158,11,0.18)'
-      : '0 12px 24px rgba(16,185,129,0.18)';
+  const doctorActions = document.querySelector('#financialDoctorPanel .doctor-chat-actions');
+  if (doctorActions) {
+    doctorActions.querySelector('.doctor-chat-fallback')?.remove();
+    doctorActions.appendChild(doctorBtn);
+  } else {
+    primaryBtn.parentNode.appendChild(doctorBtn);
+  }
 
   if (summary.balance < 0) {
     objectiveEl.textContent = 'Conter ruptura de caixa e recuperar margem de reação imediatamente.';
@@ -2908,119 +2893,77 @@ const doctorContext = {
 function renderFinancialDoctorPanel() {
   const missionTextEl = document.getElementById('missionText');
   if (!missionTextEl) return;
-
   const ctx = state && state.financialDoctor ? state.financialDoctor : null;
   if (!ctx) return;
 
   const existing = document.getElementById('financialDoctorPanel');
   if (existing) existing.remove();
+  const panel = document.createElement('section');
+  panel.id = 'financialDoctorPanel';
+  panel.className = 'doctor-summary';
+  panel.setAttribute('aria-labelledby', 'doctorPanelTitle');
+
+  const hasFinancialData = Array.isArray(state?.transactions) && state.transactions.length > 0;
+  if (!hasFinancialData) {
+    panel.innerHTML = `
+      <div class="doctor-summary-copy">
+        <div class="doctor-eyebrow">Doutor Financeiro</div>
+        <h3 id="doctorPanelTitle">Leitura disponível após o primeiro lançamento</h3>
+        <p class="doctor-empty">Sem movimentações registradas ainda. Adicione uma receita ou despesa para liberar uma análise baseada nos seus dados.</p>
+      </div>
+      <div class="doctor-chat-actions">
+        <button type="button" class="doctor-chat-button doctor-chat-fallback" onclick="navigate('ai')">Abrir assistente</button>
+      </div>`;
+    missionTextEl.parentNode.insertBefore(panel, missionTextEl);
+    return;
+  }
 
   const monthIncome = Number(ctx.month?.income || 0);
   const monthExpense = Number(ctx.month?.expense || 0);
   const monthBalance = Number(ctx.month?.balance || 0);
   const savingsRate = Number(ctx.month?.savingsRate || 0);
   const todayExpenses = Number(ctx.today?.expenses || 0);
-
   const behaviorScore = Number(ctx.behavior?.score || 0);
   const behaviorLevel = ctx.behavior?.riskLevel || 'Sem leitura';
   const diagnosisTitle = ctx.diagnosis?.title || 'Sem diagnóstico disponível no momento.';
-const diagnosisSummary = ctx.diagnosis?.summary || 'Sem resumo operacional disponível.';
-const diagnosisAction = ctx.diagnosis?.recommendedAction || 'Sem ação recomendada no momento.';
-const safeDailyLimit = Number(ctx.diagnosis?.safeDailyLimit || 0);
-const averageDailyExpense = Number(ctx.diagnosis?.averageDailyExpense || 0);
-const projectedEndBalance = Number(ctx.diagnosis?.projectedEndBalance || 0);
-const urgency = ctx.diagnosis?.urgency || 'low';
-  const panel = document.createElement('div');
-  panel.id = 'financialDoctorPanel';
-  panel.style.cssText = [
-    'margin-bottom:16px',
-    'padding:16px',
-    'border-radius:16px',
-    'border:1px solid rgba(99,102,241,0.22)',
-    'background:linear-gradient(135deg, rgba(15,23,42,0.96), rgba(30,41,59,0.92))',
-    'box-shadow:0 14px 34px rgba(0,0,0,0.22)'
-  ].join(';');
+  const diagnosisSummary = ctx.diagnosis?.summary || 'Sem resumo operacional disponível.';
+  const diagnosisAction = ctx.diagnosis?.recommendedAction || 'Sem ação recomendada no momento.';
+  const safeDailyLimit = Number(ctx.diagnosis?.safeDailyLimit || 0);
+  const averageDailyExpense = Number(ctx.diagnosis?.averageDailyExpense || 0);
+  const projectedEndBalance = Number(ctx.diagnosis?.projectedEndBalance || 0);
+  const safe = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 
   panel.innerHTML = `
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
-      <div style="display:flex;flex-direction:column;gap:4px;">
-        <div style="font-size:12px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#a5b4fc;">
-          Doutor Financeiro
+    <div class="doctor-summary-main">
+      <div class="doctor-summary-copy">
+        <div class="doctor-eyebrow">Doutor Financeiro</div>
+        <h3 id="doctorPanelTitle">${safe(diagnosisTitle)}</h3>
+        <p class="doctor-action-line"><strong>Próximo passo</strong> · ${safe(diagnosisAction)}</p>
+      </div>
+      <div class="doctor-score"><strong>${behaviorScore}/100</strong><span> · ${safe(behaviorLevel)}</span></div>
+    </div>
+    <details class="doctor-details">
+      <summary>Ver contexto, métricas e projeção</summary>
+      <div class="doctor-details-content">
+        <div class="doctor-metrics">
+          <div class="doctor-metric"><span>Receitas do mês</span><strong>${safe(fmt(monthIncome))}</strong></div>
+          <div class="doctor-metric"><span>Despesas do mês</span><strong>${safe(fmt(monthExpense))}</strong></div>
+          <div class="doctor-metric"><span>Saldo do mês</span><strong>${safe(fmt(monthBalance))}</strong></div>
+          <div class="doctor-metric"><span>Gasto de hoje</span><strong>${safe(fmt(todayExpenses))}</strong></div>
+          <div class="doctor-metric"><span>Taxa de poupança</span><strong>${safe(savingsRate.toFixed(1))}%</strong></div>
         </div>
-        <div style="font-size:18px;font-weight:800;color:#ffffff;">
-          Leitura inicial do seu caixa hoje
+        <div class="doctor-diagnosis">
+          <article><h4>Contexto</h4><p>${safe(diagnosisSummary)}</p></article>
+          <article><h4>Ação recomendada</h4><p>${safe(diagnosisAction)}</p></article>
+        </div>
+        <div class="doctor-projections">
+          <div class="doctor-projection"><span>Limite diário seguro</span><strong>${safe(fmt(safeDailyLimit))}</strong></div>
+          <div class="doctor-projection"><span>Média diária atual</span><strong>${safe(fmt(averageDailyExpense))}</strong></div>
+          <div class="doctor-projection"><span>Saldo projetado</span><strong>${safe(fmt(projectedEndBalance))}</strong></div>
         </div>
       </div>
-      <div style="padding:8px 12px;border-radius:999px;background:rgba(99,102,241,0.12);color:#c7d2fe;font-size:12px;font-weight:700;">
-        Score comportamental: ${behaviorScore}/100 · ${behaviorLevel}
-      </div>
-    </div>
-
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;">
-      <div style="padding:12px;border-radius:14px;background:rgba(15,23,42,0.62);border:1px solid rgba(255,255,255,0.05);">
-        <div style="font-size:11px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:#94a3b8;">Receitas do mês</div>
-        <div style="margin-top:6px;font-size:22px;font-weight:800;color:#f8fafc;">${fmt(monthIncome)}</div>
-      </div>
-
-      <div style="padding:12px;border-radius:14px;background:rgba(15,23,42,0.62);border:1px solid rgba(255,255,255,0.05);">
-        <div style="font-size:11px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:#94a3b8;">Despesas do mês</div>
-        <div style="margin-top:6px;font-size:22px;font-weight:800;color:#f8fafc;">${fmt(monthExpense)}</div>
-      </div>
-
-      <div style="padding:12px;border-radius:14px;background:rgba(15,23,42,0.62);border:1px solid rgba(255,255,255,0.05);">
-        <div style="font-size:11px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:#94a3b8;">Saldo do mês</div>
-        <div style="margin-top:6px;font-size:22px;font-weight:800;color:${monthBalance >= 0 ? '#34d399' : '#f87171'};">${fmt(monthBalance)}</div>
-      </div>
-
-      <div style="padding:12px;border-radius:14px;background:rgba(15,23,42,0.62);border:1px solid rgba(255,255,255,0.05);">
-        <div style="font-size:11px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:#94a3b8;">Gasto de hoje</div>
-        <div style="margin-top:6px;font-size:22px;font-weight:800;color:#f8fafc;">${fmt(todayExpenses)}</div>
-      </div>
-    </div>
-
-<div style="margin-top:12px;display:grid;grid-template-columns:1.2fr 0.8fr;gap:10px;align-items:stretch;">
-
-  <div style="padding:12px;border-radius:12px;background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.12);display:flex;flex-direction:column;gap:6px;">
-    <div style="font-size:10px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;color:#818cf8;">
-      Diagnóstico
-    </div>
-
-    <div style="font-size:13px;font-weight:700;color:#ffffff;line-height:1.4;">
-      ${diagnosisTitle}
-    </div>
-
-    <div style="font-size:12px;line-height:1.5;color:#cbd5e1;">
-      ${diagnosisSummary}
-    </div>
-  </div>
-
-  <div style="padding:12px;border-radius:12px;background:${urgency === 'critical' ? 'rgba(239,68,68,0.12)' : urgency === 'high' ? 'rgba(245,158,11,0.12)' : 'rgba(16,185,129,0.12)'};border:1px solid ${urgency === 'critical' ? 'rgba(239,68,68,0.26)' : urgency === 'high' ? 'rgba(245,158,11,0.26)' : 'rgba(16,185,129,0.24)'};display:flex;flex-direction:column;gap:6px;">
-
-    <div style="font-size:10px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;color:${urgency === 'critical' ? '#f87171' : urgency === 'high' ? '#facc15' : '#4ade80'};">
-      Ação
-    </div>
-
-    <div style="font-size:12px;line-height:1.5;color:#f8fafc;">
-      ${diagnosisAction}
-    </div>
-
-  </div>
-
-</div>
-
-<div style="margin-top:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;">
-  <div style="padding:12px;border-radius:14px;background:rgba(15,23,42,0.62);border:1px solid rgba(255,255,255,0.05);">
-    <div style="font-size:11px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:#94a3b8;">Limite diário que você pode usar hoje</div>
-    <div style="margin-top:6px;font-size:20px;font-weight:800;color:#f8fafc;">${fmt(safeDailyLimit)}</div>
-  </div>
-
-  <div style="padding:12px;border-radius:14px;background:rgba(15,23,42,0.62);border:1px solid rgba(255,255,255,0.05);">
-    <div style="font-size:11px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:#94a3b8;">Saldo projetado no fechamento</div>
-    <div style="margin-top:6px;font-size:20px;font-weight:800;color:${projectedEndBalance >= 0 ? '#34d399' : '#f87171'};">${fmt(projectedEndBalance)}</div>
-  </div>
-</div>
-  `;
-
+    </details>
+    <div class="doctor-chat-actions"></div>`;
   missionTextEl.parentNode.insertBefore(panel, missionTextEl);
 }
 
@@ -3031,18 +2974,28 @@ function renderDailyMission() {
   const badgeEl = document.getElementById('missionStatusBadge');
   const completeBtn = document.getElementById('missionCompleteBtn');
   const skipBtn = document.getElementById('missionSkipBtn');
+  const missionTitleEl = document.getElementById('missionTitle');
 
   if (!textEl || !barEl || !progressEl || !state.user) return;
 
-  const txs = getFilteredTx('month');
-  const summary = calcSummary(txs);
+  const hasFinancialData = Array.isArray(state.transactions) && state.transactions.length > 0;
+  if (!hasFinancialData) {
+    if (missionTitleEl) missionTitleEl.textContent = 'Sua missão aparecerá após o primeiro lançamento';
+    textEl.textContent = 'Registre uma movimentação para habilitar uma orientação diária baseada nos seus dados.';
+    progressEl.textContent = 'Disponível após movimentações';
+    barEl.style.width = '0%';
+    barEl.dataset.state = 'empty';
+    barEl.parentElement?.setAttribute('aria-valuenow', '0');
+    if (badgeEl) { badgeEl.textContent = 'Aguardando dados'; badgeEl.dataset.state = 'unknown'; }
+    if (completeBtn) { completeBtn.disabled = true; completeBtn.textContent = 'Concluir missão'; }
+    if (skipBtn) { skipBtn.disabled = true; skipBtn.textContent = 'Ignorar hoje'; }
+    return;
+  }
+
   const snap = typeof getBehaviorEngineSnapshot === 'function' ? getBehaviorEngineSnapshot() : null;
-
   ensureMissionV3State(snap);
-
   const today = fmtDate(new Date());
   const todayISO = new Date().toISOString().slice(0, 10);
-
   const todayExpenses = state.transactions
     .filter(t => t.type === 'expense' && t.date === today)
     .reduce((sum, t) => sum + t.value, 0);
@@ -3050,202 +3003,62 @@ function renderDailyMission() {
   let progressPct = 0;
   const missionType = state.missionStatus.type || 'discipline';
   const target = Number(state.missionStatus.target || 0);
-
-  if (state.missionStatus.date !== todayISO) {
-    ensureMissionV3State(snap);
-  }
+  if (state.missionStatus.date !== todayISO) ensureMissionV3State(snap);
 
   if (state.missionStatus.status === 'completed') {
     progressPct = 100;
   } else if (state.missionStatus.status === 'skipped') {
     progressPct = 12;
-  } else {
-    if (missionType === 'containment' || missionType === 'retention' || missionType === 'discipline' || missionType === 'growth') {
-      progressPct = target > 0
-        ? Math.max(0, Math.min(100, ((target - todayExpenses) / target) * 100))
-        : 100;
-    } else if (missionType === 'category_control') {
-      progressPct = target > 0
-        ? Math.max(0, Math.min(100, ((target - todayExpenses) / target) * 100))
-        : 100;
-    } else {
-      progressPct = 0;
-    }
+  } else if (['containment','retention','discipline','growth'].includes(missionType)) {
+    progressPct = target > 0 ? Math.max(0, Math.min(100, ((target - todayExpenses) / target) * 100)) : 100;
+  } else if (missionType === 'category_control') {
+    progressPct = target > 0 ? Math.max(0, Math.min(100, ((target - todayExpenses) / target) * 100)) : 100;
   }
 
   state.missionStatus.current = Math.max(0, target - todayExpenses);
-
-const missionTitle = state.missionStatus.title || 'Missão do dia';
-const missionText = state.missionStatus.text || 'Hoje o FinanceAI está preparando sua missão.';
-const severity = state.missionStatus.severity || 'stable';
-
-const severityLabelMap = {
-  critical: 'Risco crítico em curso',
-  containment: 'Contenção imediata',
-  pressure: 'Pressão crescente',
-  attention: 'Atenção ativa',
-  stable: 'Execução estratégica'
-};
-
-const severityAccent =
-  severity === 'critical'
-    ? '#fca5a5'
-    : severity === 'containment' || severity === 'pressure'
-    ? '#fcd34d'
-    : '#a5b4fc';
-
-const missionTargetLabel = target > 0 ? fmt(target) : 'R$ 0,00';
-const missionCurrentLabel = fmt(Math.max(0, Number(state.missionStatus.current || 0)));
-const missionImpactLabel = state.missionStatus.status === 'completed'
-  ? fmt(state.missionStatus.savedAmount || target || 0)
-  : fmt(Math.max(0, Number(state.missionStatus.current || 0)));
-
-textEl.innerHTML = `
-  <div style="display:flex;flex-direction:column;gap:10px;">
-    <div style="display:flex;flex-direction:column;gap:6px;">
-      <div style="font-size:13px;font-weight:800;letter-spacing:0.02em;color:${severityAccent};text-transform:uppercase;">
-        ${missionTitle}
-      </div>
-${(() => {
-  const bridge = state?.financialDoctor?.missionBridge;
-
-  if (!bridge) {
-    return `
-      <div style="font-size:14px;color:#fca5a5;font-weight:600;">
-  ${bridge.title}
-</div>
-
-<div style="font-size:15px;line-height:1.6;color:var(--text-primary);">
-  ${bridge.text}
-</div>
-
-<div style="font-size:14px;font-weight:700;color:#fcd34d;">
-  ${state?.financialDoctor?.diagnosis?.recommendedAction || 'Ação obrigatória: proteger o caixa imediatamente.'}
-</div>
-    `;
-  }
-
-  return `
-    <div style="display:flex;flex-direction:column;gap:6px;">
-
-    </div>
-
-    <div style="margin-top:6px;font-size:13px;font-weight:600;color:#fcd34d;">
-      Execução obrigatória hoje.
-    </div>
-  `;
-})()}
-    </div>
-`;
-
+  const missionTitle = state.missionStatus.title || 'Missão do dia';
+  const missionText = state.missionStatus.text || 'Hoje o FinanceAI está preparando sua missão.';
+  const severity = state.missionStatus.severity || 'stable';
+  if (missionTitleEl) missionTitleEl.textContent = missionTitle;
+  textEl.textContent = missionText;
+  const progressState = state.missionStatus.status === 'completed'
+    ? 'completed'
+    : state.missionStatus.status === 'skipped'
+    ? 'skipped'
+    : severity;
+  barEl.dataset.state = progressState;
+  if (badgeEl) badgeEl.dataset.state = progressState;
   barEl.style.width = `${progressPct.toFixed(0)}%`;
+  barEl.parentElement?.setAttribute('aria-valuenow', String(Math.round(progressPct)));
 
   if (state.missionStatus.status === 'completed') {
     progressEl.textContent = 'Missão concluída hoje com execução validada';
-    barEl.style.background = 'linear-gradient(90deg, #10b981, #34d399)';
-
-    if (badgeEl) {
-      badgeEl.textContent = '✅ Missão concluída hoje';
-      badgeEl.style.background = 'rgba(16,185,129,0.14)';
-      badgeEl.style.color = '#6ee7b7';
-    }
-
-    if (completeBtn) {
-      completeBtn.disabled = true;
-      completeBtn.textContent = '✅ Concluída';
-      completeBtn.style.opacity = '0.75';
-      completeBtn.style.cursor = 'not-allowed';
-    }
-
-    if (skipBtn) {
-      skipBtn.disabled = true;
-      skipBtn.textContent = 'Encerrada';
-      skipBtn.style.opacity = '0.45';
-      skipBtn.style.cursor = 'not-allowed';
-    }
-
+    if (badgeEl) badgeEl.textContent = 'Missão concluída hoje';
+    if (completeBtn) { completeBtn.disabled = true; completeBtn.textContent = 'Concluída'; }
+    if (skipBtn) { skipBtn.disabled = true; skipBtn.textContent = 'Encerrada'; }
     return;
   }
 
   if (state.missionStatus.status === 'skipped') {
     progressEl.textContent = 'Missão encerrada sem execução hoje';
-    barEl.style.background = 'linear-gradient(90deg, #f59e0b, #ef4444)';
-
-    if (badgeEl) {
-      badgeEl.textContent = '⚠️ Missão ignorada hoje';
-      badgeEl.style.background = 'rgba(245,158,11,0.14)';
-      badgeEl.style.color = '#fbbf24';
-    }
-
-    if (completeBtn) {
-      completeBtn.disabled = true;
-      completeBtn.textContent = 'Encerrada hoje';
-      completeBtn.style.opacity = '0.45';
-      completeBtn.style.cursor = 'not-allowed';
-    }
-
-    if (skipBtn) {
-      skipBtn.disabled = true;
-      skipBtn.textContent = 'Ignorada';
-      skipBtn.style.opacity = '0.75';
-      skipBtn.style.cursor = 'not-allowed';
-    }
-
+    if (badgeEl) badgeEl.textContent = 'Missão ignorada hoje';
+    if (completeBtn) { completeBtn.disabled = true; completeBtn.textContent = 'Encerrada hoje'; }
+    if (skipBtn) { skipBtn.disabled = true; skipBtn.textContent = 'Ignorada'; }
     return;
   }
 
   progressEl.textContent = `${progressPct.toFixed(0)}% de execução da missão hoje`;
-
-  if (severity === 'critical') {
-    barEl.style.background = 'linear-gradient(90deg, #ef4444, #f97316)';
-  } else if (severity === 'containment' || severity === 'pressure') {
-    barEl.style.background = 'linear-gradient(90deg, #f59e0b, #ef4444)';
-  } else if (progressPct >= 80) {
-    barEl.style.background = 'linear-gradient(90deg, #10b981, #34d399)';
-  } else if (progressPct >= 40) {
-    barEl.style.background = 'linear-gradient(90deg, #6366f1, #8b5cf6)';
-  } else {
-    barEl.style.background = 'linear-gradient(90deg, #f59e0b, #ef4444)';
-  }
-
-  if (badgeEl) {
-    const severityMap = {
-      stable: 'Missão estratégica',
-      attention: 'Atenção ativa',
-      pressure: 'Pressão financeira',
-      containment: 'Contenção imediata',
-      critical: 'Risco crítico'
-    };
-
-    badgeEl.textContent = severityMap[severity] || 'Missão em aberto';
-
-    if (severity === 'critical') {
-      badgeEl.style.background = 'rgba(239,68,68,0.14)';
-      badgeEl.style.color = '#fca5a5';
-    } else if (severity === 'containment' || severity === 'pressure') {
-      badgeEl.style.background = 'rgba(245,158,11,0.14)';
-      badgeEl.style.color = '#fbbf24';
-    } else {
-      badgeEl.style.background = 'rgba(99,102,241,0.12)';
-      badgeEl.style.color = '#a5b4fc';
-    }
-  }
-
-  if (completeBtn) {
-    completeBtn.disabled = false;
-    completeBtn.textContent = '✅ Concluir missão';
-    completeBtn.style.opacity = '1';
-    completeBtn.style.cursor = 'pointer';
-  }
-
-  if (skipBtn) {
-    skipBtn.disabled = false;
-    skipBtn.textContent = 'Ignorar hoje';
-    skipBtn.style.opacity = '1';
-    skipBtn.style.cursor = 'pointer';
-  }
+  const severityMap = {
+    stable: 'Missão estratégica',
+    attention: 'Atenção ativa',
+    pressure: 'Pressão financeira',
+    containment: 'Contenção imediata',
+    critical: 'Risco crítico'
+  };
+  if (badgeEl) badgeEl.textContent = severityMap[severity] || 'Missão em aberto';
+  if (completeBtn) { completeBtn.disabled = false; completeBtn.textContent = 'Concluir missão'; }
+  if (skipBtn) { skipBtn.disabled = false; skipBtn.textContent = 'Ignorar hoje'; }
 }
-
 
 function completeMission() {
   if (!state.user || state.missionStatus.completed) return;
@@ -3350,26 +3163,29 @@ function renderDashboard() {
   const txs = getFilteredTx();
   const { income, expense, balance, savingsRate } = calcSummary(txs);
   const prev = getPrevPeriodSummary();
+  const hasAnyTransactions = Array.isArray(state.transactions) && state.transactions.length > 0;
 
-  document.getElementById('totalIncome').textContent = fmt(income);
-  document.getElementById('totalExpense').textContent = fmt(expense);
-  document.getElementById('currentBalance').textContent = fmt(balance);
-  document.getElementById('savingsRate').textContent = savingsRate.toFixed(1) + '%';
+  document.getElementById('totalIncome').textContent = hasAnyTransactions ? fmt(income) : '—';
+  document.getElementById('totalExpense').textContent = hasAnyTransactions ? fmt(expense) : '—';
+  document.getElementById('currentBalance').textContent = hasAnyTransactions ? fmt(balance) : '—';
+  document.getElementById('savingsRate').textContent = hasAnyTransactions ? savingsRate.toFixed(1) + '%' : '—';
 
   // Changes
-  const incChg = prev.income > 0 ? ((income - prev.income) / prev.income * 100).toFixed(1) : 0;
-  const expChg = prev.expense > 0 ? ((expense - prev.expense) / prev.expense * 100).toFixed(1) : 0;
+  const hasIncomeHistory = prev.income > 0;
+  const hasExpenseHistory = prev.expense > 0;
+  const incChg = hasIncomeHistory ? ((income - prev.income) / prev.income * 100).toFixed(1) : 0;
+  const expChg = hasExpenseHistory ? ((expense - prev.expense) / prev.expense * 100).toFixed(1) : 0;
   const incEl = document.getElementById('incomeChange');
   const expEl = document.getElementById('expenseChange');
-  incEl.textContent = (incChg >= 0 ? '+' : '') + incChg + '% vs. mês anterior';
-  incEl.className = 'kpi-change ' + (incChg >= 0 ? 'positive' : 'negative');
-  expEl.textContent = (expChg >= 0 ? '+' : '') + expChg + '% vs. mês anterior';
-  expEl.className = 'kpi-change ' + (expChg <= 0 ? 'positive' : 'negative');
+  incEl.textContent = hasIncomeHistory ? (incChg >= 0 ? '+' : '') + incChg + '% vs. mês anterior' : 'Sem histórico disponível';
+  incEl.className = 'kpi-change ' + (hasIncomeHistory ? (incChg >= 0 ? 'positive' : 'negative') : '');
+  expEl.textContent = hasExpenseHistory ? (expChg >= 0 ? '+' : '') + expChg + '% vs. mês anterior' : 'Sem histórico disponível';
+  expEl.className = 'kpi-change ' + (hasExpenseHistory ? (expChg <= 0 ? 'positive' : 'negative') : '');
 
-  document.getElementById('balanceStatus').textContent = balance >= 0 ? '✓ Positivo' : '⚠ Negativo';
-  document.getElementById('balanceStatus').className = 'kpi-change ' + (balance >= 0 ? 'positive' : 'negative');
-  document.getElementById('savingsStatus').textContent = `Meta: 20% | Atual: ${savingsRate.toFixed(1)}%`;
-  document.getElementById('savingsStatus').className = 'kpi-change ' + (savingsRate >= 20 ? 'positive' : savingsRate >= 10 ? '' : 'negative');
+  document.getElementById('balanceStatus').textContent = hasAnyTransactions ? (balance >= 0 ? '✓ Positivo' : '⚠ Negativo') : 'Aguardando movimentações';
+  document.getElementById('balanceStatus').className = 'kpi-change ' + (hasAnyTransactions ? (balance >= 0 ? 'positive' : 'negative') : '');
+  document.getElementById('savingsStatus').textContent = hasAnyTransactions ? `Meta: 20% | Atual: ${savingsRate.toFixed(1)}%` : 'Aguardando movimentações';
+  document.getElementById('savingsStatus').className = 'kpi-change ' + (hasAnyTransactions ? (savingsRate >= 20 ? 'positive' : savingsRate >= 10 ? '' : 'negative') : '');
 
 renderCashflowChart();
 renderCategoryChart();
@@ -3455,26 +3271,52 @@ function renderCashflowChart() {
 
   destroyChart('cashflow');
 
+  const chartBody = ctx.parentElement;
+  let emptyState = chartBody.querySelector('.chart-empty-state');
+  const legend = ctx.closest('.chart-card')?.querySelector('.chart-legend');
+  if (!Array.isArray(state.transactions) || state.transactions.length === 0) {
+    ctx.hidden = true;
+    chartBody.classList.add('is-empty');
+    legend?.classList.add('hidden');
+    state.charts.cashflow = null;
+    if (!emptyState) {
+      emptyState = document.createElement('div');
+      emptyState.className = 'chart-empty-state';
+      emptyState.textContent = 'Registre movimentações para visualizar o fluxo de caixa.';
+      chartBody.appendChild(emptyState);
+    }
+    return;
+  }
+  emptyState?.remove();
+  chartBody.classList.remove('is-empty');
+  legend?.classList.remove('hidden');
+  ctx.hidden = false;
+
   const months = getLast6Months();
   const incomeData = months.map(m => getMonthTotal(m.year, m.month, 'income'));
   const expenseData = months.map(m => getMonthTotal(m.year, m.month, 'expense'));
   const labels = months.map(m => m.label);
+  const chartStyles = getComputedStyle(document.documentElement);
+  const incomeColor = chartStyles.getPropertyValue('--income').trim() || '#10b981';
+  const expenseColor = chartStyles.getPropertyValue('--expense').trim() || '#ef4444';
+  const mutedColor = chartStyles.getPropertyValue('--text-muted').trim() || '#8892a4';
+  const gridColor = chartStyles.getPropertyValue('--border').trim() || 'rgba(255,255,255,0.04)';
 
   state.charts.cashflow = new Chart(ctx, {
     type: 'bar',
     data: {
       labels,
       datasets: [
-        { label: 'Receitas', data: incomeData, backgroundColor: 'rgba(16,185,129,0.7)', borderRadius: 6, borderSkipped: false },
-        { label: 'Despesas', data: expenseData, backgroundColor: 'rgba(239,68,68,0.7)', borderRadius: 6, borderSkipped: false }
+        { label: 'Receitas', data: incomeData, backgroundColor: incomeColor, borderRadius: 6, borderSkipped: false },
+        { label: 'Despesas', data: expenseData, backgroundColor: expenseColor, borderRadius: 6, borderSkipped: false }
       ]
     },
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ' ' + fmt(ctx.raw) } } },
       scales: {
-        x: { grid: { display: false }, ticks: { color: '#8892a4', font: { size: 12 } }, border: { display: false } },
-        y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#8892a4', font: { size: 12 }, callback: v => 'R$' + (v/1000).toFixed(0) + 'k' }, border: { display: false } }
+        x: { grid: { display: false }, ticks: { color: mutedColor, font: { size: 12 } }, border: { display: false } },
+        y: { grid: { color: gridColor }, ticks: { color: mutedColor, font: { size: 12 }, callback: v => 'R$' + (v/1000).toFixed(0) + 'k' }, border: { display: false } }
       }
     }
   });
@@ -3492,12 +3334,26 @@ function renderCategoryChart() {
   expenses.forEach(t => { byCategory[t.category] = (byCategory[t.category] || 0) + t.value; });
 
   const sorted = Object.entries(byCategory).sort((a, b) => b[1] - a[1]).slice(0, 6);
-  const colors = ['#6366f1','#8b5cf6','#ec4899','#f59e0b','#10b981','#3b82f6','#ef4444','#14b8a6'];
+  const palette = ['--accent','--info','--income','--warning','--expense','--purple'];
+  const chartStyles = getComputedStyle(document.documentElement);
+  const colors = palette.map((token, index) => chartStyles.getPropertyValue(token).trim() || ['#6656c4','#456b9c','#187657','#8f641c','#b34b56','#705fc7'][index]);
+  const parent = ctx.parentElement;
+  let emptyState = parent.querySelector('.chart-empty-state');
 
   if (!sorted.length) {
-    ctx.parentElement.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);font-size:14px;">Sem despesas neste período</div>';
+    ctx.hidden = true;
+    parent.classList.add('is-empty');
+    if (!emptyState) {
+      emptyState = document.createElement('div');
+      emptyState.className = 'chart-empty-state';
+      emptyState.textContent = 'Sem despesas neste período';
+      parent.appendChild(emptyState);
+    }
     return;
   }
+  emptyState?.remove();
+  parent.classList.remove('is-empty');
+  ctx.hidden = false;
 
   state.charts.category = new Chart(ctx, {
     type: 'doughnut',
@@ -3513,7 +3369,7 @@ function renderCategoryChart() {
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: {
-        legend: { position: 'bottom', labels: { color: '#8892a4', font: { size: 12 }, padding: 16, usePointStyle: true } },
+        legend: { position: 'bottom', labels: { color: chartStyles.getPropertyValue('--text-muted').trim() || '#8892a4', font: { size: 12 }, padding: 16, usePointStyle: true } },
         tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${fmt(ctx.raw)}` } }
       },
       cutout: '65%'
@@ -4175,23 +4031,47 @@ function generateAIInsightBanner(txs, income, expense, savingsRate) {
   const insightEl = document.getElementById('aiInsightText');
   if (!insightEl) return;
 
-  const snap = typeof getBehaviorEngineSnapshot === 'function'
-    ? getBehaviorEngineSnapshot()
-    : null;
+  const renderInsight = (message) => {
+    insightEl.replaceChildren();
+    const match = String(message).match(/^(.*?)\s*Ação agora:\s*(.*)$/i);
+    const observation = document.createElement('span');
+    observation.className = 'ai-insight-observation';
+    observation.textContent = match ? match[1].trim() : String(message);
+    insightEl.appendChild(observation);
+    if (match && match[2].trim()) {
+      const action = document.createElement('span');
+      action.className = 'ai-insight-action';
+      const label = document.createElement('span');
+      label.className = 'ai-insight-action-label';
+      label.textContent = 'Próximo passo';
+      const value = document.createElement('span');
+      value.textContent = match[2].trim();
+      action.append(label, value);
+      insightEl.appendChild(action);
+    }
+  };
 
+  if (!Array.isArray(txs) || txs.length === 0) {
+    insightEl.replaceChildren();
+    const empty = document.createElement('span');
+    empty.className = 'ai-insight-empty';
+    empty.textContent = 'Ainda não há movimentações suficientes para uma análise. Registre receitas e despesas para receber um insight baseado nos seus dados.';
+    insightEl.appendChild(empty);
+    return;
+  }
+
+  const snap = typeof getBehaviorEngineSnapshot === 'function' ? getBehaviorEngineSnapshot() : null;
   if (!snap) {
-    insightEl.textContent = 'Sem leitura comportamental suficiente ainda. Continue registrando movimentações para o FinanceAI detectar risco, padrão e pressão.';
+    renderInsight('Sem leitura comportamental suficiente ainda. Continue registrando movimentações para o FinanceAI detectar padrões e pressão financeira.');
     return;
   }
 
   const projectedBalance = Number(snap.projectedBalance || 0);
-  const score = Number(snap.score || 0);
   const behavior = snap.behavior || {};
   const metrics = snap.metrics || {};
   const behaviorState = snap.behaviorState || {};
   const languagePack = snap.languagePack || {};
   const topCategory = getTopCategory(txs);
-
   let message = '';
 
   if (behaviorState.state === 'pre_collapse' || projectedBalance < 0) {
@@ -4199,13 +4079,13 @@ function generateAIInsightBanner(txs, income, expense, savingsRate) {
     const daysToPressure = Math.max(1, Math.round(Math.abs(projectedBalance) / dailyBase));
     message = `Seu padrão atual está empurrando seu caixa para ruptura. Se nada mudar, a pressão pode estourar em cerca de ${daysToPressure} dias. Ação agora: interrompa o driver dominante ${behavior.primaryDriver || 'de risco'} antes que ele vire perda real.`;
   } else if (behaviorState.state === 'sabotage_active') {
-    message = `O FinanceAI detectou sabotagem ativa no seu comportamento financeiro. O problema não é só gasto alto: é repetição de erro com impacto crescente. Ação agora: bloquear gastos variáveis e reduzir exposição ao padrão dominante.`;
+    message = 'O FinanceAI detectou sabotagem ativa no seu comportamento financeiro. O problema não é só gasto alto: é repetição de erro com impacto crescente. Ação agora: bloquear gastos variáveis e reduzir exposição ao padrão dominante.';
   } else if (Number(metrics.postIncomeVulnerability || 0) >= 55) {
-    message = `Sua vulnerabilidade sobe logo após entrada de renda. Isso comprime sua margem cedo demais e aumenta o risco de sufoco antes do fim do ciclo. Ação agora: travar consumo impulsivo nas próximas 48h após receber.`;
+    message = 'Sua vulnerabilidade sobe logo após entrada de renda. Isso comprime sua margem cedo demais e aumenta o risco de sufoco antes do fim do ciclo. Ação agora: travar consumo impulsivo nas próximas 48h após receber.';
   } else if (Number(metrics.silentRiskLoad || 0) >= 55) {
-    message = `Seu risco está se formando de maneira silenciosa. Ainda não parece colapso, mas sua consistência já começou a ceder. Ação agora: conter vazamentos antes que a pressão fique visível.`;
+    message = 'Seu risco está se formando de maneira silenciosa. Ainda não parece colapso, mas sua consistência já começou a ceder. Ação agora: conter vazamentos antes que a pressão fique visível.';
   } else if ((behavior.impulseExpenseCount || 0) >= 3) {
-    message = `Seu controle está sendo corroído por decisões impulsivas recorrentes. Não é o valor isolado que pesa mais — é a repetição que drena sua margem. Ação agora: bloquear gastos não essenciais hoje.`;
+    message = 'Seu controle está sendo corroído por decisões impulsivas recorrentes. Não é o valor isolado que pesa mais — é a repetição que drena sua margem. Ação agora: bloquear gastos não essenciais hoje.';
   } else if (savingsRate < 10) {
     message = `Sua retenção está abaixo do necessário para estabilidade real. Hoje você poupa ${savingsRate.toFixed(1)}% e isso ainda deixa sua estrutura vulnerável. Ação agora: proteger margem e levar sua retenção para pelo menos 20%.`;
   } else if (topCategory && topCategory !== 'N/A') {
@@ -4213,10 +4093,9 @@ function generateAIInsightBanner(txs, income, expense, savingsRate) {
   } else {
     message = languagePack.headline
       ? `${languagePack.headline} ${languagePack.body || ''}`.trim()
-      : `Seu padrão financeiro está relativamente sob controle, mas ainda exige disciplina. Estabilidade não é ausência de risco — é repetição correta sob monitoramento.`;
+      : 'Seu padrão financeiro está relativamente sob controle, mas ainda exige disciplina. Estabilidade não é ausência de risco — é repetição correta sob monitoramento.';
   }
-
-  insightEl.textContent = message;
+  renderInsight(message);
 }
 
 function getTopCategory(txs) {
@@ -6230,6 +6109,7 @@ function renderNotifications() {
 
   if (!items.length) {
     list.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-muted);font-size:14px;">Sem notificações</div>';
+    updateNotifBadge();
     return;
   }
 

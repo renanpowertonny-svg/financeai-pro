@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>FinanceAI — Assistente Financeiro Inteligente</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22%3E%3Crect width=%2264%22 height=%2264%22 rx=%2216%22 fill=%22%236656c4%22/%3E%3Cpath d=%22M15 41l11-12 8 7 15-18%22 fill=%22none%22 stroke=%22white%22 stroke-width=%225%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/%3E%3C/svg%3E" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
@@ -189,7 +190,7 @@
       <div id="page-dashboard" class="page active">
         <div class="page-header">
           <div>
-            <h1 id="dashGreeting">Bom dia, João! 👋</h1>
+            <h1 id="dashGreeting">Bom dia, João!</h1>
             <p class="page-subtitle">Aqui está um resumo das suas finanças</p>
           </div>
           <div class="period-selector">
@@ -249,281 +250,74 @@
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM8 5v4M8 10.5v.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
             IA Insight
           </div>
-          <p id="aiInsightText">Analisando seus dados financeiros...</p>
+          <div id="aiInsightText" aria-live="polite"><span class="ai-insight-empty">Aguardando dados financeiros...</span></div>
           <button class="btn-ghost" onclick="navigate('ai')">Ver análise completa →</button>
         </div>
         <!-- MISSÃO DO DIA -->
-<div id="dailyMissionCard" class="card" style="margin-top: 16px;">
-  <div class="card-header">
-    <span style="font-weight: 600;"><svg class="mission-heading-icon" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="10" cy="10" r="7.2" stroke="currentColor" stroke-width="1.5"/><circle cx="10" cy="10" r="3" stroke="currentColor" stroke-width="1.5"/><circle cx="10" cy="10" r="1" fill="currentColor"/></svg>Missão de Hoje</span>
-  </div>
+        <section id="dailyMissionCard" class="card mission-card" aria-labelledby="missionCardHeading">
+          <header class="mission-card-head">
+            <h2 id="missionCardHeading" class="mission-card-title">
+              <svg class="mission-heading-icon" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="10" cy="10" r="7.2" stroke="currentColor" stroke-width="1.5"/><circle cx="10" cy="10" r="3" stroke="currentColor" stroke-width="1.5"/><circle cx="10" cy="10" r="1" fill="currentColor"/></svg>
+              Missão de hoje
+            </h2>
+            <span id="missionStatusBadge" class="mission-status" data-state="unknown">Aguardando dados</span>
+          </header>
+          <div class="mission-card-body">
+            <div class="mission-copy">
+              <div id="missionTitle" class="mission-copy-title">Preparando sua missão</div>
+              <details class="mission-copy-details">
+                <summary>Ver orientação completa</summary>
+                <div id="missionText" class="mission-copy-body" aria-live="polite">O FinanceAI apresentará uma orientação quando houver movimentações registradas.</div>
+              </details>
+            </div>
+            <div class="mission-progress">
+              <div class="mission-progress-head"><span>Progresso</span><span id="missionProgressText">Aguardando movimentações</span></div>
+              <div class="mission-progress-track" role="progressbar" aria-label="Progresso da missão diária" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                <div id="missionProgressBar" class="mission-progress-fill" data-state="empty" style="width:0%"></div>
+              </div>
+            </div>
+            <div class="mission-actions" aria-label="Ações da missão">
+              <button id="missionCompleteBtn" type="button" onclick="completeMission()" disabled>Concluir missão</button>
+              <button id="missionSkipBtn" type="button" onclick="skipMission()" disabled>Ignorar hoje</button>
+            </div>
+          </div>
+        </section>
 
-  <div class="card-body">
-    <p id="missionText">Calculando sua missão...</p>
+        <section id="premiumRiskCard" class="risk-card" data-risk-state="unknown" aria-labelledby="premiumRiskTitle">
+          <header class="risk-head">
+            <div class="risk-copy">
+              <p class="risk-eyebrow">Radar FinanceAI</p>
+              <h2 id="premiumRiskTitle">Aguardando movimentações</h2>
+              <p id="premiumRiskSummary">Registre movimentações para que o Radar possa apresentar uma leitura baseada nos seus dados.</p>
+            </div>
+            <div class="risk-score" role="group" aria-label="Score comportamental">
+              <span class="risk-score-label">Score</span>
+              <strong id="premiumRiskScore">--/100</strong>
+              <span id="premiumRiskLevel">Sem leitura</span>
+            </div>
+          </header>
+          <details class="risk-details">
+            <summary>Ver alertas e recomendações</summary>
+            <div class="risk-detail-content">
+              <div class="risk-signals">
+                <div class="risk-signal"><span class="risk-signal-label">Alerta mestre</span><div id="premiumRiskMasterAlert" class="risk-signal-value">Aguardando leitura</div></div>
+                <div class="risk-signal"><span class="risk-signal-label">Ação recomendada</span><div id="premiumRiskAction" class="risk-signal-value">Aguardando recomendação</div></div>
+                <div class="risk-signal"><span class="risk-signal-label">Objetivo tático</span><div id="premiumRiskObjective" class="risk-signal-value">Definir prioridade</div></div>
+              </div>
+              <div class="risk-actions">
+                <button id="premiumRiskPrimaryBtn" type="button">Ver transações</button>
+                <button id="premiumRiskSecondaryBtn" type="button">Abrir IA</button>
+              </div>
+            </div>
+          </details>
+        </section>
 
-    <div style="margin-top: 12px;">
-      <div style="font-size: 12px; opacity: 0.7;">Progresso</div>
+        <section class="dashboard-financial-section" aria-labelledby="financialSectionTitle">
+        <div class="dashboard-section-heading">
+          <h2 id="financialSectionTitle">Visão financeira</h2>
+          <p>Fluxo de caixa e distribuição por categoria</p>
+        </div>
 
-      <div style="margin-top: 6px; background: rgba(255,255,255,0.08); border-radius: 8px; overflow: hidden;">
-        <div
-          id="missionProgressBar"
-          style="height: 8px; width: 0%; background: linear-gradient(90deg, #7c5cff, #00d4ff);"
-        ></div>
-      </div>
-
-      <div id="missionProgressText" style="font-size: 12px; margin-top: 6px;">
-        0% concluído hoje
-      </div>
-
-      <div
-        id="missionStatusBadge"
-        style="
-          margin-top: 10px;
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          padding: 6px 10px;
-          border-radius: 999px;
-          background: rgba(99,102,241,0.12);
-          color: #a5b4fc;
-          font-size: 12px;
-          font-weight: 700;
-          letter-spacing: 0.02em;
-        "
-      >
-        Missão em aberto
-      </div>
-
-      <div style="margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap;">
-        <button
-          id="missionCompleteBtn"
-          type="button"
-          onclick="completeMission()"
-          style="
-            flex: 1 1 220px;
-            min-height: 44px;
-            padding: 10px 14px;
-            border: none;
-            border-radius: 8px;
-            background: linear-gradient(90deg, #10b981, #34d399);
-            color: white;
-            font-weight: 600;
-            cursor: pointer;
-          "
-        >
-          <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m3.5 8.2 3 3 6-6.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Concluir missão
-        </button>
-
-        <button
-          id="missionSkipBtn"
-          type="button"
-          onclick="skipMission()"
-          style="
-            flex: 1 1 220px;
-            min-height: 44px;
-            padding: 10px 14px;
-            border: none;
-            border-radius: 8px;
-            background: rgba(255,255,255,0.08);
-            color: white;
-            font-weight: 600;
-            cursor: pointer;
-          "
-        >
-          Ignorar hoje
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
-<div id="premiumRiskCard" style="
-  margin-top: 24px;
-  padding: 24px;
-  border-radius: 24px;
-  border: 1px solid rgba(99,102,241,0.22);
-  background: linear-gradient(135deg, rgba(99,102,241,0.16), rgba(15,23,42,0.95));
-  box-shadow: 0 20px 40px rgba(0,0,0,0.28);
-  position: relative;
-  overflow: hidden;
-">
-  <div style="
-    position:absolute;
-    top:-40px;
-    right:-40px;
-    width:140px;
-    height:140px;
-    border-radius:50%;
-    background: radial-gradient(circle, rgba(99,102,241,0.35), transparent 70%);
-    pointer-events:none;
-  "></div>
-
-  <div style="
-    display:grid;
-    grid-template-columns: minmax(0, 1.35fr) auto;
-    gap:12px;
-    align-items:center;
-  ">
-    <div style="min-width:0;">
-      <div style="
-        display:inline-flex;
-        align-items:center;
-        gap:8px;
-        padding:6px 10px;
-        border-radius:999px;
-        background: rgba(99,102,241,0.12);
-        color:#a5b4fc;
-        font-size:10px;
-        font-weight:800;
-        letter-spacing:0.08em;
-        text-transform:uppercase;
-      ">
-        <span>Radar FinanceAI</span>
-      </div>
-
-      <h3 id="premiumRiskTitle" style="
-        margin:8px 0 4px;
-        font-size:20px;
-        line-height:1.05;
-        color:var(--text-primary);
-        font-weight:800;
-      ">Seu risco financeiro está sob análise</h3>
-
-      <p id="premiumRiskSummary" style="
-        margin:0;
-        font-size:13px;
-        line-height:1.45;
-        color:var(--text-secondary);
-        max-width:760px;
-      ">
-        O FinanceAI está consolidando sua leitura de risco e ação recomendada.
-      </p>
-    </div>
-
-    <div style="display:flex;justify-content:flex-end;">
-      <div style="
-        min-width:150px;
-        padding:10px 12px;
-        border-radius:14px;
-        background: rgba(2,6,23,0.42);
-        border:1px solid rgba(255,255,255,0.08);
-        text-align:right;
-      ">
-        <div style="font-size:10px;color:var(--text-muted);margin-bottom:4px;letter-spacing:0.04em;text-transform:uppercase;">Score</div>
-        <div id="premiumRiskScore" style="
-          font-size:24px;
-          font-weight:800;
-          color:var(--text-primary);
-          line-height:1;
-        ">--/100</div>
-        <div id="premiumRiskLevel" style="
-          margin-top:4px;
-          font-size:11px;
-          font-weight:700;
-          color:#f59e0b;
-          line-height:1.2;
-        ">Calculando risco...</div>
-      </div>
-    </div>
-  </div>
-
-  <div style="
-    display:grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap:8px;
-    margin-top:12px;
-    padding:8px;
-    border-radius:14px;
-    background: rgba(2,6,23,0.34);
-    border:1px solid rgba(255,255,255,0.06);
-  ">
-    <div style="
-      min-width:0;
-      padding:8px 10px;
-      border-radius:10px;
-      background: rgba(255,255,255,0.02);
-      border:1px solid rgba(255,255,255,0.05);
-    ">
-      <div style="font-size:10px;color:var(--text-muted);margin-bottom:4px;letter-spacing:0.04em;text-transform:uppercase;">Alerta mestre</div>
-      <div id="premiumRiskMasterAlert" style="
-        font-size:13px;
-        font-weight:700;
-        color:var(--text-primary);
-        line-height:1.35;
-      ">
-        Aguardando leitura...
-      </div>
-    </div>
-
-    <div style="
-      min-width:0;
-      padding:8px 10px;
-      border-radius:10px;
-      background: rgba(255,255,255,0.02);
-      border:1px solid rgba(255,255,255,0.05);
-    ">
-      <div style="font-size:10px;color:var(--text-muted);margin-bottom:4px;letter-spacing:0.04em;text-transform:uppercase;">Ação hoje</div>
-      <div id="premiumRiskAction" style="
-        font-size:13px;
-        font-weight:700;
-        color:var(--text-primary);
-        line-height:1.35;
-      ">
-        Aguardando recomendação...
-      </div>
-    </div>
-
-    <div style="
-      min-width:0;
-      padding:8px 10px;
-      border-radius:10px;
-      background: rgba(255,255,255,0.02);
-      border:1px solid rgba(255,255,255,0.05);
-    ">
-      <div style="font-size:10px;color:var(--text-muted);margin-bottom:4px;letter-spacing:0.04em;text-transform:uppercase;">Objetivo tático</div>
-      <div id="premiumRiskObjective" style="
-        font-size:13px;
-        font-weight:700;
-        color:var(--text-primary);
-        line-height:1.35;
-      ">
-        Definir prioridade do dia.
-      </div>
-    </div>
-  </div>
-
-  <div style="
-    display:flex;
-    gap:8px;
-    flex-wrap:wrap;
-    margin-top:12px;
-  ">
-    <button id="premiumRiskPrimaryBtn" type="button" style="
-      border:none;
-      border-radius:10px;
-      padding:10px 14px;
-      background: linear-gradient(135deg, #6366f1, #8b5cf6);
-      color:white;
-      font-weight:700;
-      cursor:pointer;
-      box-shadow: 0 8px 16px rgba(99,102,241,0.20);
-    ">
-      Ver ação principal
-    </button>
-
-    <button id="premiumRiskSecondaryBtn" type="button" style="
-      border:1px solid rgba(255,255,255,0.10);
-      border-radius:10px;
-      padding:10px 14px;
-      background: rgba(255,255,255,0.03);
-      color:var(--text-primary);
-      font-weight:700;
-      cursor:pointer;
-    ">
-      Abrir análise completa
-    </button>
-  </div>
-</div>
-        <!-- CHARTS ROW -->
         <div class="charts-grid">
           <div class="chart-card wide">
             <div class="chart-header">
@@ -546,6 +340,7 @@
             </div>
           </div>
         </div>
+        </section>
 
         <!-- RECENT TRANSACTIONS + GOALS MINI -->
         <div class="bottom-grid">
